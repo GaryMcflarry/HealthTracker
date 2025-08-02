@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Tracker - Login</title>
+    <link rel="stylesheet" href="auth.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-gif-container">
+        <!-- Background GIF will be inserted here when ready -->
+    </div>
+    
+    <div class="auth-container">
+        <!-- Logo Circle -->
+        <div class="logo-circle">
+            <div class="logo-placeholder">
+                <span class="logo-text">H+</span>
+            </div>
+        </div>
+        
+        <!-- Auth Form -->
+        <div class="auth-form">
+            <div class="form-container">
+                <h1 class="form-title">LOGIN</h1>
+                
+                <div class="input-group">
+                    <label for="email" class="pixel-label">EMAIL</label>
+                    <input type="email" id="email" class="pixel-input" placeholder="your@email.com" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="password" class="pixel-label">PASSWORD</label>
+                    <input type="password" id="password" class="pixel-input" placeholder="••••••••" required>
+                </div>
+                
+                <button onclick="login()" type="submit" class="pixel-button login-btn">LOGIN</button>
+                
+                <div class="register-link">
+                    <span class="register-text">DON'T HAVE ACCOUNT?</span>
+                    <a href="#" class="register-link-text" onclick="openRegisterDialog()">REGISTER</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Dialog Overlay -->
+    <div class="dialog-overlay" id="registerDialog">
+        <div class="dialog-container">
+            <div class="dialog-header">
+                <h2 class="dialog-title">CREATE ACCOUNT</h2>
+                <button class="close-button" onclick="closeRegisterDialog()">✕</button>
+            </div>
+            
+            <div class="dialog-content">
+                <form class="register-form-dialog">
+                    <div class="input-group">
+                        <label for="dialog-email" class="pixel-label">EMAIL</label>
+                        <input type="email" id="dialog-email" class="pixel-input" placeholder="your@email.com" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="dialog-password" class="pixel-label">PASSWORD</label>
+                        <input type="password" id="dialog-password" class="pixel-input" placeholder="••••••••" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="dialog-confirm-password" class="pixel-label">CONFIRM PASSWORD</label>
+                        <input type="password" id="dialog-confirm-password" class="pixel-input" placeholder="••••••••" required>
+                    </div>
+                    
+                    <!-- Disclaimer Section -->
+                    <div class="disclaimer-section">
+                        <div class="disclaimer-header">
+                            <div class="info-icon">
+                                <span class="info-text">i</span>
+                            </div>
+                        </div>
+                        <div class="disclaimer-content">
+                            <p class="disclaimer-text">
+                                YOUR EMAIL WILL BE USED TO CONNECT WITH THIRD-PARTY HEALTH DEVICES (GOOGLE FIT) VIA OAUTH2. 
+                                THIS ALLOWS US TO SYNC YOUR HEALTH DATA SECURELY.
+                            </p>
+                            <p class="disclaimer-text">
+                                WE ONLY ACCESS HEALTH METRICS LIKE STEPS, HEART RATE, AND SLEEP DATA. 
+                                YOUR PERSONAL INFORMATION REMAINS PRIVATE.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="pixel-button register-dialog-btn">CREATE ACCOUNT</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        function login() {
+            window.location.href='../dashboard/dashboard.html'
+        }
+
+
+        function openRegisterDialog() {
+            document.getElementById('registerDialog').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeRegisterDialog() {
+            document.getElementById('registerDialog').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function toggleForm() {
+            // This function is no longer needed since we're using a dialog
+            // But keeping it for backward compatibility
+        }
+
+        // Add pixel-perfect click effects
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.pixel-button');
+            const inputs = document.querySelectorAll('.pixel-input');
+            
+            buttons.forEach(button => {
+                button.addEventListener('mousedown', function() {
+                    this.style.transform = 'translate(2px, 2px)';
+                    this.style.boxShadow = '2px 2px 0px #333';
+                });
+                
+                button.addEventListener('mouseup', function() {
+                    this.style.transform = 'translate(0px, 0px)';
+                    this.style.boxShadow = '4px 4px 0px #333';
+                });
+            });
+            
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.style.borderColor = '#4CAF50';
+                    this.style.boxShadow = '0 0 0 2px #4CAF50';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.style.borderColor = '#fff';
+                    this.style.boxShadow = 'none';
+                });
+            });
+        });
+
+        // Function to add background GIF when ready
+        function setBackgroundGif(gifUrl) {
+            const container = document.querySelector('.background-gif-container');
+            container.style.backgroundImage = `url(${gifUrl})`;
+            container.style.backgroundSize = 'cover';
+            container.style.backgroundPosition = 'center';
+            container.style.backgroundRepeat = 'no-repeat';
+        }
+    </script>
+</body>
+</html>

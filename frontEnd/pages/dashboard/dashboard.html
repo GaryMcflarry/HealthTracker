@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Tracker - Dashboard</title>
+    <link rel="stylesheet" href="../navigation.css">
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+
+          <nav class="navigation-container">
+        <div class="nav-header">
+            <!-- Current Page Indicator -->
+            <div class="current-page">
+                <span class="page-label">CURRENT:</span>
+                <span class="page-name">DASHBOARD</span>
+            </div>
+
+            <button class="menu-button" id="menuButton">
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>MENU</span>
+            </button>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <div class="dropdown-menu" id="dropdownMenu">
+            <div class="menu-content">
+                <!-- Main Pages Section -->
+                <div class="menu-section">
+                    <div class="section-title">NAVIGATION</div>
+                    <div class="menu-items">
+                        <!-- Set "active" class on current page -->
+                        <a href="../dashboard/dashboard.html" class="menu-item active">
+                            <span class="menu-icon">📊</span>
+                            <span class="menu-text">DASHBOARD</span>
+                        </a>
+                        <a href="../stats/stats.html" class="menu-item">
+                            <span class="menu-icon">📈</span>
+                            <span class="menu-text">STATISTICS</span>
+                        </a>
+                        <a href="../profile/profile.html" class="menu-item">
+                            <span class="menu-icon">👤</span>
+                            <span class="menu-text">PROFILE</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- User Info Section -->
+                <div class="menu-section user-info-section">
+                    <div class="user-info">
+                        <div class="user-avatar">JD</div>
+                        <div class="user-details">
+                            <div class="user-name">JOHN DOE</div>
+                            <div class="user-status">HUAWEI GT 2 CONNECTED</div>
+                        </div>
+                    </div>
+                    <div class="menu-items">
+                        <a href="../auth/auth.html" class="menu-item">
+                            <span class="menu-icon">🚪</span>
+                            <span class="menu-text">LOG OUT</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Overlay -->
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="logo-circle">
+                <span class="logo-text">H+</span>
+            </div>
+            <h1 class="dashboard-title">DASHBOARD</h1>
+            <div class="user-info">
+                <span class="welcome-text">WELCOME BACK!</span>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Steps Tracker - Top Left -->
+            <div class="widget steps-widget">
+                <div class="widget-header">
+                    <div class="widget-icon steps-icon">👟</div>
+                    <h3 class="widget-title">STEPS TRACKER</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="circular-progress-container">
+                        <svg class="circular-progress" viewBox="0 0 120 120">
+                            <circle class="progress-bg" cx="60" cy="60" r="50" fill="none" stroke="#333" stroke-width="8"/>
+                            <circle class="progress-bar-circular steps-progress-circular" cx="60" cy="60" r="50" fill="none" stroke="#388E3C" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="56.52"/>
+                            <!-- Empty circle in center for gif -->
+                            <circle class="gif-placeholder" cx="60" cy="60" r="25" fill="#2a2a2a" stroke="#388E3C" stroke-width="2"/>
+                        </svg>
+                        <div class="circular-content">
+                            <div class="gif-icon" id="stepsGifIcon">🚶</div>
+                        </div>
+                    </div>
+                    <div class="steps-info">
+                        <span class="stat-number">8,247</span>
+                        <span class="stat-label">STEPS TODAY</span>
+                        <span class="progress-text">82% OF GOAL (10,000)</span>
+                        <div class="widget-recommendation">
+                            <div class="rec-icon">🚶</div>
+                            <div class="rec-content">
+                                <span class="rec-title">ALMOST THERE!</span>
+                                <span class="rec-text">TAKE A 15-MINUTE WALK TO REACH YOUR STEP GOAL</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Data - Top Right -->
+            <div class="widget goals-widget">
+                <div class="widget-header">
+                    <div class="widget-icon goals-icon">👤</div>
+                    <h3 class="widget-title">USER DATA</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="user-profile">
+                        <div class="user-avatar">JD</div>
+                        <div class="user-details">
+                            <span class="user-name">JOHN DOE</span>
+                            <span class="user-email">john.doe@email.com</span>
+                        </div>
+                    </div>
+                    <div class="connected-device">
+                        <div class="device-info">
+                            <span class="device-label">CONNECTED DEVICE:</span>
+                            <span class="device-name-main">HUAWEI GT 2 WATCH</span>
+                            <span class="device-status-main">SYNCED 2 MIN AGO</span>
+                        </div>
+                    </div>
+                    <div class="quick-goals">
+                        <div class="goal-item-compact">
+                            <span class="goal-name">TODAY'S PROGRESS</span>
+                        </div>
+                        <div class="goal-stats">
+                            <span class="goal-stat">STEPS: 82%</span>
+                            <span class="goal-stat">CALORIES: 74%</span>
+                            <span class="goal-stat">SLEEP: 90%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Heart Rate Data - Bottom Left -->
+            <div class="widget heartrate-widget">
+                <div class="widget-header">
+                    <div class="widget-icon heartrate-icon">❤️</div>
+                    <h3 class="widget-title">HEART RATE TRENDS</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="main-stat">
+                        <span class="stat-number">72</span>
+                        <span class="stat-label">BPM CURRENT</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="heartRateChart" width="400" height="160"></canvas>
+                    </div>
+                    <div class="heart-stats">
+                        <div class="heart-stat">
+                            <span class="heart-label">RESTING</span>
+                            <span class="heart-value">65 BPM</span>
+                        </div>
+                        <div class="heart-stat">
+                            <span class="heart-label">MAX TODAY</span>
+                            <span class="heart-value">145 BPM</span>
+                        </div>
+                    </div>
+                    <div class="widget-recommendation">
+                        <div class="rec-icon">💧</div>
+                        <div class="rec-content">
+                            <span class="rec-title">STAY HYDRATED</span>
+                            <span class="rec-text">YOUR HEART RATE IS SLIGHTLY ELEVATED - DRINK MORE WATER</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calorie Data - Bottom Center -->
+            <div class="widget calorie-widget">
+                <div class="widget-header">
+                    <div class="widget-icon calorie-icon">🔥</div>
+                    <h3 class="widget-title">CALORIES BURNED</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="main-stat">
+                        <span class="stat-number">1,847</span>
+                        <span class="stat-label">CALORIES TODAY</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="calorieChart" width="180" height="180"></canvas>
+                    </div>
+                    <span class="progress-text">74% OF GOAL (2,500)</span>
+                    <div class="widget-recommendation">
+                        <div class="rec-icon">🏃</div>
+                        <div class="rec-content">
+                            <span class="rec-title">BOOST YOUR BURN</span>
+                            <span class="rec-text">ADD 20 MINUTES OF CARDIO TO REACH YOUR CALORIE GOAL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sleep Data - Bottom Right -->
+            <div class="widget sleep-widget">
+                <div class="widget-header">
+                    <div class="widget-icon sleep-icon">😴</div>
+                    <h3 class="widget-title">SLEEP QUALITY</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="main-stat">
+                        <span class="stat-number">7.2</span>
+                        <span class="stat-label">HOURS LAST NIGHT</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="sleepChart" width="180" height="180"></canvas>
+                    </div>
+                    <div class="sleep-quality">
+                        <span class="quality-label">QUALITY: GOOD</span>
+                        <div class="sleep-breakdown">
+                            <span class="sleep-detail">DEEP: 2.1H</span>
+                            <span class="sleep-detail">REM: 1.8H</span>
+                        </div>
+                    </div>
+                    <div class="widget-recommendation">
+                        <div class="rec-icon">🛏️</div>
+                        <div class="rec-content">
+                            <span class="rec-title">BETTER SLEEP</span>
+                            <span class="rec-text">SLEEP 30 MINUTES EARLIER TO REACH YOUR 8-HOUR GOAL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pixel Stars Background -->
+        <div class="pixel-stars-bg"></div>
+    </div>
+
+    <script>
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            
+            setTimeout(() => {
+                progressBars.forEach(bar => {
+                    const progress = bar.getAttribute('data-progress');
+                    bar.style.width = progress + '%';
+                });
+            }, 500);
+
+            // Add click animations to widgets
+            const widgets = document.querySelectorAll('.widget');
+            widgets.forEach(widget => {
+                widget.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.98) translateY(-8px)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1.02) translateY(-8px)';
+                    }, 100);
+                });
+            });
+
+            // Create all charts
+            createHeartRateChart();
+            createCalorieChart();
+            createSleepChart();
+            
+            // Initialize GIF icon functionality
+            initializeGifIcon();
+
+            // Simulate real-time heart rate updates
+            setInterval(() => {
+                const heartRateElement = document.querySelector('.heartrate-widget .stat-number');
+                const currentRate = parseInt(heartRateElement.textContent);
+                const newRate = currentRate + Math.floor(Math.random() * 6) - 3;
+                const clampedRate = Math.max(60, Math.min(85, newRate));
+                heartRateElement.textContent = clampedRate;
+                
+                updateHeartRateChart(clampedRate);
+            }, 3000);
+
+            // Simulate step updates
+            setInterval(() => {
+                const stepElement = document.querySelector('.steps-widget .stat-number');
+                const currentSteps = parseInt(stepElement.textContent.replace(',', ''));
+                const newSteps = currentSteps + Math.floor(Math.random() * 10);
+                stepElement.textContent = newSteps.toLocaleString();
+                
+                // Update progress
+                const progressPercent = Math.min(100, Math.floor((newSteps / 10000) * 100));
+                const progressText = document.querySelector('.steps-widget .progress-text');
+                progressText.textContent = `${progressPercent}% OF GOAL (10,000)`;
+                
+                // Update circular progress
+                const progressCircle = document.querySelector('.steps-progress-circular');
+                const circumference = 314;
+                const offset = circumference - (progressPercent / 100) * circumference;
+                progressCircle.style.strokeDashoffset = offset;
+            }, 15000);
+        });
+
+        // Heart Rate Line Chart
+        function createHeartRateChart() {
+            const canvas = document.getElementById('heartRateChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Sample heart rate data for the day
+            const heartRateData = [65, 68, 70, 75, 120, 95, 80, 72, 69, 65, 67, 72];
+            const maxHR = Math.max(...heartRateData);
+            const minHR = Math.min(...heartRateData);
+            
+            canvas.width = 400;
+            canvas.height = 160;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Disable smoothing for pixelated look
+            ctx.imageSmoothingEnabled = false;
+            
+            // Draw pixelated grid
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            for (let i = 0; i <= 8; i++) {
+                const y = (canvas.height / 8) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw vertical grid lines
+            for (let i = 0; i <= 12; i++) {
+                const x = (canvas.width / 12) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            // Draw heart rate line with pixelated steps
+            ctx.strokeStyle = '#D32F2F';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            
+            heartRateData.forEach((hr, index) => {
+                const x = Math.floor((canvas.width / (heartRateData.length - 1)) * index);
+                const y = Math.floor(canvas.height - ((hr - minHR) / (maxHR - minHR)) * canvas.height);
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    // Create pixelated steps instead of smooth lines
+                    const prevX = Math.floor((canvas.width / (heartRateData.length - 1)) * (index - 1));
+                    ctx.lineTo(prevX, y);
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Draw larger pixelated points
+            ctx.fillStyle = '#D32F2F';
+            heartRateData.forEach((hr, index) => {
+                const x = Math.floor((canvas.width / (heartRateData.length - 1)) * index);
+                const y = Math.floor(canvas.height - ((hr - minHR) / (maxHR - minHR)) * canvas.height);
+                ctx.fillRect(x - 4, y - 4, 8, 8);
+            });
+        }
+
+        function updateHeartRateChart(newRate) {
+            createHeartRateChart();
+        }
+
+        // Calorie Pie Chart
+        function createCalorieChart() {
+            const canvas = document.getElementById('calorieChart');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 180;
+            canvas.height = 180;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 70;
+            
+            // Data: burned vs remaining calories
+            const burned = 1847;
+            const goal = 2500;
+            const remaining = goal - burned;
+            const burnedAngle = (burned / goal) * 2 * Math.PI;
+            
+            ctx.imageSmoothingEnabled = false;
+            
+            // Draw remaining calories (gray)
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, burnedAngle, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw burned calories (orange)
+            ctx.fillStyle = '#FFA000';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, 0, burnedAngle);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw pixelated border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Add separator line
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX + Math.cos(burnedAngle) * radius, centerY + Math.sin(burnedAngle) * radius);
+            ctx.stroke();
+        }
+
+        // Sleep Donut Chart
+        function createSleepChart() {
+            const canvas = document.getElementById('sleepChart');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 180;
+            canvas.height = 180;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const outerRadius = 70;
+            const innerRadius = 35;
+            
+            // Sleep data in hours
+            const deepSleep = 2.1;
+            const remSleep = 1.8;
+            const lightSleep = 3.3;
+            const totalSleep = deepSleep + remSleep + lightSleep;
+            
+            ctx.imageSmoothingEnabled = false;
+            
+            let currentAngle = 0;
+            
+            // Draw Deep Sleep (dark purple)
+            const deepAngle = (deepSleep / totalSleep) * 2 * Math.PI;
+            ctx.fillStyle = '#4A148C';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + deepAngle);
+            ctx.arc(centerX, centerY, innerRadius, currentAngle + deepAngle, currentAngle, true);
+            ctx.closePath();
+            ctx.fill();
+            currentAngle += deepAngle;
+            
+            // Draw REM Sleep (medium purple)
+            const remAngle = (remSleep / totalSleep) * 2 * Math.PI;
+            ctx.fillStyle = '#7B1FA2';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + remAngle);
+            ctx.arc(centerX, centerY, innerRadius, currentAngle + remAngle, currentAngle, true);
+            ctx.closePath();
+            ctx.fill();
+            currentAngle += remAngle;
+            
+            // Draw Light Sleep (light purple)
+            const lightAngle = (lightSleep / totalSleep) * 2 * Math.PI;
+            ctx.fillStyle = '#BA68C8';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + lightAngle);
+            ctx.arc(centerX, centerY, innerRadius, currentAngle + lightAngle, currentAngle, true);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw pixelated borders
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Draw separators
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            currentAngle = 0;
+            
+            // Deep sleep separator
+            currentAngle += deepAngle;
+            ctx.beginPath();
+            ctx.moveTo(centerX + Math.cos(currentAngle) * innerRadius, centerY + Math.sin(currentAngle) * innerRadius);
+            ctx.lineTo(centerX + Math.cos(currentAngle) * outerRadius, centerY + Math.sin(currentAngle) * outerRadius);
+            ctx.stroke();
+            
+            // REM sleep separator
+            currentAngle += remAngle;
+            ctx.beginPath();
+            ctx.moveTo(centerX + Math.cos(currentAngle) * innerRadius, centerY + Math.sin(currentAngle) * innerRadius);
+            ctx.lineTo(centerX + Math.cos(currentAngle) * outerRadius, centerY + Math.sin(currentAngle) * outerRadius);
+            ctx.stroke();
+        }
+
+        // GIF Icon functionality
+        function initializeGifIcon() {
+            const gifIcon = document.getElementById('stepsGifIcon');
+            
+            // Click to change GIF/emoji
+            gifIcon.addEventListener('click', function() {
+                const walkingEmojis = ['🚶', '🏃', '🚶‍♂️', '🏃‍♂️', '👟', '🦶'];
+                const currentEmoji = this.textContent;
+                const currentIndex = walkingEmojis.indexOf(currentEmoji);
+                const nextIndex = (currentIndex + 1) % walkingEmojis.length;
+                this.textContent = walkingEmojis[nextIndex];
+                
+                // Add walking animation if running emoji
+                if (walkingEmojis[nextIndex].includes('🏃')) {
+                    this.classList.add('walking');
+                } else {
+                    this.classList.remove('walking');
+                }
+            });
+            
+            // Simulate step detection - make icon bounce when steps increase
+            let lastStepCount = 8247;
+            setInterval(() => {
+                const stepElement = document.querySelector('.steps-widget .stat-number');
+                const currentSteps = parseInt(stepElement.textContent.replace(',', ''));
+                
+                if (currentSteps > lastStepCount) {
+                    gifIcon.style.animation = 'stepAnimationFast 0.5s ease-in-out';
+                    setTimeout(() => {
+                        gifIcon.style.animation = 'stepAnimation 2s ease-in-out infinite';
+                    }, 500);
+                }
+                lastStepCount = currentSteps;
+            }, 5000);
+        }
+    </script>
+    <script src="../navigation.js"></script>
+</body>
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Tracker - Profile</title>
+    <link rel="stylesheet" href="../navigation.css">
+    <link rel="stylesheet" href="profile.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+
+    <nav class="navigation-container">
+        <div class="nav-header">
+            <!-- Current Page Indicator -->
+            <div class="current-page">
+                <span class="page-label">CURRENT:</span>
+                <span class="page-name">PROFILE</span>
+            </div>
+
+            <button class="menu-button" id="menuButton">
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>MENU</span>
+            </button>
+        </div>
+
+        <!-- Dropdown Menu -->
+        <div class="dropdown-menu" id="dropdownMenu">
+            <div class="menu-content">
+                <!-- Main Pages Section -->
+                <div class="menu-section">
+                    <div class="section-title">NAVIGATION</div>
+                    <div class="menu-items">
+                        <!-- Set "active" class on current page -->
+                        <a href="../dashboard/dashboard.html" class="menu-item">
+                            <span class="menu-icon">📊</span>
+                            <span class="menu-text">DASHBOARD</span>
+                        </a>
+                        <a href="../stats/stats.html" class="menu-item">
+                            <span class="menu-icon">📈</span>
+                            <span class="menu-text">STATISTICS</span>
+                        </a>
+                        <a href="../profile/profile.html" class="menu-item active">
+                            <span class="menu-icon">👤</span>
+                            <span class="menu-text">PROFILE</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- User Info Section -->
+                <div class="menu-section user-info-section">
+                    <div class="user-info">
+                        <div class="user-avatar">JD</div>
+                        <div class="user-details">
+                            <div class="user-name">JOHN DOE</div>
+                            <div class="user-status">HUAWEI GT 2 CONNECTED</div>
+                        </div>
+                    </div>
+                    <div class="menu-items">
+                        <a href="../auth/auth.html" class="menu-item">
+                            <span class="menu-icon">🚪</span>
+                            <span class="menu-text">LOG OUT</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="profile-container">
+
+         <!-- Header with Logo -->
+        <header class="profile-header">
+            <div class="logo-circle">
+                <span class="logo-text">H+</span>
+            </div>
+            <h1 class="profile-title">USER PROFILE</h1>
+            <div class="profile-avatar-large">
+                <span class="avatar-text">JD</span>
+            </div>
+        </header>
+
+        <!-- Main Profile Grid -->
+        <div class="profile-grid">
+            <!-- Goals Section -->
+            <div class="profile-widget goals-section">
+                <div class="widget-header">
+                    <div class="widget-icon">🎯</div>
+                    <h3 class="widget-title">HEALTH GOALS</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="goal-item">
+                        <div class="goal-info">
+                            <span class="goal-label">DAILY STEPS</span>
+                            <div class="goal-input-group">
+                                <input type="number" class="goal-input" value="10000" min="1000" max="50000">
+                                <span class="goal-unit">STEPS</span>
+                            </div>
+                        </div>
+                        <div class="goal-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 82%"></div>
+                            </div>
+                            <span class="progress-text">82% TODAY</span>
+                        </div>
+                    </div>
+
+                    <div class="goal-item">
+                        <div class="goal-info">
+                            <span class="goal-label">DAILY CALORIES</span>
+                            <div class="goal-input-group">
+                                <input type="number" class="goal-input" value="2500" min="1200" max="5000">
+                                <span class="goal-unit">KCAL</span>
+                            </div>
+                        </div>
+                        <div class="goal-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 74%"></div>
+                            </div>
+                            <span class="progress-text">74% TODAY</span>
+                        </div>
+                    </div>
+
+                    <div class="goal-item">
+                        <div class="goal-info">
+                            <span class="goal-label">SLEEP HOURS</span>
+                            <div class="goal-input-group">
+                                <input type="number" class="goal-input" value="8" min="6" max="12" step="0.5">
+                                <span class="goal-unit">HOURS</span>
+                            </div>
+                        </div>
+                        <div class="goal-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 90%"></div>
+                            </div>
+                            <span class="progress-text">90% LAST NIGHT</span>
+                        </div>
+                    </div>
+
+                    <div class="goal-item">
+                        <div class="goal-info">
+                            <span class="goal-label">WEEKLY WORKOUTS</span>
+                            <div class="goal-input-group">
+                                <input type="number" class="goal-input" value="5" min="1" max="7">
+                                <span class="goal-unit">DAYS</span>
+                            </div>
+                        </div>
+                        <div class="goal-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 60%"></div>
+                            </div>
+                            <span class="progress-text">3/5 THIS WEEK</span>
+                        </div>
+                    </div>
+
+                    <button class="save-goals-btn pixel-button">SAVE GOALS</button>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="profile-widget alerts-section">
+                <div class="widget-header">
+                    <div class="widget-icon">🔔</div>
+                    <h3 class="widget-title">HEALTH ALERTS</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="alert-item">
+                        <div class="alert-info">
+                            <span class="alert-label">HIGH HEART RATE</span>
+                            <span class="alert-description">ALERT WHEN RESTING HR > 100 BPM</span>
+                        </div>
+                        <div class="alert-toggle">
+                            <input type="checkbox" id="heartRateAlert" class="toggle-input" checked>
+                            <label for="heartRateAlert" class="toggle-slider"></label>
+                        </div>
+                    </div>
+
+                    <div class="alert-item">
+                        <div class="alert-info">
+                            <span class="alert-label">INACTIVITY REMINDER</span>
+                            <span class="alert-description">REMIND TO MOVE AFTER 2 HOURS</span>
+                        </div>
+                        <div class="alert-toggle">
+                            <input type="checkbox" id="inactivityAlert" class="toggle-input" checked>
+                            <label for="inactivityAlert" class="toggle-slider"></label>
+                        </div>
+                    </div>
+
+                    <div class="alert-item">
+                        <div class="alert-info">
+                            <span class="alert-label">GOAL REMINDERS</span>
+                            <span class="alert-description">DAILY PROGRESS NOTIFICATIONS</span>
+                        </div>
+                        <div class="alert-toggle">
+                            <input type="checkbox" id="goalAlert" class="toggle-input" checked>
+                            <label for="goalAlert" class="toggle-slider"></label>
+                        </div>
+                    </div>
+
+                    <div class="alert-item">
+                        <div class="alert-info">
+                            <span class="alert-label">SLEEP SCHEDULE</span>
+                            <span class="alert-description">BEDTIME REMINDER AT 10:00 PM</span>
+                        </div>
+                        <div class="alert-toggle">
+                            <input type="checkbox" id="sleepAlert" class="toggle-input">
+                            <label for="sleepAlert" class="toggle-slider"></label>
+                        </div>
+                    </div>
+
+                    <div class="alert-item">
+                        <div class="alert-info">
+                            <span class="alert-label">ACHIEVEMENT ALERTS</span>
+                            <span class="alert-description">CELEBRATE WHEN GOALS ARE MET</span>
+                        </div>
+                        <div class="alert-toggle">
+                            <input type="checkbox" id="achievementAlert" class="toggle-input" checked>
+                            <label for="achievementAlert" class="toggle-slider"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Credentials Section -->
+            <div class="profile-widget credentials-section">
+                <div class="widget-header">
+                    <div class="widget-icon">👤</div>
+                    <h3 class="widget-title">USER CREDENTIALS</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="sidebar-nav">
+                        <button class="nav-btn active" data-tab="credentials">CREDENTIALS</button>
+                        <button class="nav-btn" data-tab="goals">GOALS</button>
+                        <button class="nav-btn" data-tab="device">DEVICE</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div class="tab-panel active" id="credentials-tab">
+                            <div class="input-group">
+                                <label class="pixel-label">EMAIL</label>
+                                <input type="email" class="pixel-input" value="john.doe@email.com">
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">PASSWORD</label>
+                                <input type="password" class="pixel-input" value="••••••••">
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">FULL NAME</label>
+                                <input type="text" class="pixel-input" value="John Doe">
+                            </div>
+                            <button class="save-btn pixel-button">SAVE</button>
+                        </div>
+
+                        <div class="tab-panel" id="goals-tab">
+                            <div class="quick-goals-summary">
+                                <div class="goal-summary-item">
+                                    <span class="summary-label">STEPS TARGET</span>
+                                    <span class="summary-value">10,000/DAY</span>
+                                </div>
+                                <div class="goal-summary-item">
+                                    <span class="summary-label">CALORIES TARGET</span>
+                                    <span class="summary-value">2,500/DAY</span>
+                                </div>
+                                <div class="goal-summary-item">
+                                    <span class="summary-label">SLEEP TARGET</span>
+                                    <span class="summary-value">8 HOURS</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-panel" id="device-tab">
+                            <div class="device-status">
+                                <div class="device-item connected">
+                                    <div class="device-info">
+                                        <span class="device-name">HUAWEI GT 2 WATCH</span>
+                                        <span class="device-status-text">CONNECTED</span>
+                                    </div>
+                                    <div class="device-actions">
+                                        <button class="device-btn">SYNC NOW</button>
+                                        <button class="device-btn disconnect">DISCONNECT</button>
+                                    </div>
+                                </div>
+                                <div class="sync-info">
+                                    <span class="sync-text">LAST SYNC: 2 MINUTES AGO</span>
+                                    <span class="sync-status">ALL DATA UP TO DATE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Panel -->
+            <div class="profile-widget actions-section">
+                <div class="widget-header">
+                    <div class="widget-icon">⚙️</div>
+                    <h3 class="widget-title">QUICK ACTIONS</h3>
+                </div>
+                <div class="widget-content">
+                    <div class="action-grid">
+                        <button class="action-btn">
+                            <div class="action-icon">🔄</div>
+                            <span class="action-text">UPDATE CREDENTIALS</span>
+                        </button>
+                        <button class="action-btn">
+                            <div class="action-icon">🎯</div>
+                            <span class="action-text">SET GOALS</span>
+                        </button>
+                        <button class="action-btn">
+                            <div class="action-icon">📱</div>
+                            <span class="action-text">UPDATE DEVICE INFO</span>
+                        </button>
+                        <button class="action-btn logout-btn">
+                            <div class="action-icon">🚪</div>
+                            <span class="action-text">LOG OUT</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pixel Stars Background -->
+        <div class="pixel-stars-bg"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            setupTabNavigation();
+            setupGoalInputs();
+            setupToggleAnimations();
+            setupActionButtons();
+        });
+
+        function setupTabNavigation() {
+            const navBtns = document.querySelectorAll('.nav-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            navBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const targetTab = this.dataset.tab;
+
+                    // Remove active class from all buttons and panels
+                    navBtns.forEach(b => b.classList.remove('active'));
+                    tabPanels.forEach(p => p.classList.remove('active'));
+
+                    // Add active class to clicked button and corresponding panel
+                    this.classList.add('active');
+                    document.getElementById(`${targetTab}-tab`).classList.add('active');
+                });
+            });
+        }
+
+        function setupGoalInputs() {
+            const goalInputs = document.querySelectorAll('.goal-input');
+
+            goalInputs.forEach(input => {
+                input.addEventListener('change', function () {
+                    // Add visual feedback when goals are changed
+                    this.style.borderColor = '#4CAF50';
+                    setTimeout(() => {
+                        this.style.borderColor = '#fff';
+                    }, 1000);
+                });
+            });
+        }
+
+        function setupToggleAnimations() {
+            const toggles = document.querySelectorAll('.toggle-input');
+
+            toggles.forEach(toggle => {
+                toggle.addEventListener('change', function () {
+                    const slider = this.nextElementSibling;
+                    if (this.checked) {
+                        slider.style.backgroundColor = '#4CAF50';
+                    } else {
+                        slider.style.backgroundColor = '#333';
+                    }
+                });
+            });
+        }
+
+        function setupActionButtons() {
+            const actionBtns = document.querySelectorAll('.action-btn');
+
+            actionBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    // Add click animation
+                    this.style.transform = 'scale(0.95) translateY(2px)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1) translateY(0px)';
+                    }, 150);
+
+                    // Handle different actions
+                    const actionText = this.querySelector('.action-text').textContent;
+
+                    if (actionText.includes('LOG OUT')) {
+                        // Simulate logout
+                        alert('LOGGED OUT SUCCESSFULLY!');
+                    } else if (actionText.includes('UPDATE CREDENTIALS')) {
+                        // Focus on credentials tab
+                        document.querySelector('[data-tab="credentials"]').click();
+                    } else if (actionText.includes('SET GOALS')) {
+                        // Focus on first goal input
+                        document.querySelector('.goal-input').focus();
+                    } else if (actionText.includes('UPDATE DEVICE')) {
+                        // Focus on device tab
+                        document.querySelector('[data-tab="device"]').click();
+                    }
+                });
+            });
+
+            // Save buttons
+            const saveBtns = document.querySelectorAll('.save-btn, .save-goals-btn');
+            saveBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    // Visual feedback for save action
+                    const originalText = this.textContent;
+                    this.textContent = 'SAVED!';
+                    this.style.backgroundColor = '#4CAF50';
+
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.style.backgroundColor = '#388E3C';
+                    }, 2000);
+                });
+            });
+        }
+
+        // Simulate goal progress updates
+        function updateGoalProgress() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const currentWidth = parseInt(bar.style.width);
+                if (currentWidth < 100) {
+                    const newWidth = Math.min(100, currentWidth + Math.random() * 5);
+                    bar.style.width = newWidth + '%';
+                }
+            });
+        }
+
+        // Update progress every 30 seconds for demo
+        setInterval(updateGoalProgress, 30000);
+    </script>
+    <script src="../navigation.js"></script>
+
+</body>
+
+</html>
