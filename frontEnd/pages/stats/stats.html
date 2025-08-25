@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,18 +10,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <meta name="description" content="View your comprehensive health statistics including steps, heart rate, sleep quality, and calories burned">
+    <meta name="theme-color" content="#FF6F00">
 </head>
+
 <body>
+    <div class="stars"></div>
 
     <nav class="navigation-container">
         <div class="nav-header">
-            <!-- Current Page Indicator -->
             <div class="current-page">
                 <span class="page-label">CURRENT:</span>
-                <span class="page-name">STATS</span>
+                <span class="page-name">STATISTICS</span>
             </div>
 
-            <button class="menu-button" id="menuButton">
+            <button class="menu-button" id="menuButton" aria-label="Open navigation menu">
                 <div class="hamburger">
                     <span></span>
                     <span></span>
@@ -30,19 +34,16 @@
             </button>
         </div>
 
-        <!-- Dropdown Menu -->
         <div class="dropdown-menu" id="dropdownMenu">
             <div class="menu-content">
-                <!-- Main Pages Section -->
                 <div class="menu-section">
                     <div class="section-title">NAVIGATION</div>
                     <div class="menu-items">
-                        <!-- Set "active" class on current page -->
                         <a href="../dashboard/dashboard.html" class="menu-item">
                             <span class="menu-icon">📊</span>
                             <span class="menu-text">DASHBOARD</span>
                         </a>
-                        <a href="../stats/stats.html" class="menu-item  active">
+                        <a href="../stats/stats.html" class="menu-item active">
                             <span class="menu-icon">📈</span>
                             <span class="menu-text">STATISTICS</span>
                         </a>
@@ -53,13 +54,12 @@
                     </div>
                 </div>
 
-                <!-- User Info Section -->
                 <div class="menu-section user-info-section">
                     <div class="user-info">
                         <div class="user-avatar">JD</div>
                         <div class="user-details">
                             <div class="user-name">JOHN DOE</div>
-                            <div class="user-status">HUAWEI GT 2 CONNECTED</div>
+                            <div class="user-status">GOOGLE FIT CONNECTED</div>
                         </div>
                     </div>
                     <div class="menu-items">
@@ -73,543 +73,282 @@
         </div>
     </nav>
 
+    <div class="nav-overlay" id="navOverlay"></div>
+
     <div class="stats-container">
-        <!-- Header with Logo -->
         <header class="stats-header">
             <div class="logo-circle">
                 <span class="logo-text">H+</span>
             </div>
             <h1 class="stats-title">HEALTH STATISTICS</h1>
-            <div class="time-selector">
-                <button class="time-btn active" data-period="daily">DAILY</button>
-                <button class="time-btn" data-period="weekly">WEEKLY</button>
-                <button class="time-btn" data-period="monthly">MONTHLY</button>
+            <div class="header-controls">
+                <div class="period-selector">
+                    <button class="period-btn active" data-period="daily" aria-label="View daily statistics">DAILY</button>
+                    <button class="period-btn" data-period="weekly" aria-label="View weekly statistics">WEEKLY</button>
+                    <button class="period-btn" data-period="monthly" aria-label="View monthly statistics">MONTHLY</button>
+                </div>
             </div>
         </header>
 
+        <!-- Time Period Navigation -->
+        <div class="time-navigation">
+            <button class="nav-btn" id="prevPeriod" aria-label="Go to previous period">◀ PREV</button>
+            <div class="current-period" id="currentPeriod">TODAY</div>
+            <button class="nav-btn" id="nextPeriod" aria-label="Go to next period">NEXT ▶</button>
+        </div>
+
         <!-- Comparison Toggle -->
-        <div class="comparison-section">
-            <div class="comparison-toggle">
-                <span class="toggle-label">COMPARE WITH PREVIOUS PERIOD</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="compareToggle" class="toggle-input">
-                    <label for="compareToggle" class="toggle-slider"></label>
-                </div>
-            </div>
-            <div class="comparison-info" id="comparisonInfo" style="display: none;">
-                <span class="comparison-text">COMPARING: THIS WEEK VS LAST WEEK</span>
-            </div>
+        <div class="comparison-toggle">
+            <label class="toggle-switch">
+                <input type="checkbox" id="comparisonMode" aria-label="Enable period comparison">
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">COMPARE WITH PREVIOUS PERIOD</span>
         </div>
 
         <!-- Stats Grid -->
         <div class="stats-grid">
             <!-- Steps Chart -->
-            <div class="stat-widget steps-stat">
+            <div class="stat-widget steps-chart-widget">
                 <div class="widget-header">
                     <div class="widget-icon">👟</div>
                     <h3 class="widget-title">STEPS WALKED</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-chart="bar" aria-label="Bar chart view">BAR</button>
+                        <button class="chart-btn" data-chart="line" aria-label="Line chart view">LINE</button>
+                    </div>
                 </div>
                 <div class="widget-content">
-                    <div class="chart-container large">
-                        <canvas id="stepsChart" width="400" height="300"></canvas>
+                    <div class="chart-container">
+                        <canvas id="stepsChart" width="600" height="300" aria-label="Steps walked chart"></canvas>
                     </div>
-                    <div class="stat-summary">
-                        <div class="summary-item">
-                            <span class="summary-label">AVERAGE</span>
-                            <span class="summary-value">8,247</span>
+                    <div class="chart-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">TOTAL</span>
+                            <span class="stat-value" id="stepsTotalValue">0</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">HIGHEST</span>
-                            <span class="summary-value">12,156</span>
+                        <div class="stat-item">
+                            <span class="stat-label">AVERAGE</span>
+                            <span class="stat-value" id="stepsAvgValue">0</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">GOAL MET</span>
-                            <span class="summary-value">5/7 DAYS</span>
+                        <div class="stat-item">
+                            <span class="stat-label">BEST DAY</span>
+                            <span class="stat-value" id="stepsBestValue">0</span>
                         </div>
                     </div>
+                    <div class="additional-stats"></div>
                 </div>
             </div>
 
             <!-- Heart Rate Chart -->
-            <div class="stat-widget heartrate-stat">
+            <div class="stat-widget heartrate-chart-widget">
                 <div class="widget-header">
                     <div class="widget-icon">❤️</div>
                     <h3 class="widget-title">HEART RATE TRENDS</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-chart="line" aria-label="Line chart view">LINE</button>
+                        <button class="chart-btn" data-chart="area" aria-label="Area chart view">AREA</button>
+                    </div>
                 </div>
                 <div class="widget-content">
-                    <div class="chart-container large">
-                        <canvas id="heartRateStatsChart" width="400" height="300"></canvas>
+                    <div class="chart-container">
+                        <canvas id="heartRateChart" width="600" height="300" aria-label="Heart rate trends chart"></canvas>
                     </div>
-                    <div class="stat-summary">
-                        <div class="summary-item">
-                            <span class="summary-label">AVG RESTING</span>
-                            <span class="summary-value">68 BPM</span>
+                    <div class="chart-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">AVERAGE</span>
+                            <span class="stat-value" id="hrAvgValue">0 BPM</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">AVG ACTIVE</span>
-                            <span class="summary-value">125 BPM</span>
+                        <div class="stat-item">
+                            <span class="stat-label">RESTING</span>
+                            <span class="stat-value" id="hrRestingValue">0 BPM</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">TREND</span>
-                            <span class="summary-value trend-up">↗ +2 BPM</span>
+                        <div class="stat-item">
+                            <span class="stat-label">MAX</span>
+                            <span class="stat-value" id="hrMaxValue">0 BPM</span>
                         </div>
                     </div>
+                    <div class="additional-stats"></div>
                 </div>
             </div>
 
             <!-- Sleep Quality Chart -->
-            <div class="stat-widget sleep-stat">
+            <div class="stat-widget sleep-chart-widget">
                 <div class="widget-header">
                     <div class="widget-icon">😴</div>
                     <h3 class="widget-title">SLEEP QUALITY</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-chart="stacked" aria-label="Stacked chart view">STACKED</button>
+                        <button class="chart-btn" data-chart="donut" aria-label="Donut chart view">DONUT</button>
+                    </div>
                 </div>
                 <div class="widget-content">
-                    <div class="chart-container medium">
-                        <canvas id="sleepStatsChart" width="300" height="300"></canvas>
+                    <div class="chart-container">
+                        <canvas id="sleepChart" width="600" height="300" aria-label="Sleep quality chart"></canvas>
                     </div>
-                    <div class="stat-summary">
-                        <div class="summary-item">
-                            <span class="summary-label">AVG HOURS</span>
-                            <span class="summary-value">7.2 HRS</span>
+                    <div class="chart-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">AVG SLEEP</span>
+                            <span class="stat-value" id="sleepAvgValue">0H</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">QUALITY</span>
-                            <span class="summary-value">85% GOOD</span>
+                        <div class="stat-item">
+                            <span class="stat-label">EFFICIENCY</span>
+                            <span class="stat-value" id="sleepEfficiencyValue">0%</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">DEEP SLEEP</span>
-                            <span class="summary-value">28% AVG</span>
+                        <div class="stat-item">
+                            <span class="stat-label">DEEP SLEEP</span>
+                            <span class="stat-value" id="deepSleepValue">0H</span>
                         </div>
                     </div>
+                    <div class="additional-stats"></div>
                 </div>
             </div>
 
             <!-- Calories Chart -->
-            <div class="stat-widget calorie-stat">
+            <div class="stat-widget calories-chart-widget">
                 <div class="widget-header">
                     <div class="widget-icon">🔥</div>
                     <h3 class="widget-title">CALORIES BURNED</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-chart="pie" aria-label="Pie chart view">PIE</button>
+                        <button class="chart-btn" data-chart="bar" aria-label="Bar chart view">BAR</button>
+                    </div>
                 </div>
                 <div class="widget-content">
-                    <div class="chart-container medium">
-                        <canvas id="calorieStatsChart" width="300" height="300"></canvas>
+                    <div class="chart-container">
+                        <canvas id="caloriesChart" width="600" height="300" aria-label="Calories burned chart"></canvas>
                     </div>
-                    <div class="stat-summary">
-                        <div class="summary-item">
-                            <span class="summary-label">DAILY AVG</span>
-                            <span class="summary-value">2,247</span>
+                    <div class="chart-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">TOTAL</span>
+                            <span class="stat-value" id="caloriesTotalValue">0</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">HIGHEST DAY</span>
-                            <span class="summary-value">3,156</span>
+                        <div class="stat-item">
+                            <span class="stat-label">DAILY AVG</span>
+                            <span class="stat-value" id="caloriesAvgValue">0</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">GOAL MET</span>
-                            <span class="summary-value">6/7 DAYS</span>
+                        <div class="stat-item">
+                            <span class="stat-label">BEST DAY</span>
+                            <span class="stat-value" id="caloriesBestValue">0</span>
                         </div>
                     </div>
+                    <div class="additional-stats"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Weekly Comparison Panel -->
+        <!-- Comparison Panel -->
         <div class="comparison-panel" id="comparisonPanel" style="display: none;">
-            <div class="panel-header">
-                <h3 class="panel-title">COMPARISON OVERVIEW</h3>
+            <div class="comparison-header">
+                <h3>📊 PERIOD COMPARISON</h3>
             </div>
             <div class="comparison-grid">
                 <div class="comparison-item">
-                    <div class="comparison-icon">👟</div>
-                    <div class="comparison-data">
-                        <span class="comparison-metric">STEPS</span>
-                        <span class="comparison-change positive">+1,247 (+12%)</span>
-                        <span class="comparison-detail">8,247 vs 7,000 avg</span>
+                    <div class="comparison-metric">STEPS</div>
+                    <div class="comparison-values">
+                        <span class="current-value" id="stepsCurrentComp">0</span>
+                        <span class="vs-text">VS</span>
+                        <span class="previous-value" id="stepsPreviousComp">0</span>
                     </div>
+                    <div class="comparison-change" id="stepsChange">0%</div>
                 </div>
                 <div class="comparison-item">
-                    <div class="comparison-icon">❤️</div>
-                    <div class="comparison-data">
-                        <span class="comparison-metric">HEART RATE</span>
-                        <span class="comparison-change negative">+2 BPM (+3%)</span>
-                        <span class="comparison-detail">68 vs 66 avg resting</span>
+                    <div class="comparison-metric">HEART RATE</div>
+                    <div class="comparison-values">
+                        <span class="current-value" id="hrCurrentComp">0</span>
+                        <span class="vs-text">VS</span>
+                        <span class="previous-value" id="hrPreviousComp">0</span>
                     </div>
+                    <div class="comparison-change" id="hrChange">0%</div>
                 </div>
                 <div class="comparison-item">
-                    <div class="comparison-icon">😴</div>
-                    <div class="comparison-data">
-                        <span class="comparison-metric">SLEEP</span>
-                        <span class="comparison-change positive">+0.5 HRS (+7%)</span>
-                        <span class="comparison-detail">7.2 vs 6.7 avg hours</span>
+                    <div class="comparison-metric">SLEEP</div>
+                    <div class="comparison-values">
+                        <span class="current-value" id="sleepCurrentComp">0H</span>
+                        <span class="vs-text">VS</span>
+                        <span class="previous-value" id="sleepPreviousComp">0H</span>
                     </div>
+                    <div class="comparison-change" id="sleepChange">0%</div>
                 </div>
                 <div class="comparison-item">
-                    <div class="comparison-icon">🔥</div>
-                    <div class="comparison-data">
-                        <span class="comparison-metric">CALORIES</span>
-                        <span class="comparison-change positive">+312 (+14%)</span>
-                        <span class="comparison-detail">2,247 vs 1,935 avg</span>
+                    <div class="comparison-metric">CALORIES</div>
+                    <div class="comparison-values">
+                        <span class="current-value" id="caloriesCurrentComp">0</span>
+                        <span class="vs-text">VS</span>
+                        <span class="previous-value" id="caloriesPreviousComp">0</span>
+                    </div>
+                    <div class="comparison-change" id="caloriesChange">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Modal -->
+        <div class="export-modal" id="exportModal" style="display: none;">
+            <div class="export-modal-content">
+                <div class="export-header">
+                    <h3>📤 EXPORT HEALTH DATA</h3>
+                    <button class="close-btn" onclick="document.getElementById('exportModal').style.display='none'">×</button>
+                </div>
+                <div class="export-options">
+                    <label for="exportFormat">FORMAT:</label>
+                    <select id="exportFormat">
+                        <option value="json">JSON</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                    <div class="export-buttons">
+                        <button class="export-btn" onclick="exportHealthData(document.getElementById('exportFormat').value)">EXPORT</button>
+                        <button class="cancel-btn" onclick="document.getElementById('exportModal').style.display='none'">CANCEL</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Pixel Stars Background -->
-        <div class="pixel-stars-bg"></div>
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="loading-container">
+                <div class="pixel-loader">
+                    <div class="pixel-dot"></div>
+                    <div class="pixel-dot"></div>
+                    <div class="pixel-dot"></div>
+                    <div class="pixel-dot"></div>
+                </div>
+                <div class="loading-text">ANALYZING HEALTH DATA...</div>
+                <div class="loading-subtext">GENERATING STATISTICS</div>
+            </div>
+        </div>
+
+        <!-- Keyboard Shortcuts Help -->
+        <div class="keyboard-shortcuts" id="keyboardShortcuts" style="display: none;">
+            <div class="shortcuts-content">
+                <h3>⌨️ KEYBOARD SHORTCUTS</h3>
+                <div class="shortcuts-list">
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">←/→</span>
+                        <span class="shortcut-desc">Navigate periods</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">1/2/3</span>
+                        <span class="shortcut-desc">Switch view (Daily/Weekly/Monthly)</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">C</span>
+                        <span class="shortcut-desc">Toggle comparison</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">R</span>
+                        <span class="shortcut-desc">Refresh data</span>
+                    </div>
+                </div>
+                <button class="close-shortcuts" onclick="document.getElementById('keyboardShortcuts').style.display='none'">CLOSE</button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        let currentPeriod = 'daily';
-        let comparisonMode = false;
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
-        // Sample data for different periods
-        const sampleData = {
-            daily: {
-                steps: [8000, 9200, 7500, 10100, 8800, 9500, 8247],
-                heartRate: [65, 68, 70, 67, 69, 66, 68],
-                sleep: [7.0, 7.5, 6.8, 7.2, 7.1, 7.3, 7.2],
-                calories: [2100, 2400, 1900, 2600, 2200, 2300, 2247],
-                labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-            },
-            weekly: {
-                steps: [52000, 58000, 49000, 61000, 55000],
-                heartRate: [67, 69, 65, 68, 68],
-                sleep: [49.5, 52.2, 47.6, 50.4, 50.4],
-                calories: [14700, 16800, 13300, 18200, 15729],
-                labels: ['WK 1', 'WK 2', 'WK 3', 'WK 4', 'WK 5']
-            },
-            monthly: {
-                steps: [230000, 245000, 220000, 255000],
-                heartRate: [67, 68, 66, 68],
-                sleep: [217, 225, 210, 220],
-                calories: [65100, 68400, 62200, 71500],
-                labels: ['JAN', 'FEB', 'MAR', 'APR']
-            }
-        };
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeCharts();
-            setupEventListeners();
-        });
-
-        function setupEventListeners() {
-            // Time period buttons
-            document.querySelectorAll('.time-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentPeriod = this.dataset.period;
-                    updateCharts();
-                    updateComparisonText();
-                });
-            });
-
-            // Comparison toggle
-            document.getElementById('compareToggle').addEventListener('change', function() {
-                comparisonMode = this.checked;
-                toggleComparison();
-            });
-        }
-
-        function toggleComparison() {
-            const comparisonInfo = document.getElementById('comparisonInfo');
-            const comparisonPanel = document.getElementById('comparisonPanel');
-            
-            if (comparisonMode) {
-                comparisonInfo.style.display = 'block';
-                comparisonPanel.style.display = 'block';
-            } else {
-                comparisonInfo.style.display = 'none';
-                comparisonPanel.style.display = 'none';
-            }
-            updateCharts();
-        }
-
-        function updateComparisonText() {
-            const comparisonText = document.querySelector('.comparison-text');
-            const periodTexts = {
-                daily: 'THIS WEEK VS LAST WEEK',
-                weekly: 'THIS MONTH VS LAST MONTH',
-                monthly: 'THIS YEAR VS LAST YEAR'
-            };
-            comparisonText.textContent = `COMPARING: ${periodTexts[currentPeriod]}`;
-        }
-
-        function initializeCharts() {
-            createStepsChart();
-            createHeartRateStatsChart();
-            createSleepStatsChart();
-            createCalorieStatsChart();
-        }
-
-        function updateCharts() {
-            createStepsChart();
-            createHeartRateStatsChart();
-            createSleepStatsChart();
-            createCalorieStatsChart();
-        }
-
-        // Steps Bar Chart
-        function createStepsChart() {
-            const canvas = document.getElementById('stepsChart');
-            const ctx = canvas.getContext('2d');
-            const data = sampleData[currentPeriod];
-            
-            canvas.width = 400;
-            canvas.height = 300;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.imageSmoothingEnabled = false;
-            
-            const barWidth = 40;
-            const barSpacing = 10;
-            const maxValue = Math.max(...data.steps);
-            const chartHeight = canvas.height - 60;
-            
-            // Draw grid
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            for (let i = 0; i <= 5; i++) {
-                const y = 40 + (chartHeight / 5) * i;
-                ctx.beginPath();
-                ctx.moveTo(40, y);
-                ctx.lineTo(canvas.width - 20, y);
-                ctx.stroke();
-            }
-            
-            // Draw bars
-            data.steps.forEach((steps, index) => {
-                const x = 50 + index * (barWidth + barSpacing);
-                const barHeight = (steps / maxValue) * chartHeight;
-                const y = canvas.height - 40 - barHeight;
-                
-                // Current period bars
-                ctx.fillStyle = '#388E3C';
-                ctx.fillRect(x, y, barWidth, barHeight);
-                
-                // Comparison bars (if enabled)
-                if (comparisonMode) {
-                    const comparisonSteps = data.steps[index] * 0.85; // 15% less for demo
-                    const compBarHeight = (comparisonSteps / maxValue) * chartHeight;
-                    const compY = canvas.height - 40 - compBarHeight;
-                    
-                    ctx.fillStyle = '#66BB6A';
-                    ctx.globalAlpha = 0.7;
-                    ctx.fillRect(x + barWidth + 5, compY, barWidth, compBarHeight);
-                    ctx.globalAlpha = 1;
-                }
-                
-                // Labels
-                ctx.fillStyle = '#fff';
-                ctx.font = '8px "Press Start 2P"';
-                ctx.textAlign = 'center';
-                ctx.fillText(data.labels[index], x + barWidth/2, canvas.height - 15);
-                
-                // Values on top of bars
-                ctx.fillText(steps.toLocaleString(), x + barWidth/2, y - 5);
-            });
-        }
-
-        // Heart Rate Line Chart
-        function createHeartRateStatsChart() {
-            const canvas = document.getElementById('heartRateStatsChart');
-            const ctx = canvas.getContext('2d');
-            const data = sampleData[currentPeriod];
-            
-            canvas.width = 400;
-            canvas.height = 300;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.imageSmoothingEnabled = false;
-            
-            const maxValue = Math.max(...data.heartRate) + 10;
-            const minValue = Math.min(...data.heartRate) - 10;
-            const chartHeight = canvas.height - 80;
-            const chartWidth = canvas.width - 80;
-            
-            // Draw grid
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            for (let i = 0; i <= 6; i++) {
-                const y = 40 + (chartHeight / 6) * i;
-                ctx.beginPath();
-                ctx.moveTo(40, y);
-                ctx.lineTo(canvas.width - 20, y);
-                ctx.stroke();
-            }
-            
-            // Draw current period line
-            ctx.strokeStyle = '#D32F2F';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            
-            data.heartRate.forEach((hr, index) => {
-                const x = 40 + (index / (data.heartRate.length - 1)) * chartWidth;
-                const y = 40 + chartHeight - ((hr - minValue) / (maxValue - minValue)) * chartHeight;
-                
-                if (index === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-                
-                // Draw points
-                ctx.fillStyle = '#D32F2F';
-                ctx.fillRect(x - 3, y - 3, 6, 6);
-            });
-            
-            ctx.stroke();
-            
-            // Draw comparison line (if enabled)
-            if (comparisonMode) {
-                ctx.strokeStyle = '#F44336';
-                ctx.globalAlpha = 0.7;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                
-                data.heartRate.forEach((hr, index) => {
-                    const compHr = hr - 2; // 2 BPM lower for demo
-                    const x = 40 + (index / (data.heartRate.length - 1)) * chartWidth;
-                    const y = 40 + chartHeight - ((compHr - minValue) / (maxValue - minValue)) * chartHeight;
-                    
-                    if (index === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                });
-                
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-            }
-            
-            // Labels
-            ctx.fillStyle = '#fff';
-            ctx.font = '8px "Press Start 2P"';
-            ctx.textAlign = 'center';
-            data.labels.forEach((label, index) => {
-                const x = 40 + (index / (data.labels.length - 1)) * chartWidth;
-                ctx.fillText(label, x, canvas.height - 15);
-            });
-        }
-
-        // Sleep Stacked Chart
-        function createSleepStatsChart() {
-            const canvas = document.getElementById('sleepStatsChart');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = 300;
-            canvas.height = 300;
-            
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const outerRadius = 100;
-            const innerRadius = 50;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.imageSmoothingEnabled = false;
-            
-            // Sleep quality data (percentages)
-            const sleepData = [
-                { label: 'DEEP', value: 28, color: '#4A148C' },
-                { label: 'REM', value: 25, color: '#7B1FA2' },
-                { label: 'LIGHT', value: 47, color: '#BA68C8' }
-            ];
-            
-            let currentAngle = 0;
-            
-            sleepData.forEach(sleep => {
-                const sliceAngle = (sleep.value / 100) * 2 * Math.PI;
-                
-                ctx.fillStyle = sleep.color;
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + sliceAngle);
-                ctx.arc(centerX, centerY, innerRadius, currentAngle + sliceAngle, currentAngle, true);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Labels
-                const labelAngle = currentAngle + sliceAngle / 2;
-                const labelX = centerX + Math.cos(labelAngle) * (outerRadius + 20);
-                const labelY = centerY + Math.sin(labelAngle) * (outerRadius + 20);
-                
-                ctx.fillStyle = '#fff';
-                ctx.font = '8px "Press Start 2P"';
-                ctx.textAlign = 'center';
-                ctx.fillText(`${sleep.label}`, labelX, labelY);
-                ctx.fillText(`${sleep.value}%`, labelX, labelY + 12);
-                
-                currentAngle += sliceAngle;
-            });
-            
-            // Border
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-            ctx.stroke();
-        }
-
-        // Calories Pie Chart
-        function createCalorieStatsChart() {
-            const canvas = document.getElementById('calorieStatsChart');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = 300;
-            canvas.height = 300;
-            
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = 100;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.imageSmoothingEnabled = false;
-            
-            // Calorie breakdown
-            const calorieData = [
-                { label: 'EXERCISE', value: 35, color: '#FF6F00' },
-                { label: 'DAILY ACTIVITY', value: 45, color: '#FFA000' },
-                { label: 'RESTING', value: 20, color: '#FFB74D' }
-            ];
-            
-            let currentAngle = 0;
-            
-            calorieData.forEach(calorie => {
-                const sliceAngle = (calorie.value / 100) * 2 * Math.PI;
-                
-                ctx.fillStyle = calorie.color;
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Labels
-                const labelAngle = currentAngle + sliceAngle / 2;
-                const labelX = centerX + Math.cos(labelAngle) * (radius + 25);
-                const labelY = centerY + Math.sin(labelAngle) * (radius + 25);
-                
-                ctx.fillStyle = '#fff';
-                ctx.font = '6px "Press Start 2P"';
-                ctx.textAlign = 'center';
-                ctx.fillText(calorie.label, labelX, labelY);
-                ctx.fillText(`${calorie.value}%`, labelX, labelY + 10);
-                
-                currentAngle += sliceAngle;
-            });
-            
-            // Border
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.stroke();
-        }
-    </script>
-        <script src="../navigation.js"></script>
+    <script src="./stats.js"></script>
+    <script src="../navigation.js"></script>
 </body>
+
 </html>

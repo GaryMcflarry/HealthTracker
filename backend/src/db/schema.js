@@ -1,159 +1,106 @@
-const { drizzle } = require('drizzle-orm/mysql2');
-const { mysqlTable, int, varchar, datetime, decimal, text, boolean } = require('drizzle-orm/mysql-core');
+const { mysqlTable, int, varchar, datetime, decimal, text, boolean, time, date } = require('drizzle-orm/mysql-core');
+const { sql } = require('drizzle-orm');
 
-// Users table
+// Users table - matches your actual database structure
 const usersTable = mysqlTable('users', {
-  userID: int('userID').primaryKey().autoincrement(),
-  firstName: varchar('firstName', { length: 255 }),
-  lastName: varchar('lastName', { length: 255 }),
-  email: varchar('email', { length: 255 }).unique(),
-  password: varchar('password', { length: 255 }),
-  phoneNumber: varchar('phoneNumber', { length: 20 }),
-  dateOfBirth: datetime('dateOfBirth'),
-  gender: varchar('gender', { length: 10 }),
-  height: decimal('height', { precision: 5, scale: 2 }),
-  weight: decimal('weight', { precision: 5, scale: 2 }),
-  createdAt: datetime('createdAt').defaultNow(),
-  isActive: boolean('isActive').default(true),
-  role: varchar('role', { length: 50 }).default('user')
+  id: int('id').primaryKey().autoincrement(),
+  first_name: varchar('first_name', { length: 50 }),
+  last_name: varchar('last_name', { length: 50 }),
+  password: varchar('password', { length: 50 }),
+  gender: varchar('gender', { length: 50 }),
+  height: decimal('height', { precision: 10, scale: 2 }),
+  weight: decimal('weight', { precision: 10, scale: 2 }),
+  email: varchar('email', { length: 50 }),
+  phoneNr: int('phoneNr'),
+  google_oauth_id: varchar('google_oauth_id', { length: 100 }),
+  fit_tokens: varchar('fit_tokens', { length: 700 }),
+  device_name: varchar('device_name', { length: 100 }),
+  last_sync: datetime('last_sync'),
+  created_at: date('created_at').default(sql`(current_timestamp())`)
 });
 
-// Wearable Integration table
-const wearableIntegrationTable = mysqlTable('wearableintegration', {
-  integrationID: int('integrationID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  apiType: varchar('apiType', { length: 50 }),
-  accessToken: text('accessToken'),
-  refreshToken: text('refreshToken'),
-  syncLastDate: datetime('syncLastDate'),
-  isActive: boolean('isActive').default(true)
+// Steps data table
+const stepsDataTable = mysqlTable('steps_data', {
+  id: int('id').primaryKey().autoincrement(),
+  user_id: int('user_id').references(() => usersTable.id),
+  date: date('date'),
+  hour: time('hour'),
+  steps_count: int('steps_count')
+});
+
+// Heart rate data table  
+const heartRateDataTable = mysqlTable('heart_data', {
+  id: int('id').primaryKey().autoincrement(),
+  user_id: int('user_id').references(() => usersTable.id),
+  date: date('date'),
+  hour: time('hour'),
+  heart_rate_bpm: int('heart_rate_bpm')
+});
+
+// Sleep data table
+const sleepDataTable = mysqlTable('sleep_data', {
+  id: int('id').primaryKey().autoincrement(),
+  user_id: int('user_id').references(() => usersTable.id),
+  date: date('date'),
+  bedtime_start: time('bedtime_start'),
+  bedtime_end: time('bedtime_end'),
+  deep_sleep_minutes: int('deep_sleep_minutes'),
+  light_sleep_minutes: int('light_sleep_minutes'),
+  rem_sleep_minutes: int('rem_sleep_minutes'),
+  awake_minutes: int('awake_minutes'),
+  sleep_efficiency_percent: int('sleep_efficiency_percent')
+});
+
+// Calorie data table
+const calorieDataTable = mysqlTable('calorie_data', {
+  id: int('id').primaryKey().autoincrement(),
+  user_id: int('user_id').references(() => usersTable.id),
+  date: date('date'),
+  hour: time('hour'),
+  calories: int('calories')
 });
 
 // Goals table
 const goalsTable = mysqlTable('goals', {
-  goalID: int('goalID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  goalType: varchar('goalType', { length: 50 }),
-  targetValue: decimal('targetValue', { precision: 10, scale: 2 }),
-  currentValue: decimal('currentValue', { precision: 10, scale: 2 }).default(0),
-  timeFrame: varchar('timeFrame', { length: 50 }),
-  icon: varchar('icon', { length: 255 }),
-  isCompleted: boolean('isCompleted').default(false),
-  createdAt: datetime('createdAt').defaultNow()
-});
-
-// Profile table
-const profileTable = mysqlTable('profile', {
-  profileID: int('profileID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  goals: text('goals'),
-  displayProfileData: text('displayProfileData')
-});
-
-// Steps Data table
-const stepsDataTable = mysqlTable('stepsdata', {
-  stepID: int('stepID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  date: datetime('date'),
-  hour: datetime('hour'),
-  steps_count: int('steps_count'),
-  providedDataAt: datetime('providedDataAt').defaultNow()
-});
-
-// Heart Rate Data table
-const heartRateDataTable = mysqlTable('heartratedata', {
-  heartRateID: int('heartRateID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  date: datetime('date'),
-  hour: datetime('hour'),
-  heartRateBpm: int('heartRateBpm'),
-  providedDataAt: datetime('providedDataAt').defaultNow()
-});
-
-// Sleep Data table
-const sleepDataTable = mysqlTable('sleepdata', {
-  sleepID: int('sleepID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  date: datetime('date'),
-  sleepDuration: decimal('sleepDuration', { precision: 4, scale: 2 }),
-  sleepQuality: varchar('sleepQuality', { length: 50 }),
-  providedDataAt: datetime('providedDataAt').defaultNow()
-});
-
-// Calories Data table
-const caloriesDataTable = mysqlTable('caloriesdata', {
-  calorieID: int('calorieID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  date: datetime('date'),
-  hour: datetime('hour'),
-  calories: int('calories'),
-  providedDataAt: datetime('providedDataAt').defaultNow()
-});
-
-// Recommendations table
-const recommendationsTable = mysqlTable('recommendations', {
-  recommendationID: int('recommendationID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  recommendationType: varchar('recommendationType', { length: 50 }),
-  title: varchar('title', { length: 255 }),
-  message: text('message'),
-  suggestion: datetime('suggestion'),
-  pageType: varchar('pageType', { length: 50 }),
-  pageValue: int('pageValue'),
-  icon: varchar('icon', { length: 255 }),
-  providedDataAt: datetime('providedDataAt').defaultNow()
+  id: int('id').primaryKey().autoincrement(),
+  user_id: int('user_id').references(() => usersTable.id),
+  goal_type: varchar('goal_type', { length: 10 }),
+  target_value: decimal('target_value', { precision: 10, scale: 2 }),
+  time_period: varchar('time_period', { length: 50 }),
+  icon: varchar('icon', { length: 100 })
 });
 
 // Notifications table
 const notificationsTable = mysqlTable('notifications', {
-  notificationID: int('notificationID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  title: varchar('title', { length: 255 }),
-  message: text('message'),
-  notificationType: varchar('notificationType', { length: 50 }),
-  date: datetime('date'),
-  providedDataAt: datetime('providedDataAt').defaultNow()
+  id: int('id').primaryKey().autoincrement(),
+  user_id: int('user_id').references(() => usersTable.id),
+  title: varchar('title', { length: 50 }),
+  message: varchar('message', { length: 200 }),
+  notification_type: varchar('notification_type', { length: 20 }),
+  icon: varchar('icon', { length: 100 })
 });
 
-// Dashboard table
-const dashboardTable = mysqlTable('dashboard', {
-  dashboardID: int('dashboardID').primaryKey().autoincrement(),
-  userID: int('userID').references(() => usersTable.userID),
-  recommendations: text('recommendations'),
-  stepsData: text('stepsData'),
-  heartRateData: text('heartRateData'),
-  sleepData: text('sleepData'),
-  caloriesData: text('caloriesData'),
-  displayDayData: datetime('displayDayData'),
-  displayWeekData: datetime('displayWeekData'),
-  displayMonthData: datetime('displayMonthData')
+// Recommendations table
+const recommendationsTable = mysqlTable('recommendations', {
+  id: int('id').primaryKey().autoincrement(),
+  user_id: int('user_id').references(() => usersTable.id),
+  recommendation_type: varchar('recommendation_type', { length: 20 }),
+  title: varchar('title', { length: 50 }),
+  message: varchar('message', { length: 200 }),
+  suggestion: varchar('suggestion', { length: 100 }),
+  trigger_type: varchar('trigger_type', { length: 20 }),
+  trigger_value: int('trigger_value'),
+  icon: varchar('icon', { length: 100 })
 });
 
-// Web App table
-const webAppTable = mysqlTable('webapp', {
-  webAppID: int('webAppID').primaryKey().autoincrement(),
-  dashboard: text('dashboard'),
-  stats: text('stats'),
-  profile: text('profile'),
-  notification: text('notification'),
-  exportation: text('exportation'),
-  displayDashboard: text('displayDashboard'),
-  displayStats: text('displayStats'),
-  displayProfile: text('displayProfile'),
-  sendNotifications: text('sendNotifications')
-});
-
+// Export all tables
 module.exports = {
   usersTable,
-  wearableIntegrationTable,
-  goalsTable,
-  profileTable,
   stepsDataTable,
   heartRateDataTable,
   sleepDataTable,
-  caloriesDataTable,
-  recommendationsTable,
+  calorieDataTable,
+  goalsTable,
   notificationsTable,
-  dashboardTable,
-  webAppTable
+  recommendationsTable
 };

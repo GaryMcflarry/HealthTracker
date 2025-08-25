@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: '*',
   credentials: true
 }));
 app.use(express.json());
@@ -39,7 +39,7 @@ const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
 const goalsRoutes = require('./routes/goals');
 const stepsDataRoutes = require('./routes/stepsData');
-const heartRateDataRoutes = require('./routes/heartRateData');
+const heartRateDataRoutes = require('./routes/healthRateData');
 const sleepDataRoutes = require('./routes/sleepData');
 const caloriesDataRoutes = require('./routes/caloriesData');
 const notificationsRoutes = require('./routes/notifications');
@@ -151,7 +151,7 @@ app.get('/api/dashboard', require('./lib/auth').authMiddleware, async (req, res)
 
 // Serve the main HTML file for any non-API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Global error handler

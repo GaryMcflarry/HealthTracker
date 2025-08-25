@@ -1101,3 +1101,393 @@ body {
 .heartrate-widget .stat-number {
     animation: pulse 2s ease-in-out infinite;
 }
+
+/* Twinkling stars background */
+.stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle 2s infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+
+/* Loading States and Animations - Add this to your dashboard.css */
+
+/* Global Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+    transition: opacity 0.3s ease;
+}
+
+.loading-container {
+    text-align: center;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.pixel-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.pixel-dot {
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border-radius: 2px;
+    animation: pixelBounce 1.5s ease-in-out infinite;
+}
+
+.pixel-dot:nth-child(1) { animation-delay: 0s; }
+.pixel-dot:nth-child(2) { animation-delay: 0.2s; }
+.pixel-dot:nth-child(3) { animation-delay: 0.4s; }
+.pixel-dot:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes pixelBounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0) scale(1);
+        background: #ffffff;
+    }
+    40% {
+        transform: translateY(-20px) scale(1.2);
+        background: #00ff88;
+        box-shadow: 0 0 20px #ffffff;
+    }
+    60% {
+        transform: translateY(-10px) scale(1.1);
+        background: #00ff66;
+    }
+}
+
+.loading-text {
+    font-size: 14px;
+    color: #ffffff;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px #ffffff;
+    letter-spacing: 2px;
+}
+
+.loading-subtext {
+    font-size: 10px;
+    color: #ffffff;
+    opacity: 0.8;
+    animation: textPulse 2s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* Widget Loading States */
+.widget-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 100;
+}
+
+.widget-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    color: #ffffff;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.pixel-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #333;
+    border-top: 4px solid #ffffff;
+    border-radius: 4px;
+    animation: pixelSpin 1s linear infinite;
+    position: relative;
+}
+
+.pixel-spinner::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 2px solid transparent;
+    border-top: 2px solid #ffffff;
+    border-radius: 4px;
+    animation: pixelSpin 2s linear infinite reverse;
+}
+
+@keyframes pixelSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-message {
+    font-size: 10px;
+    color: #ffffff;
+    text-align: center;
+    letter-spacing: 1px;
+    animation: textPulse 1.5s ease-in-out infinite;
+}
+
+/* Toast Notifications */
+.error-toast,
+.success-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    max-width: 350px;
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: toastSlideIn 0.4s ease-out;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.error-toast {
+    background: linear-gradient(45deg, #d32f2f, #f44336);
+    border: 2px solid #ff5252;
+}
+
+.success-toast {
+    background: linear-gradient(45deg, #388e3c, #4caf50);
+    border: 2px solid #66bb6a;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    color: white;
+}
+
+.toast-icon {
+    font-size: 16px;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+}
+
+.toast-message {
+    font-size: 10px;
+    line-height: 1.4;
+    letter-spacing: 0.5px;
+}
+
+@keyframes toastSlideIn {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Enhanced Widget Hover Effects with Loading States */
+.widget {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.widget.loading {
+    pointer-events: none;
+}
+
+.widget.loading .widget-content {
+    position: relative;
+    overflow: hidden;
+}
+
+.widget.loading .widget-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(0, 255, 65, 0.1), 
+        transparent
+    );
+    animation: shimmer 2s infinite;
+    z-index: 1;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Pulse animation for data values during loading */
+.stat-number.loading {
+    animation: numberPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes numberPulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+/* Loading skeleton for charts */
+.chart-container.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-container.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg,
+        #333 25%,
+        #444 25%,
+        #444 50%,
+        #333 50%,
+        #333 75%,
+        #444 75%
+    );
+    background-size: 20px 20px;
+    animation: patternMove 2s linear infinite;
+    opacity: 0.3;
+}
+
+@keyframes patternMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 20px 20px; }
+}
+
+/* Responsive loading states */
+@media (max-width: 768px) {
+    .loading-text {
+        font-size: 12px;
+    }
+    
+    .loading-subtext {
+        font-size: 8px;
+    }
+    
+    .toast-message {
+        font-size: 8px;
+    }
+    
+    .pixel-loader {
+        gap: 6px;
+    }
+    
+    .pixel-dot {
+        width: 10px;
+        height: 10px;
+    }
+}
+
+/* Connection status indicators */
+.sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: #ffffff;
+}
+
+.sync-status::before {
+    content: '●';
+    font-size: 12px;
+    animation: statusBlink 2s ease-in-out infinite;
+}
+
+.sync-status.syncing::before {
+    color: #ffab00;
+    animation: statusPulse 1s ease-in-out infinite;
+}
+
+.sync-status.error::before {
+    color: #f44336;
+    animation: statusError 0.5s ease-in-out infinite;
+}
+
+@keyframes statusBlink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.3; }
+}
+
+@keyframes statusPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+@keyframes statusError {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* Enhanced progress indicators */
+.progress-indicator {
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-indicator::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(0, 255, 65, 0.3), 
+        transparent
+    );
+    animation: progressSweep 2s ease-in-out infinite;
+    width: 30%;
+}
+
+@keyframes progressSweep {
+    0% { left: -30%; }
+    100% { left: 100%; }
+}

@@ -3,16 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health Tracker - Login</title>
-    <link rel="stylesheet" href="auth.css">
+    <title>🎮 Health Tracker - Login</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="auth.css">
 </head>
 <body>
-    <div class="background-gif-container">
-        <!-- Background GIF will be inserted here when ready -->
-    </div>
+    <!-- Twinkling stars background -->
+    <div class="stars"></div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="background-gif-container"></div>
     
     <div class="auth-container">
         <!-- Logo Circle -->
@@ -27,17 +31,21 @@
             <div class="form-container">
                 <h1 class="form-title">LOGIN</h1>
                 
-                <div class="input-group">
-                    <label for="email" class="pixel-label">EMAIL</label>
-                    <input type="email" id="email" class="pixel-input" placeholder="your@email.com" required>
-                </div>
-                
-                <div class="input-group">
-                    <label for="password" class="pixel-label">PASSWORD</label>
-                    <input type="password" id="password" class="pixel-input" placeholder="••••••••" required>
-                </div>
-                
-                <button onclick="login()" type="submit" class="pixel-button login-btn">LOGIN</button>
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label for="email" class="pixel-label">EMAIL</label>
+                        <input type="email" id="email" class="pixel-input" placeholder="your@email.com" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="password" class="pixel-label">PASSWORD</label>
+                        <input type="password" id="password" class="pixel-input" placeholder="••••••••" required>
+                    </div>
+                    
+                    <button type="submit" class="pixel-button login-btn" id="loginBtn">
+                        <span class="button-text">LOGIN</span>
+                    </button>
+                </form>
                 
                 <div class="register-link">
                     <span class="register-text">DON'T HAVE ACCOUNT?</span>
@@ -56,20 +64,60 @@
             </div>
             
             <div class="dialog-content">
-                <form class="register-form-dialog">
+                <form id="registerForm" class="register-form-dialog">
                     <div class="input-group">
-                        <label for="dialog-email" class="pixel-label">EMAIL</label>
-                        <input type="email" id="dialog-email" class="pixel-input" placeholder="your@email.com" required>
+                        <label for="firstName" class="pixel-label">FIRST NAME</label>
+                        <input type="text" id="firstName" class="pixel-input" placeholder="John" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="lastName" class="pixel-label">LAST NAME</label>
+                        <input type="text" id="lastName" class="pixel-input" placeholder="Doe" required>
                     </div>
                     
                     <div class="input-group">
-                        <label for="dialog-password" class="pixel-label">PASSWORD</label>
-                        <input type="password" id="dialog-password" class="pixel-input" placeholder="••••••••" required>
+                        <label for="regEmail" class="pixel-label">EMAIL</label>
+                        <input type="email" id="regEmail" class="pixel-input" placeholder="your@email.com" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="phoneNumber" class="pixel-label">PHONE NUMBER</label>
+                        <input type="tel" id="phoneNumber" class="pixel-input" placeholder="+1234567890">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="dateOfBirth" class="pixel-label">DATE OF BIRTH</label>
+                        <input type="date" id="dateOfBirth" class="pixel-input" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="gender" class="pixel-label">GENDER</label>
+                        <select id="gender" class="pixel-input" required>
+                            <option value="">SELECT GENDER</option>
+                            <option value="male">MALE</option>
+                            <option value="female">FEMALE</option>
+                            <option value="other">OTHER</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="height" class="pixel-label">HEIGHT (CM)</label>
+                        <input type="number" id="height" class="pixel-input" placeholder="170" step="0.1" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="weight" class="pixel-label">WEIGHT (KG)</label>
+                        <input type="number" id="weight" class="pixel-input" placeholder="70" step="0.1" required>
                     </div>
                     
                     <div class="input-group">
-                        <label for="dialog-confirm-password" class="pixel-label">CONFIRM PASSWORD</label>
-                        <input type="password" id="dialog-confirm-password" class="pixel-input" placeholder="••••••••" required>
+                        <label for="regPassword" class="pixel-label">PASSWORD</label>
+                        <input type="password" id="regPassword" class="pixel-input" placeholder="••••••••" required>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="confirmPassword" class="pixel-label">CONFIRM PASSWORD</label>
+                        <input type="password" id="confirmPassword" class="pixel-input" placeholder="••••••••" required>
                     </div>
                     
                     <!-- Disclaimer Section -->
@@ -91,72 +139,14 @@
                         </div>
                     </div>
                     
-                    <button type="submit" class="pixel-button register-dialog-btn">CREATE ACCOUNT</button>
+                    <button type="submit" class="pixel-button register-dialog-btn" id="registerBtn">
+                        <span class="button-text">CREATE ACCOUNT</span>
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <script>
-
-        function login() {
-            window.location.href='../dashboard/dashboard.html'
-        }
-
-
-        function openRegisterDialog() {
-            document.getElementById('registerDialog').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeRegisterDialog() {
-            document.getElementById('registerDialog').style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-
-        function toggleForm() {
-            // This function is no longer needed since we're using a dialog
-            // But keeping it for backward compatibility
-        }
-
-        // Add pixel-perfect click effects
-        document.addEventListener('DOMContentLoaded', function() {
-            const buttons = document.querySelectorAll('.pixel-button');
-            const inputs = document.querySelectorAll('.pixel-input');
-            
-            buttons.forEach(button => {
-                button.addEventListener('mousedown', function() {
-                    this.style.transform = 'translate(2px, 2px)';
-                    this.style.boxShadow = '2px 2px 0px #333';
-                });
-                
-                button.addEventListener('mouseup', function() {
-                    this.style.transform = 'translate(0px, 0px)';
-                    this.style.boxShadow = '4px 4px 0px #333';
-                });
-            });
-            
-            inputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.style.borderColor = '#4CAF50';
-                    this.style.boxShadow = '0 0 0 2px #4CAF50';
-                });
-                
-                input.addEventListener('blur', function() {
-                    this.style.borderColor = '#fff';
-                    this.style.boxShadow = 'none';
-                });
-            });
-        });
-
-        // Function to add background GIF when ready
-        function setBackgroundGif(gifUrl) {
-            const container = document.querySelector('.background-gif-container');
-            container.style.backgroundImage = `url(${gifUrl})`;
-            container.style.backgroundSize = 'cover';
-            container.style.backgroundPosition = 'center';
-            container.style.backgroundRepeat = 'no-repeat';
-        }
-    </script>
+    <script src="auth.js"></script>
 </body>
 </html>

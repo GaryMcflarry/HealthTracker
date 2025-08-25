@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,9 +11,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-          <nav class="navigation-container">
+    <div class="stars"></div>
+    <nav class="navigation-container">
         <div class="nav-header">
             <!-- Current Page Indicator -->
             <div class="current-page">
@@ -50,6 +53,18 @@
                             <span class="menu-icon">👤</span>
                             <span class="menu-text">PROFILE</span>
                         </a>
+                    </div>
+                </div>
+
+                <!-- Google Fit Connection Prompt -->
+                <div id="googleFitPrompt" style="display: none;">
+                    <div class="widget-recommendation">
+                        <div class="rec-icon">🔗</div>
+                        <div class="rec-content">
+                            <span class="rec-title">CONNECT GOOGLE FIT</span>
+                            <span class="rec-text">Connect your Google Fit account to sync your health data automatically.</span>
+                            <button id="connectGoogleFitBtn" class="pixel-button" style="width: auto; margin-top: 10px;">Connect Google Fit</button>
+                        </div>
                     </div>
                 </div>
 
@@ -98,10 +113,14 @@
                 <div class="widget-content">
                     <div class="circular-progress-container">
                         <svg class="circular-progress" viewBox="0 0 120 120">
-                            <circle class="progress-bg" cx="60" cy="60" r="50" fill="none" stroke="#333" stroke-width="8"/>
-                            <circle class="progress-bar-circular steps-progress-circular" cx="60" cy="60" r="50" fill="none" stroke="#388E3C" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="56.52"/>
+                            <circle class="progress-bg" cx="60" cy="60" r="50" fill="none" stroke="#333"
+                                stroke-width="8" />
+                            <circle class="progress-bar-circular steps-progress-circular" cx="60" cy="60" r="50"
+                                fill="none" stroke="#388E3C" stroke-width="8" stroke-dasharray="314"
+                                stroke-dashoffset="56.52" />
                             <!-- Empty circle in center for gif -->
-                            <circle class="gif-placeholder" cx="60" cy="60" r="25" fill="#2a2a2a" stroke="#388E3C" stroke-width="2"/>
+                            <circle class="gif-placeholder" cx="60" cy="60" r="25" fill="#2a2a2a" stroke="#388E3C"
+                                stroke-width="2" />
                         </svg>
                         <div class="circular-content">
                             <div class="gif-icon" id="stepsGifIcon">🚶</div>
@@ -251,310 +270,8 @@
         <div class="pixel-stars-bg"></div>
     </div>
 
-    <script>
-        // Initialize everything
-        document.addEventListener('DOMContentLoaded', function() {
-            const progressBars = document.querySelectorAll('.progress-fill');
-            
-            setTimeout(() => {
-                progressBars.forEach(bar => {
-                    const progress = bar.getAttribute('data-progress');
-                    bar.style.width = progress + '%';
-                });
-            }, 500);
-
-            // Add click animations to widgets
-            const widgets = document.querySelectorAll('.widget');
-            widgets.forEach(widget => {
-                widget.addEventListener('click', function() {
-                    this.style.transform = 'scale(0.98) translateY(-8px)';
-                    setTimeout(() => {
-                        this.style.transform = 'scale(1.02) translateY(-8px)';
-                    }, 100);
-                });
-            });
-
-            // Create all charts
-            createHeartRateChart();
-            createCalorieChart();
-            createSleepChart();
-            
-            // Initialize GIF icon functionality
-            initializeGifIcon();
-
-            // Simulate real-time heart rate updates
-            setInterval(() => {
-                const heartRateElement = document.querySelector('.heartrate-widget .stat-number');
-                const currentRate = parseInt(heartRateElement.textContent);
-                const newRate = currentRate + Math.floor(Math.random() * 6) - 3;
-                const clampedRate = Math.max(60, Math.min(85, newRate));
-                heartRateElement.textContent = clampedRate;
-                
-                updateHeartRateChart(clampedRate);
-            }, 3000);
-
-            // Simulate step updates
-            setInterval(() => {
-                const stepElement = document.querySelector('.steps-widget .stat-number');
-                const currentSteps = parseInt(stepElement.textContent.replace(',', ''));
-                const newSteps = currentSteps + Math.floor(Math.random() * 10);
-                stepElement.textContent = newSteps.toLocaleString();
-                
-                // Update progress
-                const progressPercent = Math.min(100, Math.floor((newSteps / 10000) * 100));
-                const progressText = document.querySelector('.steps-widget .progress-text');
-                progressText.textContent = `${progressPercent}% OF GOAL (10,000)`;
-                
-                // Update circular progress
-                const progressCircle = document.querySelector('.steps-progress-circular');
-                const circumference = 314;
-                const offset = circumference - (progressPercent / 100) * circumference;
-                progressCircle.style.strokeDashoffset = offset;
-            }, 15000);
-        });
-
-        // Heart Rate Line Chart
-        function createHeartRateChart() {
-            const canvas = document.getElementById('heartRateChart');
-            const ctx = canvas.getContext('2d');
-            
-            // Sample heart rate data for the day
-            const heartRateData = [65, 68, 70, 75, 120, 95, 80, 72, 69, 65, 67, 72];
-            const maxHR = Math.max(...heartRateData);
-            const minHR = Math.min(...heartRateData);
-            
-            canvas.width = 400;
-            canvas.height = 160;
-            
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Disable smoothing for pixelated look
-            ctx.imageSmoothingEnabled = false;
-            
-            // Draw pixelated grid
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            for (let i = 0; i <= 8; i++) {
-                const y = (canvas.height / 8) * i;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
-            
-            // Draw vertical grid lines
-            for (let i = 0; i <= 12; i++) {
-                const x = (canvas.width / 12) * i;
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
-            }
-            
-            // Draw heart rate line with pixelated steps
-            ctx.strokeStyle = '#D32F2F';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            
-            heartRateData.forEach((hr, index) => {
-                const x = Math.floor((canvas.width / (heartRateData.length - 1)) * index);
-                const y = Math.floor(canvas.height - ((hr - minHR) / (maxHR - minHR)) * canvas.height);
-                
-                if (index === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    // Create pixelated steps instead of smooth lines
-                    const prevX = Math.floor((canvas.width / (heartRateData.length - 1)) * (index - 1));
-                    ctx.lineTo(prevX, y);
-                    ctx.lineTo(x, y);
-                }
-            });
-            
-            ctx.stroke();
-            
-            // Draw larger pixelated points
-            ctx.fillStyle = '#D32F2F';
-            heartRateData.forEach((hr, index) => {
-                const x = Math.floor((canvas.width / (heartRateData.length - 1)) * index);
-                const y = Math.floor(canvas.height - ((hr - minHR) / (maxHR - minHR)) * canvas.height);
-                ctx.fillRect(x - 4, y - 4, 8, 8);
-            });
-        }
-
-        function updateHeartRateChart(newRate) {
-            createHeartRateChart();
-        }
-
-        // Calorie Pie Chart
-        function createCalorieChart() {
-            const canvas = document.getElementById('calorieChart');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = 180;
-            canvas.height = 180;
-            
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = 70;
-            
-            // Data: burned vs remaining calories
-            const burned = 1847;
-            const goal = 2500;
-            const remaining = goal - burned;
-            const burnedAngle = (burned / goal) * 2 * Math.PI;
-            
-            ctx.imageSmoothingEnabled = false;
-            
-            // Draw remaining calories (gray)
-            ctx.fillStyle = '#333';
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.arc(centerX, centerY, radius, burnedAngle, 2 * Math.PI);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Draw burned calories (orange)
-            ctx.fillStyle = '#FFA000';
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.arc(centerX, centerY, radius, 0, burnedAngle);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Draw pixelated border
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-            ctx.stroke();
-            
-            // Add separator line
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(centerX + Math.cos(burnedAngle) * radius, centerY + Math.sin(burnedAngle) * radius);
-            ctx.stroke();
-        }
-
-        // Sleep Donut Chart
-        function createSleepChart() {
-            const canvas = document.getElementById('sleepChart');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = 180;
-            canvas.height = 180;
-            
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const outerRadius = 70;
-            const innerRadius = 35;
-            
-            // Sleep data in hours
-            const deepSleep = 2.1;
-            const remSleep = 1.8;
-            const lightSleep = 3.3;
-            const totalSleep = deepSleep + remSleep + lightSleep;
-            
-            ctx.imageSmoothingEnabled = false;
-            
-            let currentAngle = 0;
-            
-            // Draw Deep Sleep (dark purple)
-            const deepAngle = (deepSleep / totalSleep) * 2 * Math.PI;
-            ctx.fillStyle = '#4A148C';
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + deepAngle);
-            ctx.arc(centerX, centerY, innerRadius, currentAngle + deepAngle, currentAngle, true);
-            ctx.closePath();
-            ctx.fill();
-            currentAngle += deepAngle;
-            
-            // Draw REM Sleep (medium purple)
-            const remAngle = (remSleep / totalSleep) * 2 * Math.PI;
-            ctx.fillStyle = '#7B1FA2';
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + remAngle);
-            ctx.arc(centerX, centerY, innerRadius, currentAngle + remAngle, currentAngle, true);
-            ctx.closePath();
-            ctx.fill();
-            currentAngle += remAngle;
-            
-            // Draw Light Sleep (light purple)
-            const lightAngle = (lightSleep / totalSleep) * 2 * Math.PI;
-            ctx.fillStyle = '#BA68C8';
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadius, currentAngle, currentAngle + lightAngle);
-            ctx.arc(centerX, centerY, innerRadius, currentAngle + lightAngle, currentAngle, true);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Draw pixelated borders
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-            ctx.stroke();
-            
-            // Draw separators
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 3;
-            currentAngle = 0;
-            
-            // Deep sleep separator
-            currentAngle += deepAngle;
-            ctx.beginPath();
-            ctx.moveTo(centerX + Math.cos(currentAngle) * innerRadius, centerY + Math.sin(currentAngle) * innerRadius);
-            ctx.lineTo(centerX + Math.cos(currentAngle) * outerRadius, centerY + Math.sin(currentAngle) * outerRadius);
-            ctx.stroke();
-            
-            // REM sleep separator
-            currentAngle += remAngle;
-            ctx.beginPath();
-            ctx.moveTo(centerX + Math.cos(currentAngle) * innerRadius, centerY + Math.sin(currentAngle) * innerRadius);
-            ctx.lineTo(centerX + Math.cos(currentAngle) * outerRadius, centerY + Math.sin(currentAngle) * outerRadius);
-            ctx.stroke();
-        }
-
-        // GIF Icon functionality
-        function initializeGifIcon() {
-            const gifIcon = document.getElementById('stepsGifIcon');
-            
-            // Click to change GIF/emoji
-            gifIcon.addEventListener('click', function() {
-                const walkingEmojis = ['🚶', '🏃', '🚶‍♂️', '🏃‍♂️', '👟', '🦶'];
-                const currentEmoji = this.textContent;
-                const currentIndex = walkingEmojis.indexOf(currentEmoji);
-                const nextIndex = (currentIndex + 1) % walkingEmojis.length;
-                this.textContent = walkingEmojis[nextIndex];
-                
-                // Add walking animation if running emoji
-                if (walkingEmojis[nextIndex].includes('🏃')) {
-                    this.classList.add('walking');
-                } else {
-                    this.classList.remove('walking');
-                }
-            });
-            
-            // Simulate step detection - make icon bounce when steps increase
-            let lastStepCount = 8247;
-            setInterval(() => {
-                const stepElement = document.querySelector('.steps-widget .stat-number');
-                const currentSteps = parseInt(stepElement.textContent.replace(',', ''));
-                
-                if (currentSteps > lastStepCount) {
-                    gifIcon.style.animation = 'stepAnimationFast 0.5s ease-in-out';
-                    setTimeout(() => {
-                        gifIcon.style.animation = 'stepAnimation 2s ease-in-out infinite';
-                    }, 500);
-                }
-                lastStepCount = currentSteps;
-            }, 5000);
-        }
-    </script>
+    <script src="./dashboard.js"></script>
     <script src="../navigation.js"></script>
 </body>
+
 </html>
