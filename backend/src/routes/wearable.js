@@ -57,6 +57,19 @@ async function saveUserTokens(userId, tokens) {
   console.log('✅ Tokens saved successfully');
 }
 
+async function updateUserLastSync(userId) {
+  console.log(`🔄 Updating last_sync for user: ${userId}`);
+  
+  await db
+    .update(usersTable)
+    .set({ 
+      last_sync: new Date()
+    })
+    .where(eq(usersTable.id, userId));
+    
+  console.log('✅ User last_sync updated successfully');
+}
+
 async function setOAuthCredentialsForUser(userId) {
   console.log(`🔐 Setting OAuth credentials for user: ${userId}`);
   
@@ -222,8 +235,6 @@ function getDataSourceConfig(dataType) {
   
   return configs[dataType] || null;
 }
-
-// ========================================
 // ENHANCED FITNESS DATA FETCHING WITH FALLBACKS
 // ========================================
 
@@ -237,6 +248,24 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
   }
 
   try {
+    // Check if user has Google Fit tokens first
+    const tokens = await getUserTokens(parseInt(userId));
+    if (!tokens) {
+      console.warn(`⚠️ No Google Fit tokens found for user ${userId}`);
+      
+      // Try to get stored data from database instead
+      const storedData = await getStoredFitnessData(parseInt(userId), dataType, startDate, endDate);
+      
+      return res.json({
+        message: `No Google Fit connection found, returning stored ${dataType} data`,
+        dataType: dataType,
+        data: storedData,
+        count: storedData.length,
+        requiresAuth: true,
+        authUrl: `/api/wearable/auth/google?userId=${userId}`
+      });
+    }
+
     await setOAuthCredentialsForUser(parseInt(userId));
 
     const start = startDate ? new Date(startDate + 'T00:00:00.000Z') : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -253,7 +282,16 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
     if (processedData.length > 0) {
       console.log('💾 Storing data in database...');
       await storeDataInDatabase(parseInt(userId), dataType, processedData);
+      
+      // Update user's last_sync timestamp
+      await updateUserLastSync(parseInt(userId));
+      
+      const newDataCount = processedData.filter(d => d.value > 0).length;
       console.log('✅ Data stored successfully');
+      console.log(`🎉 SYNC SUCCESS: ${newDataCount} new ${dataType} records synced for user ${userId}`);
+      console.log(`📊 SYNC DETAILS: ${dataType.toUpperCase()} data from ${start.toISOString().split('T')[0]} to ${end.toISOString().split('T')[0]}`);
+    } else {
+      console.log(`⚠️ SYNC RESULT: No new ${dataType} data found for user ${userId}`);
     }
 
     res.json({
@@ -262,11 +300,43 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
       period: { startDate: start.toISOString(), endDate: end.toISOString() },
       data: processedData,
       count: processedData.length,
-      stored: processedData.filter(d => d.value > 0).length
+      stored: processedData.filter(d => d.value > 0).length,
+      syncTimestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error(`❌ Error fetching ${dataType} data:`, error);
+    console.error(`❌ SYNC FAILED: Error fetching ${dataType} data for user ${userId}:`, error);
+    
+    // Check if it's a token/auth issue and trigger re-auth
+    if (error.message.includes('token') || error.message.includes('auth') || error.message.includes('unauthorized')) {
+      console.log(`🔄 TOKEN ISSUE DETECTED: Initiating re-auth flow for user ${userId}`);
+      
+      return res.status(401).json({
+        error: 'Authentication required',
+        message: 'Google Fit token expired or invalid',
+        requiresReauth: true,
+        authUrl: `/api/wearable/auth/google?userId=${userId}`,
+        redirectToAuth: true
+      });
+    }
+    
+    // If Google Fit API fails, try to return stored data
+    try {
+      const storedData = await getStoredFitnessData(parseInt(userId), dataType, startDate, endDate);
+      console.log(`🗃️ FALLBACK: Returning ${storedData.length} stored records due to API error`);
+      
+      return res.json({
+        message: `Google Fit API error, returning stored ${dataType} data`,
+        dataType: dataType,
+        data: storedData,
+        count: storedData.length,
+        error: error.message,
+        usingFallback: true
+      });
+    } catch (dbError) {
+      console.error(`❌ Database fallback also failed:`, dbError);
+    }
+    
     res.status(500).json({ 
       error: `Failed to fetch ${dataType} data`,
       details: error.message 
@@ -774,6 +844,94 @@ router.get('/stored-data/:dataType/:userId', asyncHandler(async (req, res) => {
 // ========================================
 // HELPER FUNCTIONS
 // ========================================
+
+async function getStoredFitnessData(userId, dataType, startDate, endDate) {
+  console.log(`🗃️ Getting stored ${dataType} data for user ${userId}`);
+  
+  const start = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const end = endDate || new Date().toISOString().split('T')[0];
+  
+  try {
+    let data = [];
+    
+    switch (dataType) {
+      case 'steps':
+        const stepsData = await db
+          .select()
+          .from(stepsDataTable)
+          .where(and(
+            eq(stepsDataTable.user_id, userId),
+            gte(stepsDataTable.date, start)
+          ))
+          .orderBy(stepsDataTable.date);
+        
+        data = stepsData.map(row => ({
+          date: row.date,
+          value: row.steps_count || 0,
+          dataType: 'steps'
+        }));
+        break;
+        
+      case 'heartrate':
+        const heartData = await db
+          .select()
+          .from(heartRateDataTable)
+          .where(and(
+            eq(heartRateDataTable.user_id, userId),
+            gte(heartRateDataTable.date, start)
+          ))
+          .orderBy(heartRateDataTable.date);
+        
+        data = heartData.map(row => ({
+          date: row.date,
+          value: row.heart_rate_bpm || 0,
+          dataType: 'heartrate'
+        }));
+        break;
+        
+      case 'calories':
+        const calorieData = await db
+          .select()
+          .from(calorieDataTable)
+          .where(and(
+            eq(calorieDataTable.user_id, userId),
+            gte(calorieDataTable.date, start)
+          ))
+          .orderBy(calorieDataTable.date);
+        
+        data = calorieData.map(row => ({
+          date: row.date,
+          value: row.calories || 0,
+          dataType: 'calories'
+        }));
+        break;
+        
+      case 'sleep':
+        const sleepData = await db
+          .select()
+          .from(sleepDataTable)
+          .where(and(
+            eq(sleepDataTable.user_id, userId),
+            gte(sleepDataTable.date, start)
+          ))
+          .orderBy(sleepDataTable.date);
+        
+        data = sleepData.map(row => ({
+          date: row.date,
+          value: (row.deep_sleep_minutes + row.light_sleep_minutes + row.rem_sleep_minutes) || 0,
+          dataType: 'sleep'
+        }));
+        break;
+    }
+    
+    console.log(`✅ Retrieved ${data.length} stored ${dataType} records`);
+    return data;
+    
+  } catch (error) {
+    console.error(`❌ Error retrieving stored ${dataType} data:`, error);
+    return [];
+  }
+}
 
 function getDataUnit(dataType) {
   const units = {

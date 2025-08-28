@@ -15,6 +15,72 @@ body {
     overflow-x: hidden;
 }
 
+/* Twinkling/* Stars Animation */
+.stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Navigation Sync Status */
+.nav-sync-status {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid #4CAF50;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #00ff00;
+}
+
+.nav-sync-icon {
+    font-size: 10px;
+    animation: navPulse 2s infinite;
+}
+
+.nav-sync-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-sync-label {
+    color: #888;
+    font-size: 5px;
+    letter-spacing: 1px;
+}
+
+.nav-sync-time {
+    color: #00ff00;
+    font-size: 6px;
+    font-weight: bold;
+}
+
+@keyframes navPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle 2s infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
 body {
     padding-top: 120px; /* Pushes all content below nav */
 }
@@ -248,7 +314,7 @@ body {
     font-family: 'Press Start 2P', monospace;
     font-size: 10px;
     padding: 8px 12px;
-    width: 80px;
+    width: 120px;
     clip-path: polygon(
         6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
         0 100%, 0 6px

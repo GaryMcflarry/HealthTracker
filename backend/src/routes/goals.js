@@ -17,12 +17,12 @@ router.get('/', asyncHandler(async (req, res) => {
   const results = await db
     .select()
     .from(goalsTable)
-    .where(eq(goalsTable.userID, userId));
+    .where(eq(goalsTable.user_id, userId));
   
   // Calculate progress for each goal
   const goalsWithProgress = results.map(goal => ({
     ...goal,
-    progressPercentage: calculateProgress(goal.currentValue, goal.targetValue)
+    progressPercentage: calculateProgress(goal.current_value, goal.target_value)
   }));
 
   res.json({
@@ -34,16 +34,15 @@ router.get('/', asyncHandler(async (req, res) => {
 // Create new goal
 router.post('/', asyncHandler(async (req, res) => {
   const userId = req.user.userID;
-  const { goalType, targetValue, timeFrame, icon } = req.body;
+  const { goalType, targetValue, icon } = req.body;
 
   const results = await db.insert(goalsTable).values({
-    userID: userId,
-    goalType,
-    targetValue: parseFloat(targetValue),
-    currentValue: 0,
-    timeFrame,
+    user_id: userId,
+    goal_type: goalType,
+    target_value: parseFloat(targetValue),
+    current_value: 0,
     icon,
-    isCompleted: false
+    is_completed: false
   });
 
   const id = results[0]?.insertId || results[0]?.id;
@@ -63,8 +62,8 @@ router.get('/:id', asyncHandler(async (req, res) => {
     .select()
     .from(goalsTable)
     .where(and(
-      eq(goalsTable.goalID, parseInt(id)),
-      eq(goalsTable.userID, userId)
+      eq(goalsTable.id, parseInt(id)),
+      eq(goalsTable.user_id, userId)
     ));
   
   if (results.length === 0) {
@@ -74,7 +73,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
   const goal = results[0];
   const goalWithProgress = {
     ...goal,
-    progressPercentage: calculateProgress(goal.currentValue, goal.targetValue)
+    progressPercentage: calculateProgress(goal.current_value, goal.target_value)
   };
   
   res.json({
@@ -99,8 +98,8 @@ router.put('/:id', asyncHandler(async (req, res) => {
     .select()
     .from(goalsTable)
     .where(and(
-      eq(goalsTable.goalID, parseInt(id)),
-      eq(goalsTable.userID, userId)
+      eq(goalsTable.id, parseInt(id)),
+      eq(goalsTable.user_id, userId)
     ));
 
   if (existingGoal.length === 0) {
@@ -111,8 +110,8 @@ router.put('/:id', asyncHandler(async (req, res) => {
     .update(goalsTable)
     .set(updateData)
     .where(and(
-      eq(goalsTable.goalID, parseInt(id)),
-      eq(goalsTable.userID, userId)
+      eq(goalsTable.id, parseInt(id)),
+      eq(goalsTable.user_id, userId)
     ));
   
   res.json({
@@ -131,8 +130,8 @@ router.patch('/:id/progress', asyncHandler(async (req, res) => {
     .select()
     .from(goalsTable)
     .where(and(
-      eq(goalsTable.goalID, parseInt(id)),
-      eq(goalsTable.userID, userId)
+      eq(goalsTable.id, parseInt(id)),
+      eq(goalsTable.user_id, userId)
     ));
 
   if (existingGoal.length === 0) {
@@ -141,26 +140,26 @@ router.patch('/:id/progress', asyncHandler(async (req, res) => {
 
   const goal = existingGoal[0];
   const newCurrentValue = parseFloat(currentValue);
-  const isCompleted = newCurrentValue >= goal.targetValue;
+  const isCompleted = newCurrentValue >= goal.target_value;
 
   await db
     .update(goalsTable)
     .set({ 
-      currentValue: newCurrentValue,
-      isCompleted 
+      current_value: newCurrentValue,
+      is_completed: isCompleted 
     })
     .where(and(
-      eq(goalsTable.goalID, parseInt(id)),
-      eq(goalsTable.userID, userId)
+      eq(goalsTable.id, parseInt(id)),
+      eq(goalsTable.user_id, userId)
     ));
 
-  const progressPercentage = calculateProgress(newCurrentValue, goal.targetValue);
+  const progressPercentage = calculateProgress(newCurrentValue, goal.target_value);
   
   res.json({
     message: `Successfully updated goal progress`,
     data: {
       currentValue: newCurrentValue,
-      targetValue: goal.targetValue,
+      targetValue: goal.target_value,
       progressPercentage,
       isCompleted
     }
@@ -177,8 +176,8 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     .select()
     .from(goalsTable)
     .where(and(
-      eq(goalsTable.goalID, parseInt(id)),
-      eq(goalsTable.userID, userId)
+      eq(goalsTable.id, parseInt(id)),
+      eq(goalsTable.user_id, userId)
     ));
 
   if (existingGoal.length === 0) {
@@ -188,8 +187,8 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   await db
     .delete(goalsTable)
     .where(and(
-      eq(goalsTable.goalID, parseInt(id)),
-      eq(goalsTable.userID, userId)
+      eq(goalsTable.id, parseInt(id)),
+      eq(goalsTable.user_id, userId)
     ));
   
   res.json({
@@ -206,13 +205,13 @@ router.get('/type/:goalType', asyncHandler(async (req, res) => {
     .select()
     .from(goalsTable)
     .where(and(
-      eq(goalsTable.userID, userId),
-      eq(goalsTable.goalType, goalType)
+      eq(goalsTable.user_id, userId),
+      eq(goalsTable.goal_type, goalType)
     ));
   
   const goalsWithProgress = results.map(goal => ({
     ...goal,
-    progressPercentage: calculateProgress(goal.currentValue, goal.targetValue)
+    progressPercentage: calculateProgress(goal.current_value, goal.target_value)
   }));
 
   res.json({
@@ -228,25 +227,25 @@ router.get('/stats/summary', asyncHandler(async (req, res) => {
   const results = await db
     .select()
     .from(goalsTable)
-    .where(eq(goalsTable.userID, userId));
+    .where(eq(goalsTable.user_id, userId));
 
   const stats = results.reduce((acc, goal) => {
     acc.total++;
     
-    if (goal.isCompleted) {
+    if (goal.is_completed) {
       acc.completed++;
     }
     
-    const progress = calculateProgress(goal.currentValue, goal.targetValue);
+    const progress = calculateProgress(goal.current_value, goal.target_value);
     if (progress >= 75) {
       acc.nearCompletion++;
     }
     
     // Count by type
-    acc.byType[goal.goalType] = (acc.byType[goal.goalType] || 0) + 1;
+    acc.byType[goal.goal_type] = (acc.byType[goal.goal_type] || 0) + 1;
     
     // Count by timeframe
-    acc.byTimeFrame[goal.timeFrame] = (acc.byTimeFrame[goal.timeFrame] || 0) + 1;
+    acc.byTimeFrame[goal.time_frame] = (acc.byTimeFrame[goal.time_frame] || 0) + 1;
     
     return acc;
   }, {

@@ -45,6 +45,34 @@ function getTodayDate() {
     return today;
 }
 
+// Fetch user goals for comparison
+async function fetchUserGoals() {
+    console.log('🎯 Fetching user goals...');
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/goals`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch goals: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        const goals = result.data || [];
+        
+        console.log('✅ Goals fetched successfully:', goals);
+        return goals;
+        
+    } catch (error) {
+        console.error('❌ Error fetching goals:', error);
+        return [];
+    }
+}
+
 // ========================================
 // LOADING STATE MANAGEMENT
 // ========================================
@@ -212,6 +240,44 @@ function isSyncNeeded(lastSync) {
 }
 
 // ========================================
+// API RESPONSE HANDLING
+// ========================================
+
+async function handleApiResponse(response, dataType) {
+    if (!response.ok) {
+        if (response.status === 401) {
+            const errorData = await response.json().catch(() => ({}));
+            if (errorData.redirectToAuth) {
+                console.log(`🔄 TOKEN EXPIRED: Redirecting to Google auth for ${dataType} data`);
+                showErrorToast('Google Fit authentication required. Redirecting...');
+                
+                // Auto-redirect to Google auth
+                setTimeout(() => {
+                    window.location.href = errorData.authUrl;
+                }, 2000);
+                
+                return null;
+            }
+        }
+        console.warn(`⚠️ API error for ${dataType}:`, response.status);
+        return null;
+    }
+    
+    const data = await response.json();
+    
+    // Log sync success if new data was synced
+    if (data.stored > 0) {
+        console.log(`🎉 SYNC SUCCESS: ${data.stored} new ${dataType} records synced!`);
+        showSuccessToast(`Synced ${data.stored} new ${dataType} records`);
+    } else if (data.usingFallback) {
+        console.log(`🗃️ FALLBACK DATA: Using stored ${dataType} data due to API issues`);
+        showWarningToast(`Using cached ${dataType} data`);
+    }
+    
+    return data;
+}
+
+// ========================================
 // FITNESS DATA MANAGEMENT
 // ========================================
 
@@ -237,9 +303,9 @@ async function fetchTodaysFitnessData(userId) {
         console.log('📡 API responses received, processing data...');
         
         const [stepsData, heartRateData, caloriesData, summaryData] = await Promise.all([
-            stepsResponse.ok ? stepsResponse.json() : null,
-            heartRateResponse.ok ? heartRateResponse.json() : null,
-            caloriesResponse.ok ? caloriesResponse.json() : null,
+            handleApiResponse(stepsResponse, 'steps'),
+            handleApiResponse(heartRateResponse, 'heartrate'),
+            handleApiResponse(caloriesResponse, 'calories'),
             summaryResponse.ok ? summaryResponse.json() : null
         ]);
 

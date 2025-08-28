@@ -14,6 +14,7 @@
 
 <body>
 
+    <div class="stars"></div>
 
     <nav class="navigation-container">
         <div class="nav-header">
@@ -71,6 +72,15 @@
                             <span class="menu-text">LOG OUT</span>
                         </a>
                     </div>
+                    
+                    <!-- Last Sync Status -->
+                    <div class="nav-sync-status" id="navSyncStatus">
+                        <div class="nav-sync-icon">🔄</div>
+                        <div class="nav-sync-text">
+                            <div class="nav-sync-label">SYNC</div>
+                            <div class="nav-sync-time" id="navLastSyncTime">NEVER</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -99,11 +109,11 @@
                     <h3 class="widget-title">HEALTH GOALS</h3>
                 </div>
                 <div class="widget-content">
-                    <div class="goal-item">
+                    <div class="goal-item" data-goal="steps">
                         <div class="goal-info">
                             <span class="goal-label">DAILY STEPS</span>
                             <div class="goal-input-group">
-                                <input type="number" class="goal-input" value="10000" min="1000" max="50000">
+                                <input type="number" class="goal-input" id="steps-goal" value="10000" min="1000" max="50000">
                                 <span class="goal-unit">STEPS</span>
                             </div>
                         </div>
@@ -115,11 +125,11 @@
                         </div>
                     </div>
 
-                    <div class="goal-item">
+                    <div class="goal-item" data-goal="calories">
                         <div class="goal-info">
                             <span class="goal-label">DAILY CALORIES</span>
                             <div class="goal-input-group">
-                                <input type="number" class="goal-input" value="2500" min="1200" max="5000">
+                                <input type="number" class="goal-input" id="calories-goal" value="2500" min="1200" max="5000">
                                 <span class="goal-unit">KCAL</span>
                             </div>
                         </div>
@@ -131,11 +141,11 @@
                         </div>
                     </div>
 
-                    <div class="goal-item">
+                    <div class="goal-item" data-goal="sleep">
                         <div class="goal-info">
                             <span class="goal-label">SLEEP HOURS</span>
                             <div class="goal-input-group">
-                                <input type="number" class="goal-input" value="8" min="6" max="12" step="0.5">
+                                <input type="number" class="goal-input" id="sleep-goal" value="8" min="6" max="12" step="0.5">
                                 <span class="goal-unit">HOURS</span>
                             </div>
                         </div>
@@ -147,21 +157,22 @@
                         </div>
                     </div>
 
-                    <div class="goal-item">
+                    <div class="goal-item" data-goal="heart_rate">
                         <div class="goal-info">
-                            <span class="goal-label">WEEKLY WORKOUTS</span>
+                            <span class="goal-label">AVG HEART RATE</span>
                             <div class="goal-input-group">
-                                <input type="number" class="goal-input" value="5" min="1" max="7">
-                                <span class="goal-unit">DAYS</span>
+                                <input type="number" class="goal-input" id="heart-rate-goal" value="70" min="50" max="100">
+                                <span class="goal-unit">BPM</span>
                             </div>
                         </div>
                         <div class="goal-progress">
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width: 60%"></div>
+                                <div class="progress-fill" style="width: 85%"></div>
                             </div>
-                            <span class="progress-text">3/5 THIS WEEK</span>
+                            <span class="progress-text">85% TODAY</span>
                         </div>
                     </div>
+
 
                     <button class="save-goals-btn pixel-button">SAVE GOALS</button>
                 </div>
@@ -248,34 +259,63 @@
                         <div class="tab-panel active" id="credentials-tab">
                             <div class="input-group">
                                 <label class="pixel-label">EMAIL</label>
-                                <input type="email" class="pixel-input" value="john.doe@email.com">
+                                <input type="email" class="pixel-input" id="email" placeholder="Enter your email">
                             </div>
                             <div class="input-group">
-                                <label class="pixel-label">PASSWORD</label>
-                                <input type="password" class="pixel-input" value="••••••••">
+                                <label class="pixel-label">FIRST NAME</label>
+                                <input type="text" class="pixel-input" id="firstName" placeholder="Enter first name">
                             </div>
                             <div class="input-group">
-                                <label class="pixel-label">FULL NAME</label>
-                                <input type="text" class="pixel-input" value="John Doe">
+                                <label class="pixel-label">LAST NAME</label>
+                                <input type="text" class="pixel-input" id="lastName" placeholder="Enter last name">
                             </div>
-                            <button class="save-btn pixel-button">SAVE</button>
+                            <div class="input-group">
+                                <label class="pixel-label">PHONE NUMBER</label>
+                                <input type="tel" class="pixel-input" id="phoneNr" placeholder="Enter phone number">
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">GENDER</label>
+                                <select class="pixel-input" id="gender">
+                                    <option value="">Select gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                    <option value="prefer_not_to_say">Prefer not to say</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">HEIGHT (CM)</label>
+                                <input type="number" class="pixel-input" id="height" placeholder="Enter height in cm" min="100" max="250">
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">WEIGHT (KG)</label>
+                                <input type="number" class="pixel-input" id="weight" placeholder="Enter weight in kg" min="30" max="300">
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">DEVICE NAME</label>
+                                <input type="text" class="pixel-input" id="deviceName" placeholder="Enter device name">
+                            </div>
+                            <button class="save-btn pixel-button">SAVE PROFILE</button>
                         </div>
 
                         <div class="tab-panel" id="goals-tab">
-                            <div class="quick-goals-summary">
-                                <div class="goal-summary-item">
-                                    <span class="summary-label">STEPS TARGET</span>
-                                    <span class="summary-value">10,000/DAY</span>
-                                </div>
-                                <div class="goal-summary-item">
-                                    <span class="summary-label">CALORIES TARGET</span>
-                                    <span class="summary-value">2,500/DAY</span>
-                                </div>
-                                <div class="goal-summary-item">
-                                    <span class="summary-label">SLEEP TARGET</span>
-                                    <span class="summary-value">8 HOURS</span>
-                                </div>
+                            <div class="input-group">
+                                <label class="pixel-label">DAILY STEPS TARGET</label>
+                                <input type="number" class="pixel-input" id="stepsGoal" placeholder="Enter steps target" min="1000" max="50000">
                             </div>
+                            <div class="input-group">
+                                <label class="pixel-label">DAILY CALORIES TARGET</label>
+                                <input type="number" class="pixel-input" id="caloriesGoal" placeholder="Enter calories target" min="1000" max="5000">
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">SLEEP TARGET (HOURS)</label>
+                                <input type="number" class="pixel-input" id="sleepGoal" placeholder="Enter sleep hours" min="4" max="12" step="0.5">
+                            </div>
+                            <div class="input-group">
+                                <label class="pixel-label">RESTING HEART RATE TARGET (BPM)</label>
+                                <input type="number" class="pixel-input" id="heartRateGoal" placeholder="Enter heart rate target" min="40" max="120">
+                            </div>
+                            <button class="save-btn pixel-button" id="saveGoalsBtn">SAVE GOALS</button>
                         </div>
 
                         <div class="tab-panel" id="device-tab">
@@ -300,158 +340,14 @@
                 </div>
             </div>
 
-            <!-- Quick Actions Panel -->
-            <div class="profile-widget actions-section">
-                <div class="widget-header">
-                    <div class="widget-icon">⚙️</div>
-                    <h3 class="widget-title">QUICK ACTIONS</h3>
-                </div>
-                <div class="widget-content">
-                    <div class="action-grid">
-                        <button class="action-btn">
-                            <div class="action-icon">🔄</div>
-                            <span class="action-text">UPDATE CREDENTIALS</span>
-                        </button>
-                        <button class="action-btn">
-                            <div class="action-icon">🎯</div>
-                            <span class="action-text">SET GOALS</span>
-                        </button>
-                        <button class="action-btn">
-                            <div class="action-icon">📱</div>
-                            <span class="action-text">UPDATE DEVICE INFO</span>
-                        </button>
-                        <button class="action-btn logout-btn">
-                            <div class="action-icon">🚪</div>
-                            <span class="action-text">LOG OUT</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Pixel Stars Background -->
         <div class="pixel-stars-bg"></div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            setupTabNavigation();
-            setupGoalInputs();
-            setupToggleAnimations();
-            setupActionButtons();
-        });
-
-        function setupTabNavigation() {
-            const navBtns = document.querySelectorAll('.nav-btn');
-            const tabPanels = document.querySelectorAll('.tab-panel');
-
-            navBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const targetTab = this.dataset.tab;
-
-                    // Remove active class from all buttons and panels
-                    navBtns.forEach(b => b.classList.remove('active'));
-                    tabPanels.forEach(p => p.classList.remove('active'));
-
-                    // Add active class to clicked button and corresponding panel
-                    this.classList.add('active');
-                    document.getElementById(`${targetTab}-tab`).classList.add('active');
-                });
-            });
-        }
-
-        function setupGoalInputs() {
-            const goalInputs = document.querySelectorAll('.goal-input');
-
-            goalInputs.forEach(input => {
-                input.addEventListener('change', function () {
-                    // Add visual feedback when goals are changed
-                    this.style.borderColor = '#4CAF50';
-                    setTimeout(() => {
-                        this.style.borderColor = '#fff';
-                    }, 1000);
-                });
-            });
-        }
-
-        function setupToggleAnimations() {
-            const toggles = document.querySelectorAll('.toggle-input');
-
-            toggles.forEach(toggle => {
-                toggle.addEventListener('change', function () {
-                    const slider = this.nextElementSibling;
-                    if (this.checked) {
-                        slider.style.backgroundColor = '#4CAF50';
-                    } else {
-                        slider.style.backgroundColor = '#333';
-                    }
-                });
-            });
-        }
-
-        function setupActionButtons() {
-            const actionBtns = document.querySelectorAll('.action-btn');
-
-            actionBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    // Add click animation
-                    this.style.transform = 'scale(0.95) translateY(2px)';
-                    setTimeout(() => {
-                        this.style.transform = 'scale(1) translateY(0px)';
-                    }, 150);
-
-                    // Handle different actions
-                    const actionText = this.querySelector('.action-text').textContent;
-
-                    if (actionText.includes('LOG OUT')) {
-                        // Simulate logout
-                        alert('LOGGED OUT SUCCESSFULLY!');
-                    } else if (actionText.includes('UPDATE CREDENTIALS')) {
-                        // Focus on credentials tab
-                        document.querySelector('[data-tab="credentials"]').click();
-                    } else if (actionText.includes('SET GOALS')) {
-                        // Focus on first goal input
-                        document.querySelector('.goal-input').focus();
-                    } else if (actionText.includes('UPDATE DEVICE')) {
-                        // Focus on device tab
-                        document.querySelector('[data-tab="device"]').click();
-                    }
-                });
-            });
-
-            // Save buttons
-            const saveBtns = document.querySelectorAll('.save-btn, .save-goals-btn');
-            saveBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    // Visual feedback for save action
-                    const originalText = this.textContent;
-                    this.textContent = 'SAVED!';
-                    this.style.backgroundColor = '#4CAF50';
-
-                    setTimeout(() => {
-                        this.textContent = originalText;
-                        this.style.backgroundColor = '#388E3C';
-                    }, 2000);
-                });
-            });
-        }
-
-        // Simulate goal progress updates
-        function updateGoalProgress() {
-            const progressBars = document.querySelectorAll('.progress-fill');
-            progressBars.forEach(bar => {
-                const currentWidth = parseInt(bar.style.width);
-                if (currentWidth < 100) {
-                    const newWidth = Math.min(100, currentWidth + Math.random() * 5);
-                    bar.style.width = newWidth + '%';
-                }
-            });
-        }
-
-        // Update progress every 30 seconds for demo
-        setInterval(updateGoalProgress, 30000);
-    </script>
     <script src="../navigation.js"></script>
+    <script src="profile.js"></script>
 
 </body>
 

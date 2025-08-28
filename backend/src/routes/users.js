@@ -96,13 +96,8 @@ router.get('/:id', asyncHandler(async (req, res) => {
     data: user // The 'user' object already has the desired shape due to explicit aliasing in select
   });
 }));
-// --- Consider how to protect PUT/DELETE/PATCH routes ---
-// If these are not meant to be public, you will need a way to check
-// the user's identity and permissions, likely by re-introducing
-// middleware or passing a user identifier from localStorage to the backend.
-// For now, I'm leaving them as public to match your "no auth required" scope.
 
-// Update user by ID (Publicly accessible, but risky - consider protections)
+// Update user profile information
 router.put('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userIdToFind = parseInt(id);
@@ -111,24 +106,103 @@ router.put('/:id', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid user ID format' });
   }
 
-  const updateData = { ...req.body };
-  
-  // Remove fields that should NOT be updated by public requests
-  delete updateData.userID; // Cannot change the ID
-  delete updateData.id;     // Cannot change the ID
-  delete updateData.role;   // Role should be managed by admin
-  delete updateData.email;  // Email changes typically have a verification flow
-  delete updateData.password; // Password changes need a specific flow
-  delete updateData.google_oauth_id; // OAuth ID is managed by Google
-  // Consider if fit_tokens, last_sync, device_name should be updatable here
+  // Check if user exists
+  const existingUser = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, userIdToFind));
+
+  if (existingUser.length === 0) {
+    return res.status(404).json({ error: `User with id ${id} not found` });
+  }
+
+  const { firstName, lastName, phoneNr, gender, height, weight, deviceName } = req.body;
+  const updateData = {};
+
+  // Validate and prepare update data
+  if (firstName !== undefined) {
+    if (typeof firstName !== 'string' || firstName.trim().length === 0) {
+      return res.status(400).json({ error: 'First name must be a non-empty string' });
+    }
+    updateData.first_name = firstName.trim();
+  }
+
+  if (lastName !== undefined) {
+    if (typeof lastName !== 'string' || lastName.trim().length === 0) {
+      return res.status(400).json({ error: 'Last name must be a non-empty string' });
+    }
+    updateData.last_name = lastName.trim();
+  }
+
+  if (phoneNr !== undefined) {
+    const phoneNumber = parseInt(phoneNr);
+    if (isNaN(phoneNumber) || phoneNumber <= 0) {
+      return res.status(400).json({ error: 'Phone number must be a valid positive number' });
+    }
+    updateData.phoneNr = phoneNumber;
+  }
+
+  if (gender !== undefined) {
+    const validGenders = ['male', 'female', 'other', 'prefer_not_to_say'];
+    if (!validGenders.includes(gender.toLowerCase())) {
+      return res.status(400).json({ error: 'Gender must be one of: male, female, other, prefer_not_to_say' });
+    }
+    updateData.gender = gender.toLowerCase();
+  }
+
+  if (height !== undefined) {
+    const heightValue = parseFloat(height);
+    if (isNaN(heightValue) || heightValue <= 0 || heightValue > 300) {
+      return res.status(400).json({ error: 'Height must be a positive number between 1 and 300 cm' });
+    }
+    updateData.height = heightValue;
+  }
+
+  if (weight !== undefined) {
+    const weightValue = parseFloat(weight);
+    if (isNaN(weightValue) || weightValue <= 0 || weightValue > 1000) {
+      return res.status(400).json({ error: 'Weight must be a positive number between 1 and 1000 kg' });
+    }
+    updateData.weight = weightValue;
+  }
+
+  if (deviceName !== undefined) {
+    if (typeof deviceName !== 'string') {
+      return res.status(400).json({ error: 'Device name must be a string' });
+    }
+    updateData.device_name = deviceName.trim();
+  }
+
+  // Only update if there's data to update
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({ error: 'No valid fields provided for update' });
+  }
 
   await db
     .update(usersTable)
     .set(updateData)
-    .where(eq(usersTable.id, userIdToFind)); // Use correct schema property 'id'
+    .where(eq(usersTable.id, userIdToFind));
+  
+  // Return updated user data
+  const updatedUser = await db
+    .select({
+      userID: usersTable.id,
+      firstName: usersTable.first_name,
+      lastName: usersTable.last_name,
+      email: usersTable.email,
+      phoneNr: usersTable.phoneNr,
+      gender: usersTable.gender,
+      height: usersTable.height,
+      weight: usersTable.weight,
+      deviceName: usersTable.device_name,
+      createdAt: usersTable.created_at
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, userIdToFind));
   
   res.json({
-    message: `Successfully updated user ${id}`
+    message: `Successfully updated user profile`,
+    data: updatedUser[0]
   });
 }));
 
