@@ -66,7 +66,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Dashboard API endpoint (aggregated data)
-app.get('/api/dashboard', require('./lib/auth').authMiddleware, async (req, res) => {
+app.get('/api/dashboard', async (req, res) => {
   try {
     const userId = req.user.userID;
     const { period = 'daily' } = req.query;

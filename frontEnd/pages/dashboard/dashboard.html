@@ -19,8 +19,6 @@
         <div class="nav-header">
             <!-- Current Page Indicator -->
             <div class="current-page">
-                <span class="page-label">CURRENT:</span>
-                <span class="page-name">DASHBOARD</span>
             </div>
 
             <button class="menu-button" id="menuButton">
@@ -42,15 +40,12 @@
                     <div class="menu-items">
                         <!-- Set "active" class on current page -->
                         <a href="../dashboard/dashboard.html" class="menu-item active">
-                            <span class="menu-icon">📊</span>
                             <span class="menu-text">DASHBOARD</span>
                         </a>
                         <a href="../stats/stats.html" class="menu-item">
-                            <span class="menu-icon">📈</span>
                             <span class="menu-text">STATISTICS</span>
                         </a>
                         <a href="../profile/profile.html" class="menu-item">
-                            <span class="menu-icon">👤</span>
                             <span class="menu-text">PROFILE</span>
                         </a>
                     </div>
@@ -59,7 +54,6 @@
                 <!-- Google Fit Connection Prompt -->
                 <div id="googleFitPrompt" style="display: none;">
                     <div class="widget-recommendation">
-                        <div class="rec-icon">🔗</div>
                         <div class="rec-content">
                             <span class="rec-title">CONNECT GOOGLE FIT</span>
                             <span class="rec-text">Connect your Google Fit account to sync your health data automatically.</span>
@@ -79,10 +73,10 @@
                     </div>
                     <div class="menu-items">
                         <a href="../auth/auth.html" class="menu-item">
-                            <span class="menu-icon">🚪</span>
                             <span class="menu-text">LOG OUT</span>
                         </a>
                     </div>
+                    
                     <!-- Last Sync Status -->
                     <div class="nav-sync-status" id="navSyncStatus">
                         <div class="nav-sync-icon">🔄</div>
@@ -98,12 +92,8 @@
 
     <!-- Overlay -->
     <div class="nav-overlay" id="navOverlay"></div>
-
     <div class="dashboard-container">
         <header class="dashboard-header">
-            <div class="logo-circle">
-                <span class="logo-text">H+</span>
-            </div>
             <h1 class="dashboard-title">DASHBOARD</h1>
             <div class="user-info">
                 <span class="welcome-text">WELCOME BACK!</span>
@@ -115,7 +105,11 @@
             <!-- Steps Tracker - Top Left -->
             <div class="widget steps-widget">
                 <div class="widget-header">
-                    <div class="widget-icon steps-icon">👟</div>
+                    <div class="widget-icon steps-icon">
+                        <div class="pixel-logo">
+                            <img src="../../assets/dashboard/shoe.png" alt="Steps Data" />
+                        </div>
+                    </div>
                     <h3 class="widget-title">STEPS TRACKER</h3>
                 </div>
                 <div class="widget-content">
@@ -125,13 +119,12 @@
                                 stroke-width="8" />
                             <circle class="progress-bar-circular steps-progress-circular" cx="60" cy="60" r="50"
                                 fill="none" stroke="#388E3C" stroke-width="8" stroke-dasharray="314"
-                                stroke-dashoffset="56.52" />
-                            <!-- Empty circle in center for gif -->
-                            <circle class="gif-placeholder" cx="60" cy="60" r="25" fill="#2a2a2a" stroke="#388E3C"
-                                stroke-width="2" />
+                                stroke-dashoffset="56.52" />                           
                         </svg>
                         <div class="circular-content">
-                            <div class="gif-icon" id="stepsGifIcon">🚶</div>
+                           <div class="pixel-logo" style="width: 70px; height: 70px">
+                            <img src="../../assets/dashboard/steps.gif" alt="Steps Data" />
+                        </div>
                         </div>
                     </div>
                     <div class="steps-info">
@@ -139,7 +132,6 @@
                         <span class="stat-label">STEPS TODAY</span>
                         <span class="progress-text">82% OF GOAL (10,000)</span>
                         <div class="widget-recommendation">
-                            <div class="rec-icon">🚶</div>
                             <div class="rec-content">
                                 <span class="rec-title">ALMOST THERE!</span>
                                 <span class="rec-text">TAKE A 15-MINUTE WALK TO REACH YOUR STEP GOAL</span>
@@ -152,7 +144,11 @@
             <!-- User Data - Top Right -->
             <div class="widget goals-widget">
                 <div class="widget-header">
-                    <div class="widget-icon goals-icon">👤</div>
+                    <div class="widget-icon goals-icon">
+                       <div class="pixel-logo">
+                            <img src="../../assets/dashboard/user.gif" alt="Steps Data" />
+                        </div>  
+                    </div>
                     <h3 class="widget-title">USER DATA</h3>
                 </div>
                 <div class="widget-content">
@@ -186,7 +182,11 @@
             <!-- Heart Rate Data - Bottom Left -->
             <div class="widget heartrate-widget">
                 <div class="widget-header">
-                    <div class="widget-icon heartrate-icon">❤️</div>
+                    <div class="widget-icon heartrate-icon">
+                        <div class="pixel-logo">
+                            <img src="../../assets/dashboard/pixel-heart.gif" alt="Steps Data" />
+                        </div>      
+                    </div>
                     <h3 class="widget-title">HEART RATE TRENDS</h3>
                 </div>
                 <div class="widget-content">
@@ -220,7 +220,11 @@
             <!-- Calorie Data - Bottom Center -->
             <div class="widget calorie-widget">
                 <div class="widget-header">
-                    <div class="widget-icon calorie-icon">🔥</div>
+                    <div class="widget-icon calorie-icon">
+                        <div class="pixel-logo">
+                            <img src="../../assets/dashboard/flame.gif" alt="fire Data" />
+                        </div>
+                    </div>
                     <h3 class="widget-title">CALORIES BURNED</h3>
                 </div>
                 <div class="widget-content">
@@ -245,7 +249,11 @@
             <!-- Sleep Data - Bottom Right -->
             <div class="widget sleep-widget">
                 <div class="widget-header">
-                    <div class="widget-icon sleep-icon">😴</div>
+                    <div class="widget-icon sleep-icon">
+                        <div class="pixel-logo">
+                            <img src="../../assets/dashboard/moon.gif" alt="Steps Data" />
+                        </div>
+                    </div>
                     <h3 class="widget-title">SLEEP QUALITY</h3>
                 </div>
                 <div class="widget-content">

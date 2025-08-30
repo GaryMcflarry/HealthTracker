@@ -1,3 +1,5 @@
+/* Updated Dashboard CSS with Empty States and Pixel Art Placeholders */
+
 /* Reset and base styles */
 * {
     margin-top: 50px;
@@ -14,15 +16,12 @@ body {
     padding: 20px;
     position: relative;
     overflow-x: hidden;
-}
-
-body {
-    padding-top: 120px; /* Pushes all content below nav */
+    padding-top: 120px;
 }
 
 @media (max-width: 768px) {
     body {
-        padding-top: 200px; /* Smaller padding on mobile */
+        padding-top: 200px;
     }
 }
 
@@ -81,7 +80,6 @@ body {
     min-height: 700px;
 }
 
-/* Grid layout: Top widgets span across, bottom row has 3 widgets */
 .steps-widget { 
     grid-column: 1 / 3; 
     grid-row: 1; 
@@ -190,7 +188,7 @@ body {
 }
 
 .widget-content {
-    height: calc(100% - 50px);
+    height: calc(100% - 100px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -245,6 +243,97 @@ body {
 .goals-widget .widget-title {
     color: #FFB74D;
     text-shadow: 0 0 10px #FF6F00;
+}
+
+/* Empty State Styles */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    padding: 20px;
+    opacity: 0.8;
+}
+
+.empty-state-icon {
+    margin-bottom: 15px;
+}
+
+.empty-state-icon img {
+    width: 48px;
+    height: 48px;
+    opacity: 0.6;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.empty-state-text {
+    margin-bottom: 20px;
+}
+
+.empty-state-title {
+    font-size: 10px;
+    color: #fff;
+    margin-bottom: 8px;
+    text-shadow: 1px 1px 0px #333;
+}
+
+.empty-state-message {
+    font-size: 7px;
+    color: #ccc;
+    line-height: 1.4;
+}
+
+.empty-state-button {
+    background: #4CAF50;
+    border: 2px solid #66BB6A;
+    color: #fff;
+    padding: 8px 16px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    clip-path: polygon(
+        6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
+        0 100%, 0 6px
+    );
+}
+
+.empty-state-button:hover {
+    background: #66BB6A;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Pixel Art Placeholders */
+.pixel-art-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.pixel-art-placeholder:hover {
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.pixel-art-placeholder img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
 }
 
 /* Main Statistics */
@@ -310,7 +399,7 @@ body {
     text-align: center;
 }
 
-/* Steps widget gets enhanced layout for wider space */
+/* Steps widget enhanced layout */
 .steps-widget .widget-content {
     display: flex;
     align-items: center;
@@ -347,7 +436,7 @@ body {
     margin-bottom: 15px;
 }
 
-/* User Data widget enhanced for better proportions */
+/* User Data widget enhanced */
 .goals-widget .widget-content {
     display: flex;
     flex-direction: column;
@@ -403,6 +492,23 @@ body {
 .goals-widget .goal-stat {
     font-size: 7px;
 }
+
+/* Goal progress styling */
+.goal-stat.achieved {
+    color: #4CAF50;
+    text-shadow: 0 0 5px #4CAF50;
+}
+
+.goal-stat.close {
+    color: #FF9800;
+    text-shadow: 0 0 5px #FF9800;
+}
+
+.goal-stat.needs-work {
+    color: #F44336;
+    text-shadow: 0 0 5px #F44336;
+}
+
 .circular-progress-container {
     position: relative;
     width: 120px;
@@ -427,7 +533,7 @@ body {
 
 .steps-progress-circular {
     stroke-dasharray: 314;
-    stroke-dashoffset: 56.52; /* 82% progress */
+    stroke-dashoffset: 56.52;
 }
 
 .gif-placeholder {
@@ -584,33 +690,6 @@ body {
     image-rendering: crisp-edges;
 }
 
-/* GIF Icon Animation */
-.gif-icon {
-    font-size: 24px;
-    filter: none;
-    animation: stepAnimation 2s ease-in-out infinite;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-}
-
-.gif-icon:hover {
-    transform: scale(1.2);
-}
-
-@keyframes stepAnimation {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-3px); }
-}
-
-/* When user is actively walking, speed up animation */
-.gif-icon.walking {
-    animation: stepAnimationFast 0.8s ease-in-out infinite;
-}
-
-@keyframes stepAnimationFast {
-    0%, 100% { transform: translateY(0px) rotate(-2deg); }
-    50% { transform: translateY(-5px) rotate(2deg); }
-}
 .heart-stats {
     display: flex;
     justify-content: space-between;
@@ -658,75 +737,6 @@ body {
     color: #ccc;
 }
 
-/* Goals List */
-.goals-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.goal-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px;
-    background-color: #333;
-    border: 1px solid #FF6F00;
-    clip-path: polygon(
-        6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
-        0 100%, 0 6px
-    );
-}
-
-.goal-name {
-    font-size: 6px;
-    color: #fff;
-}
-
-.goal-progress {
-    font-size: 6px;
-    color: #FF6F00;
-    text-shadow: 1px 1px 0px #333;
-}
-
-/* Device List */
-.device-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.device-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px;
-    background-color: #333;
-    border: 1px solid #1976D2;
-    clip-path: polygon(
-        6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
-        0 100%, 0 6px
-    );
-}
-
-.device-name {
-    font-size: 6px;
-    color: #fff;
-}
-
-.device-status {
-    font-size: 5px;
-    text-shadow: 1px 1px 0px #333;
-}
-
-.connected .device-status {
-    color: #388E3C;
-}
-
-.disconnected .device-status {
-    color: #D32F2F;
-}
-
 /* Widget Recommendations */
 .widget-recommendation {
     margin-top: 15px;
@@ -769,141 +779,6 @@ body {
     opacity: 0.8;
 }
 
-/* Hide desktop recommendations on mobile, show widget recommendations */
-@media (max-width: 768px) {
-    /* Reset steps widget layout for mobile */
-    .steps-widget .widget-content {
-        display: block;
-        gap: 0;
-        min-height: auto;
-    }
-    
-    .steps-widget .circular-progress-container {
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 15px auto;
-    }
-    
-    .steps-widget .steps-info {
-        text-align: center;
-        margin-top: 0;
-        gap: 8px;
-    }
-    
-    .steps-widget .steps-info .stat-number {
-        font-size: 28px;
-    }
-    
-    .steps-widget .steps-info .stat-label {
-        font-size: 8px;
-    }
-    
-    .steps-widget .steps-info .progress-text {
-        font-size: 7px;
-    }
-    
-    /* Reset user data widget for mobile */
-    .goals-widget .widget-content {
-        min-height: auto;
-        gap: 12px;
-    }
-    
-    .goals-widget .user-avatar {
-        width: 35px;
-        height: 35px;
-        font-size: 10px;
-    }
-    
-    .goals-widget .user-name {
-        font-size: 7px;
-    }
-    
-    .goals-widget .user-email {
-        font-size: 6px;
-    }
-    
-    .goals-widget .device-name-main {
-        font-size: 7px;
-    }
-    
-    .goals-widget .goal-name {
-        font-size: 6px;
-    }
-    
-    .goals-widget .goal-stat {
-        font-size: 5px;
-    }
-}
-.recommendations-section {
-    margin-top: 20px;
-}
-
-.recommendations-widget {
-    border: 3px solid #9C27B0;
-    background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(60, 21, 69, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
-    padding: 20px;
-    clip-path: polygon(
-        12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 
-        0 100%, 0 12px
-    );
-}
-
-.recommendations-widget .widget-title {
-    color: #CE93D8;
-    text-shadow: 0 0 10px #9C27B0;
-}
-
-.recommendations-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-}
-
-.recommendation-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 15px;
-    background: rgba(156, 39, 176, 0.1);
-    border: 2px solid #9C27B0;
-    clip-path: polygon(
-        8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 
-        0 100%, 0 8px
-    );
-    transition: all 0.3s ease;
-}
-
-.recommendation-item:hover {
-    background: rgba(156, 39, 176, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
-}
-
-.rec-icon {
-    font-size: 16px;
-    filter: none;
-    flex-shrink: 0;
-}
-
-.rec-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.rec-title {
-    font-size: 7px;
-    color: #CE93D8;
-    text-shadow: 1px 1px 0px #333;
-    margin-bottom: 3px;
-}
-
-.rec-text {
-    font-size: 6px;
-    color: #ccc;
-    line-height: 1.4;
-}
-
 /* Pixel Stars Background */
 .pixel-stars-bg {
     position: fixed;
@@ -942,193 +817,7 @@ body {
     100% { opacity: 0.8; }
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr 1fr;
-    }
-    
-    .steps-widget { 
-        grid-column: 1 / -1; 
-        grid-row: 1; 
-    }
-    
-    .goals-widget { 
-        grid-column: 1 / -1; 
-        grid-row: 2; 
-    }
-    
-    .heartrate-widget { 
-        grid-column: 1; 
-        grid-row: 3; 
-    }
-    
-    .calorie-widget { 
-        grid-column: 2; 
-        grid-row: 3; 
-    }
-    
-    .sleep-widget { 
-        grid-column: 1 / -1; 
-        grid-row: 4; 
-    }
-    
-    /* Adjust steps widget for tablet */
-    .steps-widget .widget-content {
-        gap: 30px;
-    }
-    
-    .steps-widget .circular-progress-container {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .steps-widget .steps-info .stat-number {
-        font-size: 36px;
-    }
-}
-
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-    
-    .dashboard-grid {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto auto;
-        gap: 15px;
-    }
-    
-    /* Mobile layout: Steps on top spanning full width, then 2x2 grid */
-    .steps-widget { 
-        grid-column: 1 / -1; 
-        grid-row: 1; 
-    }
-    
-    .goals-widget { 
-        grid-column: 1; 
-        grid-row: 2; 
-    }
-    
-    .heartrate-widget { 
-        grid-column: 2; 
-        grid-row: 2; 
-    }
-    
-    .calorie-widget { 
-        grid-column: 1; 
-        grid-row: 3; 
-    }
-    
-    .sleep-widget { 
-        grid-column: 2; 
-        grid-row: 3; 
-    }
-    
-    /* Reset steps widget layout for mobile */
-    .steps-widget .widget-content {
-        display: block;
-        gap: 0;
-    }
-    
-    .steps-widget .steps-info {
-        text-align: center;
-        margin-top: 15px;
-    }
-    
-    .dashboard-header {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-    }
-    
-    .dashboard-title {
-        font-size: 12px;
-    }
-    
-    .widget {
-        padding: 15px;
-    }
-    
-    .stat-number {
-        font-size: 24px;
-    }
-    
-    /* Adjust chart sizes for mobile */
-    #heartRateChart {
-        width: 250px;
-        height: 100px;
-    }
-    
-    #calorieChart, #sleepChart {
-        max-width: 120px;
-        max-height: 120px;
-    }
-    
-    .chart-container {
-        height: 120px;
-    }
-    
-    /* Make widget recommendations more compact on mobile */
-    .widget-recommendation {
-        margin-top: 10px;
-        padding: 8px;
-    }
-    
-    .widget-recommendation .rec-title {
-        font-size: 5px;
-    }
-    
-    .widget-recommendation .rec-text {
-        font-size: 4px;
-    }
-}
-
-/* Animation for live updates */
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-.heartrate-widget .stat-number {
-    animation: pulse 2s ease-in-out infinite;
-}
-
-/* Twinkling stars background */
-.stars {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.star {
-    position: absolute;
-    background: #fff;
-    border-radius: 50%;
-    animation: twinkle 2s infinite;
-}
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
-}
-
-
-/* Loading States and Animations - Add this to your dashboard.css */
-
-/* Global Loading Overlay */
+/* Loading States */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -1318,176 +1007,244 @@ body {
     }
 }
 
-/* Enhanced Widget Hover Effects with Loading States */
-.widget {
-    position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.widget.loading {
-    pointer-events: none;
-}
-
-.widget.loading .widget-content {
-    position: relative;
-    overflow: hidden;
-}
-
-.widget.loading .widget-content::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-        transparent, 
-        rgba(0, 255, 65, 0.1), 
-        transparent
-    );
-    animation: shimmer 2s infinite;
-    z-index: 1;
-}
-
-@keyframes shimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-
-/* Pulse animation for data values during loading */
-.stat-number.loading {
-    animation: numberPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes numberPulse {
-    0%, 100% {
-        opacity: 0.6;
-        transform: scale(1);
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
     }
-    50% {
-        opacity: 1;
-        transform: scale(1.05);
+    
+    .steps-widget { 
+        grid-column: 1 / -1; 
+        grid-row: 1; 
+    }
+    
+    .goals-widget { 
+        grid-column: 1 / -1; 
+        grid-row: 2; 
+    }
+    
+    .heartrate-widget { 
+        grid-column: 1; 
+        grid-row: 3; 
+    }
+    
+    .calorie-widget { 
+        grid-column: 2; 
+        grid-row: 3; 
+    }
+    
+    .sleep-widget { 
+        grid-column: 1 / -1; 
+        grid-row: 4; 
+    }
+    
+    .steps-widget .widget-content {
+        gap: 30px;
+    }
+    
+    .steps-widget .circular-progress-container {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .steps-widget .steps-info .stat-number {
+        font-size: 36px;
     }
 }
 
-/* Loading skeleton for charts */
-.chart-container.loading {
-    position: relative;
-    overflow: hidden;
-}
-
-.chart-container.loading::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg,
-        #333 25%,
-        #444 25%,
-        #444 50%,
-        #333 50%,
-        #333 75%,
-        #444 75%
-    );
-    background-size: 20px 20px;
-    animation: patternMove 2s linear infinite;
-    opacity: 0.3;
-}
-
-@keyframes patternMove {
-    0% { background-position: 0 0; }
-    100% { background-position: 20px 20px; }
-}
-
-/* Responsive loading states */
 @media (max-width: 768px) {
-    .loading-text {
+    body {
+        padding: 10px;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 15px;
+    }
+    
+    .steps-widget { 
+        grid-column: 1 / -1; 
+        grid-row: 1; 
+    }
+    
+    .goals-widget { 
+        grid-column: 1; 
+        grid-row: 2; 
+    }
+    
+    .heartrate-widget { 
+        grid-column: 2; 
+        grid-row: 2; 
+    }
+    
+    .calorie-widget { 
+        grid-column: 1; 
+        grid-row: 3; 
+    }
+    
+    .sleep-widget { 
+        grid-column: 2; 
+        grid-row: 3; 
+    }
+    
+    .steps-widget .widget-content {
+        display: block;
+        gap: 0;
+    }
+    
+    .steps-widget .steps-info {
+        text-align: center;
+        margin-top: 15px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .dashboard-title {
         font-size: 12px;
     }
     
-    .loading-subtext {
-        font-size: 8px;
+    .widget {
+        padding: 15px;
     }
     
-    .toast-message {
-        font-size: 8px;
+    .stat-number {
+        font-size: 24px;
     }
     
-    .pixel-loader {
-        gap: 6px;
+    #heartRateChart {
+        width: 250px;
+        height: 100px;
     }
     
-    .pixel-dot {
-        width: 10px;
-        height: 10px;
+    #calorieChart, #sleepChart {
+        max-width: 120px;
+        max-height: 120px;
+    }
+    
+    .chart-container {
+        height: 120px;
+    }
+    
+    .widget-recommendation {
+        margin-top: 10px;
+        padding: 8px;
+    }
+    
+    .widget-recommendation .rec-title {
+        font-size: 5px;
+    }
+    
+    .widget-recommendation .rec-text {
+        font-size: 4px;
     }
 }
 
-/* Connection status indicators */
-.sync-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 10px;
-    color: #ffffff;
-}
-
-.sync-status::before {
-    content: '●';
-    font-size: 12px;
-    animation: statusBlink 2s ease-in-out infinite;
-}
-
-.sync-status.syncing::before {
-    color: #ffab00;
-    animation: statusPulse 1s ease-in-out infinite;
-}
-
-.sync-status.error::before {
-    color: #f44336;
-    animation: statusError 0.5s ease-in-out infinite;
-}
-
-@keyframes statusBlink {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.3; }
-}
-
-@keyframes statusPulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.8; }
-}
-
-@keyframes statusError {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-2px); }
-    75% { transform: translateX(2px); }
-}
-
-/* Enhanced progress indicators */
-.progress-indicator {
-    position: relative;
-    overflow: hidden;
-}
-
-.progress-indicator::after {
-    content: '';
-    position: absolute;
+/* Twinkling stars background */
+.stars {
+    position: fixed;
     top: 0;
     left: 0;
+    width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, 
-        transparent, 
-        rgba(0, 255, 65, 0.3), 
-        transparent
-    );
-    animation: progressSweep 2s ease-in-out infinite;
-    width: 30%;
+    pointer-events: none;
+    z-index: 1;
 }
 
-@keyframes progressSweep {
-    0% { left: -30%; }
-    100% { left: 100%; }
+.star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle 2s infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Pixel Logo Class for Small Cute GIFs */
+.pixel-logo {
+    width: 50px;
+    height: 50px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    transition: all 0.3s ease;
+}
+
+.pixel-logo:hover {
+    transform: scale(1.1);
+   
+}
+
+.pixel-logo img,
+.pixel-logo .gif-content {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+}
+
+/* Smaller variant if needed */
+.pixel-logo.small {
+    width: 24px;
+    height: 24px;
+    
+}
+
+/* Icon-sized variant */
+.pixel-logo.icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Navigation Sync Status for Dashboard */
+.nav-sync-status {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid #4CAF50;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #00ff00;
+}
+
+.nav-sync-icon {
+    font-size: 10px;
+    animation: navPulse 2s infinite;
+}
+
+.nav-sync-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-sync-label {
+    color: #888;
+    font-size: 5px;
+    letter-spacing: 1px;
+}
+
+.nav-sync-time {
+    color: #00ff00;
+    font-size: 6px;
+    font-weight: bold;
+}
+
+@keyframes navPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
