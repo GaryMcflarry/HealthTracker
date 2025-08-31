@@ -20,8 +20,8 @@
         <div class="nav-header">
             <!-- Current Page Indicator -->
             <div class="current-page">
-                <span class="page-label">CURRENT:</span>
-                <span class="page-name">PROFILE</span>
+                <!-- <span class="page-label">CURRENT:</span>
+                <span class="page-name">PROFILE</span> -->
             </div>
 
             <button class="menu-button" id="menuButton">
@@ -43,15 +43,12 @@
                     <div class="menu-items">
                         <!-- Set "active" class on current page -->
                         <a href="../dashboard/dashboard.html" class="menu-item">
-                            <span class="menu-icon">📊</span>
                             <span class="menu-text">DASHBOARD</span>
                         </a>
                         <a href="../stats/stats.html" class="menu-item">
-                            <span class="menu-icon">📈</span>
                             <span class="menu-text">STATISTICS</span>
                         </a>
                         <a href="../profile/profile.html" class="menu-item active">
-                            <span class="menu-icon">👤</span>
                             <span class="menu-text">PROFILE</span>
                         </a>
                     </div>
@@ -68,7 +65,6 @@
                     </div>
                     <div class="menu-items">
                         <a href="../auth/auth.html" class="menu-item">
-                            <span class="menu-icon">🚪</span>
                             <span class="menu-text">LOG OUT</span>
                         </a>
                     </div>
@@ -91,9 +87,7 @@
 
          <!-- Header with Logo -->
         <header class="profile-header">
-            <div class="logo-circle">
-                <span class="logo-text">H+</span>
-            </div>
+           
             <h1 class="profile-title">USER PROFILE</h1>
             <div class="profile-avatar-large">
                 <span class="avatar-text">JD</span>
@@ -105,7 +99,9 @@
             <!-- Goals Section -->
             <div class="profile-widget goals-section">
                 <div class="widget-header">
-                    <div class="widget-icon">🎯</div>
+                     <div class="pixel-logo">
+                            <img src="../../assets/profile/target.png" style="width: 50px; height: 50px;" alt="Steps Data" />
+                        </div>
                     <h3 class="widget-title">HEALTH GOALS</h3>
                 </div>
                 <div class="widget-content">
@@ -117,12 +113,6 @@
                                 <span class="goal-unit">STEPS</span>
                             </div>
                         </div>
-                        <div class="goal-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 82%"></div>
-                            </div>
-                            <span class="progress-text">82% TODAY</span>
-                        </div>
                     </div>
 
                     <div class="goal-item" data-goal="calories">
@@ -132,12 +122,6 @@
                                 <input type="number" class="goal-input" id="calories-goal" value="2500" min="1200" max="5000">
                                 <span class="goal-unit">KCAL</span>
                             </div>
-                        </div>
-                        <div class="goal-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 74%"></div>
-                            </div>
-                            <span class="progress-text">74% TODAY</span>
                         </div>
                     </div>
 
@@ -149,30 +133,7 @@
                                 <span class="goal-unit">HOURS</span>
                             </div>
                         </div>
-                        <div class="goal-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 90%"></div>
-                            </div>
-                            <span class="progress-text">90% LAST NIGHT</span>
-                        </div>
                     </div>
-
-                    <div class="goal-item" data-goal="heart_rate">
-                        <div class="goal-info">
-                            <span class="goal-label">AVG HEART RATE</span>
-                            <div class="goal-input-group">
-                                <input type="number" class="goal-input" id="heart-rate-goal" value="70" min="50" max="100">
-                                <span class="goal-unit">BPM</span>
-                            </div>
-                        </div>
-                        <div class="goal-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 85%"></div>
-                            </div>
-                            <span class="progress-text">85% TODAY</span>
-                        </div>
-                    </div>
-
 
                     <button class="save-goals-btn pixel-button">SAVE GOALS</button>
                 </div>
@@ -181,7 +142,9 @@
             <!-- Alerts Section -->
             <div class="profile-widget alerts-section">
                 <div class="widget-header">
-                    <div class="widget-icon">🔔</div>
+                    <div class="pixel-logo">
+                        <img src="../../assets/profile/bell.png" style="width: 50px; height: 50px;" alt="Steps Data" />
+                    </div>
                     <h3 class="widget-title">HEALTH ALERTS</h3>
                 </div>
                 <div class="widget-content">
@@ -245,15 +208,12 @@
             <!-- User Credentials Section -->
             <div class="profile-widget credentials-section">
                 <div class="widget-header">
-                    <div class="widget-icon">👤</div>
+                    <div class="pixel-logo">
+                        <img src="../../assets/profile/user.avif" style="width: 50px; height: 50px;" alt="Steps Data" />
+                    </div>
                     <h3 class="widget-title">USER CREDENTIALS</h3>
                 </div>
                 <div class="widget-content">
-                    <div class="sidebar-nav">
-                        <button class="nav-btn active" data-tab="credentials">CREDENTIALS</button>
-                        <button class="nav-btn" data-tab="goals">GOALS</button>
-                        <button class="nav-btn" data-tab="device">DEVICE</button>
-                    </div>
 
                     <div class="tab-content">
                         <div class="tab-panel active" id="credentials-tab">

@@ -41,6 +41,16 @@ function getTodayDate() {
     return today;
 }
 
+function debugDateRange(dataType, startDate, endDate) {
+    console.log(`🗓️ Requesting ${dataType} data:`, {
+        startDate,
+        endDate,
+        today: getTodayDate(),
+        isToday: endDate === getTodayDate(),
+        daysDiff: Math.floor((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))
+    });
+}
+
 // Fetch user goals for comparison
 async function fetchUserGoalsWithProgress() {
     try {
@@ -353,25 +363,41 @@ async function handleApiResponse(response, dataType) {
     if (!response.ok) {
         if (response.status === 401) {
             const errorData = await response.json().catch(() => ({}));
-            if (errorData.redirectToAuth) {
-                console.log(`Google Fit authentication required for ${dataType}`);
-                showErrorToast('Google Fit authentication required. Redirecting...');
+            
+            // Handle reauth requirement
+            if (errorData.requiresReauth || errorData.redirectToAuth) {
+                console.log(`🔄 Google Fit re-authentication required for ${dataType}`);
+                showErrorToast('Google Fit connection expired. Please reconnect...');
                 
+                // Clear tokens and redirect to auth
                 setTimeout(() => {
-                    window.location.href = errorData.authUrl;
+                    if (errorData.authUrl) {
+                        window.location.href = errorData.authUrl;
+                    } else {
+                        // Fallback - show connect prompt
+                        const userId = getCurrentUserId();
+                        if (userId) {
+                            displayConnectGoogleFitPrompt(userId);
+                        }
+                    }
                 }, 2000);
                 
                 return null;
             }
         }
+        
+        // Log other HTTP errors
+        console.warn(`API request failed for ${dataType}: ${response.status} ${response.statusText}`);
         return null;
     }
     
     const data = await response.json();
     
     if (data.stored > 0) {
-        console.log(`New ${dataType} data synced: ${data.stored} records`);
+        console.log(`✅ New ${dataType} data synced: ${data.stored} records`);
         showSuccessToast(`Synced ${data.stored} new ${dataType} records`);
+    } else if (data.count > 0) {
+        console.log(`📊 ${dataType} data loaded: ${data.count} records (${data.usingFallback ? 'cached' : 'fresh'})`);
     }
     
     return data;
@@ -410,6 +436,9 @@ async function loadCachedData(userId) {
 async function fetchTodaysFitnessData(userId) {
     const today = getTodayDate();
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    // Debug logging
+    debugDateRange('fitness data', yesterday, today);
     
     showWidgetLoading('.steps-widget', 'Syncing steps...');
     showWidgetLoading('.heartrate-widget', 'Reading heart rate...');
@@ -607,6 +636,15 @@ function updateDashboardWithTodaysData(todaysData, goalsMap = {}) {
 }
 
 function updateTodaysStepsWidget(stepsData, goalsMap = {}) {
+    // Add debug logging
+    console.log('🔍 Steps widget data received:', {
+        hasToday: !!stepsData.today,
+        todayValue: stepsData.today?.value,
+        todayDate: stepsData.today?.date,
+        recentCount: stepsData.recent?.length,
+        isLatestFallback: stepsData.isLatestFallback
+    });
+    
     let currentSteps = 0;
     let isUsingFallback = false;
     
@@ -654,6 +692,15 @@ function updateTodaysStepsWidget(stepsData, goalsMap = {}) {
 }
 
 function updateTodaysHeartRateWidget(heartRateData, goalsMap = {}) {
+    // Add debug logging
+    console.log('🔍 Heart rate widget data received:', {
+        hasToday: !!heartRateData.today,
+        todayValue: heartRateData.today?.value,
+        todayDate: heartRateData.today?.date,
+        recentCount: heartRateData.recent?.length,
+        isLatestFallback: heartRateData.isLatestFallback
+    });
+    
     let currentBPM = 0;
     let isUsingFallback = false;
     
@@ -695,6 +742,15 @@ function updateTodaysHeartRateWidget(heartRateData, goalsMap = {}) {
 }
 
 function updateTodaysCaloriesWidget(caloriesData, goalsMap = {}) {
+    // Add debug logging
+    console.log('🔍 Calories widget data received:', {
+        hasToday: !!caloriesData.today,
+        todayValue: caloriesData.today?.value,
+        todayDate: caloriesData.today?.date,
+        recentCount: caloriesData.recent?.length,
+        isLatestFallback: caloriesData.isLatestFallback
+    });
+    
     let currentCalories = 0;
     let isUsingFallback = false;
     
@@ -1124,10 +1180,10 @@ function createPixelatedStepsCircle(percentage) {
 }
 
 function drawPixelatedRing(ctx, centerX, centerY, outerRadius, innerRadius, color, angle, startAngle = 0) {
-    const pixelSize = 4;
+    const pixelSize = 6; // Changed from 4 to 6 to eliminate outline visibility
     ctx.fillStyle = color;
     
-    for (let a = 0; a < angle; a += 0.04) {
+    for (let a = 0; a < angle; a += 0.06) { // Adjusted increment for larger pixels
         const currentAngle = startAngle + a;
         for (let r = innerRadius; r < outerRadius; r += pixelSize) {
             const x = centerX + Math.cos(currentAngle) * r;
@@ -1392,6 +1448,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     createSleepChart();
+    
+    // Add force sync button handler
+    const forceSyncBtn = document.getElementById('forceSyncBtn');
+    if (forceSyncBtn) {
+        forceSyncBtn.addEventListener('click', () => {
+            console.log('🚀 Force sync button clicked');
+            showGlobalLoading();
+            initializeDashboard(true);
+        });
+    }
 });
 
 async function initializeDashboard(forceSync = false) {

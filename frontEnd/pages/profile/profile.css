@@ -27,6 +27,7 @@ body {
 }
 
 /* Navigation Sync Status */
+/* Navigation Sync Status for Dashboard */
 .nav-sync-status {
     margin-top: 15px;
     padding: 10px;
@@ -869,4 +870,42 @@ body {
         align-self: stretch;
         justify-content: space-between;
     }
+}
+
+/* Pixel Logo Class for Small Cute GIFs */
+.pixel-logo {
+    width: 50px;
+    height: 50px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    transition: all 0.3s ease;
+}
+
+.pixel-logo:hover {
+    transform: scale(1.1);
+   
+}
+
+.pixel-logo img,
+.pixel-logo .gif-content {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+}
+
+/* Smaller variant if needed */
+.pixel-logo.small {
+    width: 24px;
+    height: 24px;
+    
+}
+
+/* Icon-sized variant */
+.pixel-logo.icon {
+    width: 20px;
+    height: 20px;
 }

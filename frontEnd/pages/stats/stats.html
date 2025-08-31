@@ -20,8 +20,8 @@
     <nav class="navigation-container">
         <div class="nav-header">
             <div class="current-page">
-                <span class="page-label">CURRENT:</span>
-                <span class="page-name">STATISTICS</span>
+                <!-- <span class="page-label">CURRENT:</span>
+                <span class="page-name">STATISTICS</span> -->
             </div>
 
             <button class="menu-button" id="menuButton" aria-label="Open navigation menu">
@@ -40,15 +40,12 @@
                     <div class="section-title">NAVIGATION</div>
                     <div class="menu-items">
                         <a href="../dashboard/dashboard.html" class="menu-item">
-                            <span class="menu-icon">📊</span>
                             <span class="menu-text">DASHBOARD</span>
                         </a>
                         <a href="../stats/stats.html" class="menu-item active">
-                            <span class="menu-icon">📈</span>
                             <span class="menu-text">STATISTICS</span>
                         </a>
                         <a href="../profile/profile.html" class="menu-item">
-                            <span class="menu-icon">👤</span>
                             <span class="menu-text">PROFILE</span>
                         </a>
                     </div>
@@ -64,7 +61,6 @@
                     </div>
                     <div class="menu-items">
                         <a href="../auth/auth.html" class="menu-item">
-                            <span class="menu-icon">🚪</span>
                             <span class="menu-text">LOG OUT</span>
                         </a>
                     </div>
@@ -86,9 +82,6 @@
 
     <div class="stats-container">
         <header class="stats-header">
-            <div class="logo-circle">
-                <span class="logo-text">H+</span>
-            </div>
             <h1 class="stats-title">HEALTH STATISTICS</h1>
             <div class="header-controls">
                 <div class="period-selector">
@@ -120,11 +113,11 @@
             <!-- Steps Chart -->
             <div class="stat-widget steps-chart-widget">
                 <div class="widget-header">
-                    <div class="widget-icon">👟</div>
+                    <div class="pixel-logo">
+                        <img src="../../assets/stats/shoe.png" alt="Steps Data" />
+                    </div>
                     <h3 class="widget-title">STEPS WALKED</h3>
                     <div class="chart-controls">
-                        <button class="chart-btn active" data-chart="bar" aria-label="Bar chart view">BAR</button>
-                        <button class="chart-btn" data-chart="line" aria-label="Line chart view">LINE</button>
                     </div>
                 </div>
                 <div class="widget-content">
@@ -152,11 +145,11 @@
             <!-- Heart Rate Chart -->
             <div class="stat-widget heartrate-chart-widget">
                 <div class="widget-header">
-                    <div class="widget-icon">❤️</div>
+                     <div class="pixel-logo">
+                        <img src="../../assets/stats/pixel-heart.gif" alt="Steps Data" />
+                    </div>
                     <h3 class="widget-title">HEART RATE TRENDS</h3>
                     <div class="chart-controls">
-                        <button class="chart-btn active" data-chart="line" aria-label="Line chart view">LINE</button>
-                        <button class="chart-btn" data-chart="area" aria-label="Area chart view">AREA</button>
                     </div>
                 </div>
                 <div class="widget-content">
@@ -184,11 +177,11 @@
             <!-- Sleep Quality Chart -->
             <div class="stat-widget sleep-chart-widget">
                 <div class="widget-header">
-                    <div class="widget-icon">😴</div>
+                     <div class="pixel-logo">
+                        <img src="../../assets/stats/moon.gif" alt="Steps Data" />
+                    </div>
                     <h3 class="widget-title">SLEEP QUALITY</h3>
                     <div class="chart-controls">
-                        <button class="chart-btn active" data-chart="stacked" aria-label="Stacked chart view">STACKED</button>
-                        <button class="chart-btn" data-chart="donut" aria-label="Donut chart view">DONUT</button>
                     </div>
                 </div>
                 <div class="widget-content">
@@ -216,11 +209,11 @@
             <!-- Calories Chart -->
             <div class="stat-widget calories-chart-widget">
                 <div class="widget-header">
-                    <div class="widget-icon">🔥</div>
+                     <div class="pixel-logo">
+                        <img src="../../assets/stats/flame.gif" alt="Steps Data" />
+                    </div>
                     <h3 class="widget-title">CALORIES BURNED</h3>
                     <div class="chart-controls">
-                        <button class="chart-btn active" data-chart="pie" aria-label="Pie chart view">PIE</button>
-                        <button class="chart-btn" data-chart="bar" aria-label="Bar chart view">BAR</button>
                     </div>
                 </div>
                 <div class="widget-content">
