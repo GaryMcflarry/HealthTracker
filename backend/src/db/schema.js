@@ -42,13 +42,11 @@ const sleepDataTable = mysqlTable('sleep_data', {
   id: int('id').primaryKey().autoincrement(),
   user_id: int('user_id').references(() => usersTable.id),
   date: date('date'),
-  bedtime_start: time('bedtime_start'),
-  bedtime_end: time('bedtime_end'),
   deep_sleep_minutes: int('deep_sleep_minutes'),
   light_sleep_minutes: int('light_sleep_minutes'),
   rem_sleep_minutes: int('rem_sleep_minutes'),
   awake_minutes: int('awake_minutes'),
-  sleep_efficiency_percent: int('sleep_efficiency_percent')
+  sleep_effeciency_percent: int('sleep_effeciency_percent')
 });
 
 // Calorie data table

@@ -354,7 +354,21 @@ async function fetchDataWithFallbacks(dataType, start, end) {
     throw new Error(`Unsupported data type: ${dataType}`);
   }
 
-  // Try primary data source first
+  // Special handling for sleep data - try HealthSync first
+  if (dataType === 'sleep') {
+    try {
+      console.log('🛏️ Trying HealthSync sleep data first...');
+      const healthSyncData = await fetchHealthSyncSleepData(start, end);
+      if (healthSyncData.length > 0) {
+        console.log(`✅ HealthSync successful for sleep: ${healthSyncData.length} records`);
+        return healthSyncData;
+      }
+    } catch (error) {
+      console.warn('⚠️ HealthSync sleep data failed:', error.message);
+    }
+  }
+
+  // Try primary data source
   try {
     console.log(`🔧 Trying primary data source for ${dataType}: ${dataSource.dataSourceId}`);
     const data = await fetchFromDataSource(dataSource, start, end, dataType);
@@ -380,26 +394,6 @@ async function fetchDataWithFallbacks(dataType, start, end) {
       } catch (error) {
         console.warn(`⚠️ Alternative source ${i + 1} failed for ${dataType}:`, error.message);
       }
-    }
-  }
-
-  // Special handling for sleep data - try activity-based detection
-  if (dataType === 'sleep') {
-    try {
-      console.log('🛏️ Trying activity-based sleep detection...');
-      return await fetchSleepFromActivity(start, end);
-    } catch (error) {
-      console.warn('⚠️ Activity-based sleep detection failed:', error.message);
-    }
-  }
-
-  // Special handling for calories - try basal + active calories
-  if (dataType === 'calories') {
-    try {
-      console.log('🔥 Trying combined basal + active calories...');
-      return await fetchCombinedCalories(start, end);
-    } catch (error) {
-      console.warn('⚠️ Combined calories fetch failed:', error.message);
     }
   }
 
@@ -439,17 +433,25 @@ function processApiResponse(response, dataType) {
     return processedData;
   }
 
+  console.log(`📊 Processing ${response.data.bucket.length} buckets for ${dataType}`);
+
   for (const bucket of response.data.bucket) {
     const bucketDate = new Date(parseInt(bucket.startTimeMillis));
     const date = bucketDate.toISOString().split('T')[0];
     let value = 0;
+    let sleepBreakdown = null;
 
     if (bucket.dataset && bucket.dataset.length > 0) {
       for (const dataset of bucket.dataset) {
         if (dataset.point && dataset.point.length > 0) {
+          console.log(`📋 Processing ${dataset.point.length} points for ${dataType} on ${date}`);
+          
           // Enhanced processing based on data type
           if (dataType === 'sleep') {
-            value += processSleepPoints(dataset.point);
+            const sleepResult = processSleepPoints(dataset.point);
+            value += sleepResult.totalMinutes;
+            sleepBreakdown = sleepResult.breakdown;
+            console.log(`😴 Sleep processed for ${date}:`, sleepResult);
           } else if (dataType === 'calories') {
             value += processCaloriePoints(dataset.point);
           } else {
@@ -473,11 +475,18 @@ function processApiResponse(response, dataType) {
       console.log(`📊 ${date}: ${value} ${getDataUnit(dataType)}`);
     }
     
-    processedData.push({
+    const dataPoint = {
       date: date,
       value: Math.round(value),
       dataType: dataType
-    });
+    };
+
+    // Add sleep breakdown if available
+    if (dataType === 'sleep' && sleepBreakdown) {
+      Object.assign(dataPoint, sleepBreakdown);
+    }
+    
+    processedData.push(dataPoint);
   }
 
   return processedData;
@@ -485,6 +494,12 @@ function processApiResponse(response, dataType) {
 
 function processSleepPoints(points) {
   let totalSleepMinutes = 0;
+  let deepSleep = 0;
+  let lightSleep = 0;
+  let remSleep = 0;
+  let awakeTime = 0;
+  
+  console.log(`😴 Processing ${points.length} sleep points`);
   
   for (const point of points) {
     if (point.value && point.value.length > 0) {
@@ -494,15 +509,53 @@ function processSleepPoints(points) {
       const durationMs = endTime - startTime;
       const durationMinutes = durationMs / (1000 * 60);
       
-      // Check if this is actually a sleep segment (not awake time)
-      const sleepType = point.value[0].intVal;
-      if (sleepType && sleepType !== 1) { // 1 = awake, others are sleep types
-        totalSleepMinutes += durationMinutes;
+      // Check sleep type
+      const sleepType = point.value[0].intVal || 0;
+      
+      console.log(`😴 Sleep segment: type ${sleepType}, duration ${durationMinutes.toFixed(1)}min`);
+      
+      // Sleep segment types:
+      // 1 = Awake, 2 = Sleep (light), 3 = Out-of-bed, 4 = Light sleep, 5 = Deep sleep, 6 = REM sleep
+      switch (sleepType) {
+        case 1: // Awake
+          awakeTime += durationMinutes;
+          break;
+        case 2: // Sleep (general)
+        case 4: // Light sleep
+          lightSleep += durationMinutes;
+          totalSleepMinutes += durationMinutes;
+          break;
+        case 5: // Deep sleep
+          deepSleep += durationMinutes;
+          totalSleepMinutes += durationMinutes;
+          break;
+        case 6: // REM sleep
+          remSleep += durationMinutes;
+          totalSleepMinutes += durationMinutes;
+          break;
+        default:
+          // If unknown type, assume it's light sleep
+          lightSleep += durationMinutes;
+          totalSleepMinutes += durationMinutes;
       }
     }
   }
   
-  return totalSleepMinutes;
+  const efficiency = totalSleepMinutes > 0 ? 
+    Math.round((totalSleepMinutes / (totalSleepMinutes + awakeTime)) * 100) : 0;
+  
+  console.log(`😴 Sleep summary: ${totalSleepMinutes}min total, ${efficiency}% efficiency`);
+  
+  return {
+    totalMinutes: totalSleepMinutes,
+    breakdown: {
+      deep_sleep: Math.round(deepSleep),
+      light_sleep: Math.round(lightSleep),
+      rem_sleep: Math.round(remSleep),
+      awake_time: Math.round(awakeTime),
+      efficiency: Math.min(100, Math.max(0, efficiency))
+    }
+  };
 }
 
 function processCaloriePoints(points) {
@@ -1175,7 +1228,7 @@ async function storeSleepData(userId, dayData) {
       light_sleep_minutes: dayData.light_sleep || 0,
       rem_sleep_minutes: dayData.rem_sleep || 0,
       awake_minutes: dayData.awake_time || 0,
-      sleep_efficiency_percent: dayData.efficiency || 0
+      sleep_effeciency_percent: dayData.efficiency || 0
     };
 
     if (existing.length > 0) {

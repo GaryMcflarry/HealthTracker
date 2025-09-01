@@ -163,30 +163,53 @@ async function fetchTodaysFitnessData(userId) {
     const today = getTodayDate();
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
+    console.log(`📊 Fetching fitness data for user ${userId} from ${yesterday} to ${today}`);
+    
     showWidgetLoading('.steps-widget', 'Syncing steps...');
     showWidgetLoading('.heartrate-widget', 'Reading heart rate...');
     showWidgetLoading('.calorie-widget', 'Calculating calories...');
-    
+    showWidgetLoading('.sleep-widget', 'Syncing sleep data...');
+
     try {
-        const [stepsResponse, heartRateResponse, caloriesResponse, goalsMap] = await Promise.all([
+        const [stepsResponse, heartRateResponse, caloriesResponse, sleepResponse, goalsMap] = await Promise.all([
             fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=steps&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
             fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=heartrate&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
             fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=calories&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
+            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=sleep&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
             fetchUserGoalsWithProgress()
         ]);
 
-        const [stepsData, heartRateData, caloriesData] = await Promise.all([
+        // Enhanced debugging for sleep response
+        console.log('🌐 Sleep API Response Status:', `${sleepResponse.status} ${sleepResponse.statusText}`);
+        
+        const [stepsData, heartRateData, caloriesData, sleepData] = await Promise.all([
             handleApiResponse(stepsResponse, 'steps'),
             handleApiResponse(heartRateResponse, 'heartrate'),
-            handleApiResponse(caloriesResponse, 'calories')
+            handleApiResponse(caloriesResponse, 'calories'),
+            handleApiResponse(sleepResponse, 'sleep')
         ]);
+
+        // Debug the sleep data structure
+        console.log('😴 Raw Sleep Data from API:', {
+            hasSleepData: !!sleepData,
+            sleepDataCount: sleepData?.data?.length || 0,
+            sleepDataStructure: sleepData ? Object.keys(sleepData) : 'null',
+            firstSleepRecord: sleepData?.data?.[0] || 'none'
+        });
 
         // Focus on today's data specifically
         const todaysData = {
             steps: getTodaysDataFromSet(stepsData, today),
             heartRate: getTodaysDataFromSet(heartRateData, today),
-            calories: getTodaysDataFromSet(caloriesData, today)
+            calories: getTodaysDataFromSet(caloriesData, today),
+            sleep: getTodaysDataFromSet(sleepData, today)
         };
+
+        console.log('📅 Today\'s Processed Sleep Data:', {
+            sleepToday: todaysData.sleep?.today?.value || 'No data',
+            sleepRecent: todaysData.sleep?.recent?.length || 0,
+            sleepFallback: todaysData.sleep?.isLatestFallback || false
+        });
 
         // Update dashboard with data
         updateDashboardWithTodaysData(todaysData, goalsMap);
@@ -196,7 +219,7 @@ async function fetchTodaysFitnessData(userId) {
             steps: todaysData.steps?.today?.value || 0,
             heartRate: todaysData.heartRate?.today?.value || 0,
             calories: todaysData.calories?.today?.value || 0,
-            sleepHours: 7.5 // You can get this from sleep data if available
+            sleepHours: todaysData.sleep?.today?.value ? (todaysData.sleep.today.value / 60).toFixed(1) : 0
         };
         
         updateGlobalHealthData(healthDataForAlerts);
@@ -204,20 +227,21 @@ async function fetchTodaysFitnessData(userId) {
         hideWidgetLoading('.steps-widget');
         hideWidgetLoading('.heartrate-widget');
         hideWidgetLoading('.calorie-widget');
+        hideWidgetLoading('.sleep-widget');
 
         return todaysData;
 
     } catch (error) {
-        console.error('Error fetching fitness data:', error);
+        console.error('❌ Error fetching fitness data:', error);
         
         hideWidgetLoading('.steps-widget');
         hideWidgetLoading('.heartrate-widget');
         hideWidgetLoading('.calorie-widget');
+        hideWidgetLoading('.sleep-widget');
         
         throw error;
     }
 }
-
 // ========================================
 // ENHANCED UI UPDATE FUNCTIONS
 // ========================================
@@ -227,6 +251,7 @@ function updateDashboardWithTodaysData(todaysData, goalsMap = {}) {
         hasSteps: !!todaysData.steps,
         hasHeartRate: !!todaysData.heartRate,
         hasCalories: !!todaysData.calories,
+        hasSleep: !!todaysData.sleep, // Add this line
         goalsCount: Object.keys(goalsMap).length
     });
     
@@ -248,58 +273,140 @@ function updateDashboardWithTodaysData(todaysData, goalsMap = {}) {
         showEmptyState('.calorie-widget', 'CALORIES', 'SYNC YOUR DEVICE TO SEE CALORIE DATA');
     }
     
+    // Add sleep widget update
+    if (todaysData.sleep) {
+        updateTodaysSleepWidget(todaysData.sleep, goalsMap);
+    } else {
+        showEmptyState('.sleep-widget', 'SLEEP', 'SYNC YOUR DEVICE TO SEE SLEEP DATA');
+    }
+    
     // Update health data display for alerts
     updateHealthDataDisplay(todaysData);
 }
 
-function updateTodaysStepsWidget(stepsData, goalsMap = {}) {
-    let currentSteps = 0;
+function updateTodaysSleepWidget(sleepData, goalsMap = {}) {
+    console.log('😴 Updating sleep widget with data:', sleepData);
+    
+    let currentSleepMinutes = 0;
+    let sleepDetails = null;
     let isUsingFallback = false;
     
-    if (stepsData.today && stepsData.today.value > 0) {
-        currentSteps = stepsData.today.value;
-        isUsingFallback = stepsData.isLatestFallback;
-    } else if (stepsData.recent && stepsData.recent.length > 0) {
-        const recentSteps = stepsData.recent.filter(day => day.value > 0);
-        if (recentSteps.length > 0) {
-            currentSteps = recentSteps[recentSteps.length - 1].value;
+    if (sleepData && sleepData.today && sleepData.today.value > 0) {
+        currentSleepMinutes = sleepData.today.value;
+        sleepDetails = sleepData.today;
+        isUsingFallback = sleepData.isLatestFallback || false;
+    } else if (sleepData && sleepData.recent && sleepData.recent.length > 0) {
+        const recentSleep = sleepData.recent.filter(day => day.value > 0);
+        if (recentSleep.length > 0) {
+            const latestSleep = recentSleep[recentSleep.length - 1];
+            currentSleepMinutes = latestSleep.value;
+            sleepDetails = latestSleep;
             isUsingFallback = true;
         }
     }
     
-    if (currentSteps === 0) {
-        showEmptyState('.steps-widget', 'STEPS', 'NO STEP DATA AVAILABLE');
+    if (currentSleepMinutes === 0) {
+        showEmptyState('.sleep-widget', 'SLEEP', 'NO SLEEP DATA AVAILABLE - SYNC YOUR DEVICE');
         return;
     }
     
-    const goalSteps = goalsMap.steps?.target || 10000;
-    const percentage = Math.min(100, Math.round((currentSteps / goalSteps) * 100));
+    const sleepHours = (currentSleepMinutes / 60).toFixed(1);
+    const goalSleepHours = goalsMap.sleep?.target || 8;
+    const percentage = Math.min(100, Math.round((parseFloat(sleepHours) / goalSleepHours) * 100));
     
-    const stepsNumberElement = document.querySelector('.steps-widget .stat-number');
-    const stepsProgressElement = document.querySelector('.steps-widget .progress-text');
+    // Update DOM elements
+    const sleepNumberElement = document.querySelector('.sleep-widget .stat-number');
+    const sleepLabelElement = document.querySelector('.sleep-widget .stat-label');
+    const sleepQualityElement = document.querySelector('.sleep-widget .quality-label');
+    const sleepBreakdownElement = document.querySelector('.sleep-widget .sleep-breakdown');
     
-    if (stepsNumberElement) {
-        stepsNumberElement.textContent = currentSteps.toLocaleString();
-        // Add data attribute for easy extraction
-        stepsNumberElement.setAttribute('data-value', currentSteps);
+    if (sleepNumberElement) {
+        sleepNumberElement.textContent = sleepHours;
+        sleepNumberElement.setAttribute('data-value', currentSleepMinutes);
     }
     
-    if (stepsProgressElement) {
-        const progressText = `${percentage}% OF GOAL (${goalSteps.toLocaleString()})`;
-        const fallbackText = isUsingFallback ? ' (LATEST DATA)' : '';
-        stepsProgressElement.textContent = progressText + fallbackText;
+    if (sleepLabelElement) {
+        const labelText = isUsingFallback ? 'HOURS (LATEST DATA)' : 'HOURS LAST NIGHT';
+        sleepLabelElement.textContent = labelText;
+    }
+    
+    // Update sleep quality and breakdown
+    if (sleepDetails) {
+        const efficiency = sleepDetails.efficiency || 0;
+        let qualityText = 'UNKNOWN';
+        
+        if (efficiency >= 85) qualityText = 'EXCELLENT';
+        else if (efficiency >= 75) qualityText = 'GOOD';
+        else if (efficiency >= 65) qualityText = 'FAIR';
+        else qualityText = 'POOR';
+        
+        if (sleepQualityElement) {
+            sleepQualityElement.textContent = `QUALITY: ${qualityText} (${efficiency}%)`;
+        }
+        
+        if (sleepBreakdownElement) {
+            const deepHours = sleepDetails.deep_sleep ? (sleepDetails.deep_sleep / 60).toFixed(1) : '0.0';
+            const remHours = sleepDetails.rem_sleep ? (sleepDetails.rem_sleep / 60).toFixed(1) : '0.0';
+            
+            sleepBreakdownElement.innerHTML = `
+                <span class="sleep-detail">DEEP: ${deepHours}H</span>
+                <span class="sleep-detail">REM: ${remHours}H</span>
+            `;
+        }
     }
     
     // Update global health data
-    updateGlobalHealthData({ steps: currentSteps });
+    updateGlobalHealthData({ sleepHours: parseFloat(sleepHours) });
     
-    createPixelatedStepsCircle(percentage);
-    
-    if (percentage >= 100) {
-        addCelebrationEffect('.steps-widget', percentage);
+    // Create sleep chart
+    if (sleepDetails) {
+        createSleepChartWithRealData(sleepDetails);
     }
     
-    updateStepsRecommendation(percentage, goalSteps - currentSteps, goalSteps);
+    // Update recommendation
+    updateSleepRecommendation(percentage, goalSleepHours - parseFloat(sleepHours), sleepDetails);
+    
+    console.log(`✅ Sleep widget updated: ${sleepHours} hours (${percentage}%)`);
+}
+
+function updateSleepRecommendation(percentage, hoursRemaining, sleepDetails) {
+    const recommendationElement = document.querySelector('.sleep-widget .widget-recommendation');
+    if (!recommendationElement) return;
+    
+    let title, text, icon = "🛏️";
+    
+    if (percentage >= 100) {
+        title = "SLEEP GOAL ACHIEVED! 😴";
+        text = "EXCELLENT! YOU'VE MET YOUR SLEEP TARGET";
+        icon = "✅";
+    } else if (percentage >= 85) {
+        title = "GOOD SLEEP!";
+        text = "YOU'RE GETTING QUALITY REST - KEEP IT UP!";
+        icon = "😴";
+    } else if (percentage >= 70) {
+        title = "DECENT SLEEP";
+        text = `TRY TO GET ${Math.abs(hoursRemaining).toFixed(1)} MORE HOURS TONIGHT`;
+        icon = "🌙";
+    } else {
+        title = "IMPROVE SLEEP";
+        text = "CONSIDER EARLIER BEDTIME FOR BETTER HEALTH";
+        icon = "⏰";
+    }
+    
+    // Add efficiency-based recommendations
+    if (sleepDetails && sleepDetails.efficiency < 75) {
+        title = "SLEEP QUALITY ISSUE";
+        text = "FREQUENT WAKE-UPS DETECTED - OPTIMIZE SLEEP ENVIRONMENT";
+        icon = "🔧";
+    }
+    
+    recommendationElement.innerHTML = `
+        <div class="rec-icon">${icon}</div>
+        <div class="rec-content">
+            <span class="rec-title">${title}</span>
+            <span class="rec-text">${text}</span>
+        </div>
+    `;
 }
 
 function updateTodaysHeartRateWidget(heartRateData, goalsMap = {}) {
@@ -412,6 +519,8 @@ function updateHealthDataDisplay(todaysData) {
     const stepsValue = todaysData.steps?.today?.value || 0;
     const heartRateValue = todaysData.heartRate?.today?.value || 0;
     const caloriesValue = todaysData.calories?.today?.value || 0;
+    const sleepValue = todaysData.sleep?.today?.value || 0; // Add this line
+    const sleepHours = sleepValue > 0 ? (sleepValue / 60).toFixed(1) : '0.0'; // Add this line
     
     healthDisplayWidget.innerHTML = `
         <div class="health-data-header">
@@ -430,6 +539,10 @@ function updateHealthDataDisplay(todaysData) {
             <div class="health-data-item">
                 <span class="health-data-label">CALORIES</span>
                 <span class="health-data-value" data-type="calories">${caloriesValue.toLocaleString()}</span>
+            </div>
+            <div class="health-data-item">
+                <span class="health-data-label">SLEEP</span>
+                <span class="health-data-value" data-type="sleep">${sleepHours}H</span>
             </div>
         </div>
         <div class="health-data-actions">
@@ -891,10 +1004,11 @@ async function fetchUserGoalsWithProgress() {
 
 async function loadCachedData(userId) {
     try {
-        const [stepsData, heartRateData, caloriesData, goalsMap] = await Promise.all([
+        const [stepsData, heartRateData, caloriesData, sleepData, goalsMap] = await Promise.all([
             getStoredOrFetchData(userId, 'steps', 3),
             getStoredOrFetchData(userId, 'heartrate', 3),
             getStoredOrFetchData(userId, 'calories', 3),
+            getStoredOrFetchData(userId, 'sleep', 3), // Add this line
             fetchUserGoalsWithProgress()
         ]);
         
@@ -902,7 +1016,8 @@ async function loadCachedData(userId) {
         const todaysData = {
             steps: getTodaysDataFromSet(stepsData, today),
             heartRate: getTodaysDataFromSet(heartRateData, today),
-            calories: getTodaysDataFromSet(caloriesData, today)
+            calories: getTodaysDataFromSet(caloriesData, today),
+            sleep: getTodaysDataFromSet(sleepData, today) // Add this line
         };
         
         updateDashboardWithTodaysData(todaysData, goalsMap);
@@ -911,6 +1026,7 @@ async function loadCachedData(userId) {
         showEmptyState('.steps-widget', 'STEPS', 'UNABLE TO LOAD DATA - CHECK CONNECTION');
         showEmptyState('.heartrate-widget', 'HEART RATE', 'UNABLE TO LOAD DATA - CHECK CONNECTION');
         showEmptyState('.calorie-widget', 'CALORIES', 'UNABLE TO LOAD DATA - CHECK CONNECTION');
+        showEmptyState('.sleep-widget', 'SLEEP', 'UNABLE TO LOAD DATA - CHECK CONNECTION'); // Add this line
     }
 }
 
@@ -1194,38 +1310,51 @@ function createSleepChartWithRealData(sleepData) {
     }
     
     const totalSleep = sleepData.value;
-    const deepSleep = sleepData.deep_sleep || totalSleep * 0.25;
-    const lightSleep = sleepData.light_sleep || totalSleep * 0.55;
-    const remSleep = sleepData.rem_sleep || totalSleep * 0.20;
+    const deepSleep = sleepData.deep_sleep || 0;
+    const lightSleep = sleepData.light_sleep || 0;
+    const remSleep = sleepData.rem_sleep || 0;
+    const awakeTime = sleepData.awake_time || 0;
+    
+    // If we don't have breakdown data, estimate it
+    const hasBreakdown = deepSleep > 0 || lightSleep > 0 || remSleep > 0;
+    const finalDeepSleep = hasBreakdown ? deepSleep : totalSleep * 0.25;
+    const finalLightSleep = hasBreakdown ? lightSleep : totalSleep * 0.55;
+    const finalRemSleep = hasBreakdown ? remSleep : totalSleep * 0.20;
     
     // Draw sleep phases as segments
     let currentAngle = -Math.PI / 2;
     
     // Deep sleep (dark purple)
-    const deepAngle = (deepSleep / totalSleep) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + deepAngle);
-    ctx.strokeStyle = '#4A148C';
-    ctx.lineWidth = 12;
-    ctx.stroke();
-    currentAngle += deepAngle;
+    if (finalDeepSleep > 0) {
+        const deepAngle = (finalDeepSleep / totalSleep) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + deepAngle);
+        ctx.strokeStyle = '#4A148C';
+        ctx.lineWidth = 12;
+        ctx.stroke();
+        currentAngle += deepAngle;
+    }
     
     // Light sleep (medium purple)
-    const lightAngle = (lightSleep / totalSleep) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + lightAngle);
-    ctx.strokeStyle = '#7B1FA2';
-    ctx.lineWidth = 12;
-    ctx.stroke();
-    currentAngle += lightAngle;
+    if (finalLightSleep > 0) {
+        const lightAngle = (finalLightSleep / totalSleep) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + lightAngle);
+        ctx.strokeStyle = '#7B1FA2';
+        ctx.lineWidth = 12;
+        ctx.stroke();
+        currentAngle += lightAngle;
+    }
     
     // REM sleep (light purple)
-    const remAngle = (remSleep / totalSleep) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + remAngle);
-    ctx.strokeStyle = '#BA68C8';
-    ctx.lineWidth = 12;
-    ctx.stroke();
+    if (finalRemSleep > 0) {
+        const remAngle = (finalRemSleep / totalSleep) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + remAngle);
+        ctx.strokeStyle = '#BA68C8';
+        ctx.lineWidth = 12;
+        ctx.stroke();
+    }
     
     // Draw total hours in center
     ctx.fillStyle = '#BA68C8';
