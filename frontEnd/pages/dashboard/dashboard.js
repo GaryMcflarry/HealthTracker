@@ -1,4 +1,4 @@
-// dashboard.js - Enhanced with 100% progress celebrations
+// dashboard.js - Enhanced with Health Alert Data Integration
 
 // API Configuration
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -21,176 +21,683 @@ function getCurrentUserId() {
     return null;
 }
 
-function getTimeAgo(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'JUST NOW';
-    if (diffMins < 60) return `${diffMins} MIN AGO`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}H AGO`;
-    
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}D AGO`;
-}
-
 function getTodayDate() {
-    const today = new Date().toISOString().split('T')[0];
-    return today;
+    return new Date().toISOString().split('T')[0];
 }
 
-function debugDateRange(dataType, startDate, endDate) {
-    console.log(`🗓️ Requesting ${dataType} data:`, {
-        startDate,
-        endDate,
-        today: getTodayDate(),
-        isToday: endDate === getTodayDate(),
-        daysDiff: Math.floor((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))
+// ========================================
+// HEALTH DATA EXTRACTION FOR ALERTS
+// ========================================
+
+function extractTodaysHealthData() {
+    // Extract current values from the dashboard widgets
+    const stepsElement = document.querySelector('.steps-widget .stat-number');
+    const heartRateElement = document.querySelector('.heartrate-widget .stat-number'); 
+    const caloriesElement = document.querySelector('.calorie-widget .stat-number');
+    const sleepElement = document.querySelector('.sleep-widget .stat-number');
+    
+    const healthData = {
+        steps: parseInt(stepsElement?.textContent.replace(/,/g, '') || '0'),
+        heartRate: parseInt(heartRateElement?.textContent || '0'),
+        calories: parseInt(caloriesElement?.textContent.replace(/,/g, '') || '0'),
+        sleepHours: parseFloat(sleepElement?.textContent || '0'),
+        timestamp: new Date().toISOString(),
+        date: getTodayDate()
+    };
+    
+    console.log('📊 Extracted health data for alerts:', healthData);
+    return healthData;
+}
+
+// Store health data globally for alert checking
+let currentHealthData = {
+    steps: 0,
+    heartRate: 0,
+    calories: 0,
+    sleepHours: 0,
+    lastUpdated: null
+};
+
+function updateGlobalHealthData(data) {
+    currentHealthData = {
+        ...currentHealthData,
+        ...data,
+        lastUpdated: new Date().toISOString()
+    };
+    
+    console.log('🔄 Global health data updated:', currentHealthData);
+}
+
+// ========================================
+// HEALTH ALERT INTEGRATION
+// ========================================
+
+async function checkHealthAlerts(userId) {
+  try {
+    const healthData = {
+      steps: parseInt(document.querySelector('.steps-widget .stat-number')?.textContent.replace(/,/g, '') || '0'),
+      heartRate: parseInt(document.querySelector('.heartrate-widget .stat-number')?.textContent || '0'),
+      calories: parseInt(document.querySelector('.calorie-widget .stat-number')?.textContent.replace(/,/g, '') || '0')
+    };
+    
+    const response = await fetch(`/api/notifications/check-health-alerts/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ healthData })
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.alertsTriggered > 0) {
+        console.log(`📧 ${result.alertsTriggered} health alerts sent!`);
+      }
+    }
+  } catch (error) {
+    console.error('Health alert check failed:', error);
+  }
+}
+
+// Call this after dashboard loads
+document.addEventListener('DOMContentLoaded', () => {
+  const userId = getCurrentUserId();
+  if (userId) {
+    setTimeout(() => checkHealthAlerts(userId), 3000);
+  }
+});
+
+function displayHealthAlertSummary(alerts) {
+    const achievementAlerts = alerts.filter(a => a.category === 'achievement');
+    const healthConcerns = alerts.filter(a => a.category === 'health_concern');
+    const inactivityAlerts = alerts.filter(a => a.category === 'inactivity');
+    
+    // Show achievement notifications (positive)
+    achievementAlerts.forEach(alert => {
+        showSuccessToast(`🎉 ${alert.title}! Check your email for details.`);
+    });
+    
+    // Show health concerns (important)
+    healthConcerns.forEach(alert => {
+        showWarningToast(`⚠️ ${alert.title}. Email sent with recommendations.`);
+    });
+    
+    // Show inactivity alerts (encouraging)
+    inactivityAlerts.forEach(alert => {
+        showInfoToast(`💪 ${alert.title}. Check your email for tips!`);
     });
 }
 
-// Fetch user goals for comparison
-async function fetchUserGoalsWithProgress() {
+// ========================================
+// AUTOMATIC HEALTH ALERT SCHEDULING
+// ========================================
+
+let healthAlertInterval = null;
+
+function startHealthAlertMonitoring(userId, userData) {
+    // Clear existing interval
+    if (healthAlertInterval) {
+        clearInterval(healthAlertInterval);
+    }
+    
+    // Check health alerts every 15 minutes
+    healthAlertInterval = setInterval(async () => {
+        console.log('⏰ Scheduled health alert check...');
+        await checkHealthAlerts(userId, userData, false);
+    }, 15 * 60 * 1000); // 15 minutes
+    
+    console.log('✅ Health alert monitoring started (15-minute intervals)');
+}
+
+function stopHealthAlertMonitoring() {
+    if (healthAlertInterval) {
+        clearInterval(healthAlertInterval);
+        healthAlertInterval = null;
+        console.log('🛑 Health alert monitoring stopped');
+    }
+}
+
+// ========================================
+// ENHANCED FITNESS DATA MANAGEMENT
+// ========================================
+
+async function fetchTodaysFitnessData(userId) {
+    const today = getTodayDate();
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    showWidgetLoading('.steps-widget', 'Syncing steps...');
+    showWidgetLoading('.heartrate-widget', 'Reading heart rate...');
+    showWidgetLoading('.calorie-widget', 'Calculating calories...');
+    
     try {
-        const userId = getCurrentUserId();
-        if (!userId) return {};
+        const [stepsResponse, heartRateResponse, caloriesResponse, goalsMap] = await Promise.all([
+            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=steps&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
+            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=heartrate&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
+            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=calories&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
+            fetchUserGoalsWithProgress()
+        ]);
+
+        const [stepsData, heartRateData, caloriesData] = await Promise.all([
+            handleApiResponse(stepsResponse, 'steps'),
+            handleApiResponse(heartRateResponse, 'heartrate'),
+            handleApiResponse(caloriesResponse, 'calories')
+        ]);
+
+        // Focus on today's data specifically
+        const todaysData = {
+            steps: getTodaysDataFromSet(stepsData, today),
+            heartRate: getTodaysDataFromSet(heartRateData, today),
+            calories: getTodaysDataFromSet(caloriesData, today)
+        };
+
+        // Update dashboard with data
+        updateDashboardWithTodaysData(todaysData, goalsMap);
         
-        const response = await fetch(`${API_BASE_URL}/goals?userId=${userId}`, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        // Update global health data for alert system
+        const healthDataForAlerts = {
+            steps: todaysData.steps?.today?.value || 0,
+            heartRate: todaysData.heartRate?.today?.value || 0,
+            calories: todaysData.calories?.today?.value || 0,
+            sleepHours: 7.5 // You can get this from sleep data if available
+        };
         
-        if (!response.ok) {
-            throw new Error(`Failed to fetch goals: ${response.status}`);
+        updateGlobalHealthData(healthDataForAlerts);
+
+        hideWidgetLoading('.steps-widget');
+        hideWidgetLoading('.heartrate-widget');
+        hideWidgetLoading('.calorie-widget');
+
+        return todaysData;
+
+    } catch (error) {
+        console.error('Error fetching fitness data:', error);
+        
+        hideWidgetLoading('.steps-widget');
+        hideWidgetLoading('.heartrate-widget');
+        hideWidgetLoading('.calorie-widget');
+        
+        throw error;
+    }
+}
+
+// ========================================
+// ENHANCED UI UPDATE FUNCTIONS
+// ========================================
+
+function updateDashboardWithTodaysData(todaysData, goalsMap = {}) {
+    console.log('📊 Dashboard data update:', {
+        hasSteps: !!todaysData.steps,
+        hasHeartRate: !!todaysData.heartRate,
+        hasCalories: !!todaysData.calories,
+        goalsCount: Object.keys(goalsMap).length
+    });
+    
+    if (todaysData.steps) {
+        updateTodaysStepsWidget(todaysData.steps, goalsMap);
+    } else {
+        showEmptyState('.steps-widget', 'STEPS', 'SYNC YOUR DEVICE TO SEE STEP COUNT');
+    }
+    
+    if (todaysData.heartRate) {
+        updateTodaysHeartRateWidget(todaysData.heartRate, goalsMap);
+    } else {
+        showEmptyState('.heartrate-widget', 'HEART RATE', 'SYNC YOUR DEVICE TO SEE HEART RATE DATA');
+    }
+    
+    if (todaysData.calories) {
+        updateTodaysCaloriesWidget(todaysData.calories, goalsMap);
+    } else {
+        showEmptyState('.calorie-widget', 'CALORIES', 'SYNC YOUR DEVICE TO SEE CALORIE DATA');
+    }
+    
+    // Update health data display for alerts
+    updateHealthDataDisplay(todaysData);
+}
+
+function updateTodaysStepsWidget(stepsData, goalsMap = {}) {
+    let currentSteps = 0;
+    let isUsingFallback = false;
+    
+    if (stepsData.today && stepsData.today.value > 0) {
+        currentSteps = stepsData.today.value;
+        isUsingFallback = stepsData.isLatestFallback;
+    } else if (stepsData.recent && stepsData.recent.length > 0) {
+        const recentSteps = stepsData.recent.filter(day => day.value > 0);
+        if (recentSteps.length > 0) {
+            currentSteps = recentSteps[recentSteps.length - 1].value;
+            isUsingFallback = true;
+        }
+    }
+    
+    if (currentSteps === 0) {
+        showEmptyState('.steps-widget', 'STEPS', 'NO STEP DATA AVAILABLE');
+        return;
+    }
+    
+    const goalSteps = goalsMap.steps?.target || 10000;
+    const percentage = Math.min(100, Math.round((currentSteps / goalSteps) * 100));
+    
+    const stepsNumberElement = document.querySelector('.steps-widget .stat-number');
+    const stepsProgressElement = document.querySelector('.steps-widget .progress-text');
+    
+    if (stepsNumberElement) {
+        stepsNumberElement.textContent = currentSteps.toLocaleString();
+        // Add data attribute for easy extraction
+        stepsNumberElement.setAttribute('data-value', currentSteps);
+    }
+    
+    if (stepsProgressElement) {
+        const progressText = `${percentage}% OF GOAL (${goalSteps.toLocaleString()})`;
+        const fallbackText = isUsingFallback ? ' (LATEST DATA)' : '';
+        stepsProgressElement.textContent = progressText + fallbackText;
+    }
+    
+    // Update global health data
+    updateGlobalHealthData({ steps: currentSteps });
+    
+    createPixelatedStepsCircle(percentage);
+    
+    if (percentage >= 100) {
+        addCelebrationEffect('.steps-widget', percentage);
+    }
+    
+    updateStepsRecommendation(percentage, goalSteps - currentSteps, goalSteps);
+}
+
+function updateTodaysHeartRateWidget(heartRateData, goalsMap = {}) {
+    let currentBPM = 0;
+    let isUsingFallback = false;
+    
+    if (heartRateData.today && heartRateData.today.value > 0) {
+        currentBPM = heartRateData.today.value;
+        isUsingFallback = heartRateData.isLatestFallback;
+    } else if (heartRateData.recent && heartRateData.recent.length > 0) {
+        const recentHR = heartRateData.recent.filter(day => day.value > 0);
+        if (recentHR.length > 0) {
+            currentBPM = recentHR[recentHR.length - 1].value;
+            isUsingFallback = true;
+        }
+    }
+    
+    if (currentBPM === 0) {
+        showEmptyState('.heartrate-widget', 'HEART RATE', 'NO HEART RATE DATA AVAILABLE');
+        return;
+    }
+    
+    const hrNumberElement = document.querySelector('.heartrate-widget .stat-number');
+    const hrProgressElement = document.querySelector('.heartrate-widget .progress-text');
+    
+    if (hrNumberElement) {
+        hrNumberElement.textContent = currentBPM;
+        // Add data attribute for easy extraction
+        hrNumberElement.setAttribute('data-value', currentBPM);
+    }
+    
+    if (hrProgressElement && isUsingFallback) {
+        hrProgressElement.textContent = `${hrProgressElement.textContent} (LATEST DATA)`;
+    }
+    
+    // Update global health data
+    updateGlobalHealthData({ heartRate: currentBPM });
+    
+    if (heartRateData.recent && heartRateData.recent.length > 0) {
+        const recentHR = heartRateData.recent.filter(day => day.value > 0);
+        if (recentHR.length > 0) {
+            createHeartRateChartWithRealData(recentHR);
+        }
+    }
+    
+    updateHeartRateRecommendation(currentBPM, goalsMap.heart_rate?.target);
+}
+
+function updateTodaysCaloriesWidget(caloriesData, goalsMap = {}) {
+    let currentCalories = 0;
+    let isUsingFallback = false;
+    
+    if (caloriesData.today && caloriesData.today.value > 0) {
+        currentCalories = caloriesData.today.value;
+        isUsingFallback = caloriesData.isLatestFallback;
+    } else if (caloriesData.recent && caloriesData.recent.length > 0) {
+        const recentCalories = caloriesData.recent.filter(day => day.value > 0);
+        if (recentCalories.length > 0) {
+            currentCalories = recentCalories[recentCalories.length - 1].value;
+            isUsingFallback = true;
+        }
+    }
+    
+    if (currentCalories === 0) {
+        showEmptyState('.calorie-widget', 'CALORIES', 'NO CALORIE DATA AVAILABLE');
+        return;
+    }
+    
+    const goalCalories = goalsMap.calories?.target || 2500;
+    const percentage = Math.min(100, Math.round((currentCalories / goalCalories) * 100));
+    
+    const caloriesNumberElement = document.querySelector('.calorie-widget .stat-number');
+    const caloriesProgressElement = document.querySelector('.calorie-widget .progress-text');
+    
+    if (caloriesNumberElement) {
+        caloriesNumberElement.textContent = currentCalories.toLocaleString();
+        // Add data attribute for easy extraction
+        caloriesNumberElement.setAttribute('data-value', currentCalories);
+    }
+    
+    if (caloriesProgressElement) {
+        const progressText = `${percentage}% OF GOAL (${goalCalories.toLocaleString()})`;
+        const fallbackText = isUsingFallback ? ' (LATEST DATA)' : '';
+        caloriesProgressElement.textContent = progressText + fallbackText;
+    }
+    
+    // Update global health data
+    updateGlobalHealthData({ calories: currentCalories });
+    
+    if (percentage >= 100) {
+        addCelebrationEffect('.calorie-widget', percentage);
+    }
+    
+    createCalorieChartWithRealData(percentage);
+    updateCaloriesRecommendation(percentage, goalCalories - currentCalories, goalCalories);
+}
+
+// ========================================
+// HEALTH DATA DISPLAY FOR MONITORING
+// ========================================
+
+function updateHealthDataDisplay(todaysData) {
+    // Create or update health data display widget
+    let healthDisplayWidget = document.querySelector('.health-data-display');
+    
+    if (!healthDisplayWidget) {
+        healthDisplayWidget = createHealthDataDisplayWidget();
+    }
+    
+    const stepsValue = todaysData.steps?.today?.value || 0;
+    const heartRateValue = todaysData.heartRate?.today?.value || 0;
+    const caloriesValue = todaysData.calories?.today?.value || 0;
+    
+    healthDisplayWidget.innerHTML = `
+        <div class="health-data-header">
+            <span class="health-data-title">TODAY'S HEALTH DATA</span>
+            <span class="health-data-time">${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="health-data-grid">
+            <div class="health-data-item">
+                <span class="health-data-label">STEPS</span>
+                <span class="health-data-value" data-type="steps">${stepsValue.toLocaleString()}</span>
+            </div>
+            <div class="health-data-item">
+                <span class="health-data-label">HEART RATE</span>
+                <span class="health-data-value" data-type="heartRate">${heartRateValue} BPM</span>
+            </div>
+            <div class="health-data-item">
+                <span class="health-data-label">CALORIES</span>
+                <span class="health-data-value" data-type="calories">${caloriesValue.toLocaleString()}</span>
+            </div>
+        </div>
+        <div class="health-data-actions">
+            <button class="health-check-btn" onclick="manualHealthCheck()">CHECK ALERTS NOW</button>
+            <span class="last-check">Last check: ${currentHealthData.lastUpdated ? new Date(currentHealthData.lastUpdated).toLocaleTimeString() : 'Never'}</span>
+        </div>
+    `;
+}
+
+function createHealthDataDisplayWidget() {
+    const widget = document.createElement('div');
+    widget.className = 'health-data-display widget';
+    widget.style.cssText = `
+        background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+        border: 2px solid #4CAF50;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        font-family: 'Press Start 2P', monospace;
+    `;
+    
+    // Add to dashboard
+    const dashboardGrid = document.querySelector('.dashboard-grid') || document.querySelector('.menu-content');
+    if (dashboardGrid) {
+        dashboardGrid.appendChild(widget);
+    }
+    
+    return widget;
+}
+
+// ========================================
+// MANUAL HEALTH CHECK FUNCTION
+// ========================================
+
+async function manualHealthCheck() {
+    const userId = getCurrentUserId();
+    if (!userId) {
+        showErrorToast('No user logged in');
+        return;
+    }
+    
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    if (!userData.email) {
+        showErrorToast('No email configured for alerts');
+        return;
+    }
+    
+    console.log('🔍 Manual health check triggered...');
+    showInfoToast('Checking health alerts...');
+    
+    // Force check health alerts
+    const result = await checkHealthAlerts(userId, userData, true);
+    
+    if (result) {
+        if (result.alertsTriggered > 0) {
+            showSuccessToast(`${result.alertsTriggered} health alerts triggered! Check your email.`);
+        } else {
+            showInfoToast('All health metrics are within normal ranges.');
+        }
+    } else {
+        showWarningToast('Health check completed, but no alerts were processed.');
+    }
+}
+
+// ========================================
+// ENHANCED INITIALIZATION WITH HEALTH MONITORING
+// ========================================
+
+async function initializeDashboardWithHealthMonitoring(forceSync = false) {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('code') || urlParams.get('oauth') || urlParams.get('error')) {
+            handleOAuthCallback();
+            return;
         }
         
-        const result = await response.json();
-        const goals = result.data || [];
+        const userId = getCurrentUserId();
+        if (!userId) {
+            hideGlobalLoading();
+            window.location.href = '../auth/auth.html';
+            return;
+        }
         
-        // Transform goals into a more usable format
-        const goalsMap = {};
-        goals.forEach(goal => {
-            goalsMap[goal.goalType] = {
-                target: goal.targetValue,
-                icon: goal.icon,
-                id: goal.id
-            };
-        });
+        console.log('🚀 Dashboard initializing with health monitoring for user:', userId);
         
-        return goalsMap;
+        const userData = await loadUserProfile();
+        if (!userData) {
+            hideGlobalLoading();
+            return;
+        }
+        
+        updateUserDataWidget(userData);
+        
+        const isGoogleFitConnected = userData.fit_tokens && userData.fit_tokens.trim() !== '';
+        
+        if (!isGoogleFitConnected) {
+            hideGlobalLoading();
+            setTimeout(() => {
+                displayConnectGoogleFitPrompt(userId);
+            }, 100);
+            return;
+        }
+        
+        const syncNeeded = isSyncNeeded(userData.last_sync, forceSync);
+        
+        if (syncNeeded) {
+            console.log(`🔄 ${forceSync ? 'Force syncing' : 'Syncing'} fresh data from Google Fit`);
+            try {
+                await fetchTodaysFitnessData(userId);
+            } catch (error) {
+                console.error('Fresh sync failed, falling back to cached data:', error);
+                showErrorToast('Sync failed, loading cached data');
+                await loadCachedData(userId);
+            }
+        } else {
+            console.log('📋 Loading cached data (last sync was recent)');            
+            await loadCachedData(userId);
+        }
+        
+        // Start health alert monitoring
+        startHealthAlertMonitoring(userId, userData);
+        
+        // Initial health check after data loads
+        setTimeout(async () => {
+            console.log('🔍 Performing initial health check...');
+            await checkHealthAlerts(userId, userData, forceSync);
+        }, 3000);
+        
+        console.log('✅ Dashboard initialization with health monitoring complete');
+        hideGlobalLoading();
         
     } catch (error) {
-        console.error('Error fetching goals:', error);
-        return {};
+        console.error('❌ Dashboard initialization error:', error);
+        hideGlobalLoading();
+        showErrorToast('Failed to initialize dashboard. Please refresh the page.');
     }
 }
 
 // ========================================
-// CELEBRATION EFFECTS
+// TOAST NOTIFICATION FUNCTIONS
 // ========================================
 
-function addCelebrationEffect(widgetSelector, percentage) {
-    const widget = document.querySelector(widgetSelector);
-    if (!widget || percentage < 100) return;
+function showSuccessToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'success-toast';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">✅</span>
+            <span class="toast-message">${message}</span>
+        </div>
+    `;
     
-    // Remove existing celebration effects
-    const existingPixels = widget.querySelectorAll('.celebration-pixel');
-    existingPixels.forEach(pixel => pixel.remove());
+    document.body.appendChild(toast);
     
-    // Add golden glow to percentage text specifically
-    const progressText = widget.querySelector('.progress-text');
-    if (progressText) {
-        progressText.style.color = '#FFD700';
-        progressText.style.textShadow = '0 0 10px #FFD700, 0 0 20px #FFA500';
-        progressText.style.fontSize = '10px';
-        progressText.style.fontWeight = 'bold';
-    }
-    
-    // Add pixel celebration
-    createPixelCelebration(widget);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 4000);
 }
 
-function createPixelCelebration(widget) {
-    const pixelCount = 12;
+function showWarningToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'warning-toast';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">⚠️</span>
+            <span class="toast-message">${message}</span>
+        </div>
+    `;
     
-    for (let i = 0; i < pixelCount; i++) {
-        const pixel = document.createElement('div');
-        pixel.className = 'celebration-pixel';
-        pixel.style.position = 'absolute';
-        pixel.style.width = '4px';
-        pixel.style.height = '4px';
-        pixel.style.backgroundColor = '#FFD700';
-        pixel.style.pointerEvents = 'none';
-        pixel.style.zIndex = '100';
-        pixel.style.animation = `pixelCelebration 3s ease-out ${i * 0.2}s infinite`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+function showInfoToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'info-toast';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">ℹ️</span>
+            <span class="toast-message">${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 4000);
+}
+
+function showErrorToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'error-toast';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">❌</span>
+            <span class="toast-message">${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 4000);
+}
+
+// ========================================
+// UTILITY FUNCTIONS (EXISTING)
+// ========================================
+
+function getTodaysDataFromSet(dataSet, todayDate) {
+    if (!dataSet || !dataSet.data || dataSet.data.length === 0) {
+        return null;
+    }
+    
+    const todaysEntry = dataSet.data.find(entry => entry.date === todayDate);
+    const recentEntries = dataSet.data.slice(-7);
+    
+    if (!todaysEntry && dataSet.data.length > 0) {
+        const latestEntry = dataSet.data[dataSet.data.length - 1];
+        console.log(`No data for ${todayDate}, using latest entry from ${latestEntry.date}`);
         
-        // Random positioning around the widget
-        pixel.style.left = Math.random() * 100 + '%';
-        pixel.style.top = Math.random() * 100 + '%';
-        
-        widget.appendChild(pixel);
+        return {
+            today: latestEntry,
+            recent: recentEntries,
+            isLatestFallback: true
+        };
     }
     
-    // Add CSS animation if not already present
-    if (!document.getElementById('celebrationStyles')) {
-        const style = document.createElement('style');
-        style.id = 'celebrationStyles';
-        style.textContent = `
-            @keyframes pixelCelebration {
-                0% { 
-                    opacity: 0; 
-                    transform: scale(1) translateY(0px);
-                    background-color: #FFD700;
-                }
-                25% { 
-                    opacity: 1; 
-                    transform: scale(2) translateY(-10px);
-                    background-color: #FFA500;
-                }
-                50% { 
-                    opacity: 1; 
-                    transform: scale(1.5) translateY(-20px);
-                    background-color: #FFD700;
-                }
-                75% { 
-                    opacity: 0.8; 
-                    transform: scale(1) translateY(-15px);
-                    background-color: #FFFF00;
-                }
-                100% { 
-                    opacity: 0; 
-                    transform: scale(0.5) translateY(-30px);
-                    background-color: #FFD700;
-                }
-            }
-            
-            .goal-stat.achieved {
-                color: #FFD700 !important;
-                text-shadow: 0 0 8px #FFD700 !important;
-                font-size: 8px !important;
-                animation: pixelGlow 1.5s ease-in-out infinite alternate;
-            }
-            
-            @keyframes pixelGlow {
-                0% { 
-                    text-shadow: 0 0 8px #FFD700;
-                    transform: scale(1);
-                }
-                100% { 
-                    text-shadow: 0 0 15px #FFD700, 0 0 25px #FFA500;
-                    transform: scale(1.05);
-                }
-            }
-        `;
-        document.head.appendChild(style);
+    return {
+        today: todaysEntry,
+        recent: recentEntries,
+        isLatestFallback: false
+    };
+}
+
+async function handleApiResponse(response, dataType) {
+    if (!response.ok) {
+        console.warn(`API request failed for ${dataType}: ${response.status} ${response.statusText}`);
+        return null;
     }
+    
+    const data = await response.json();
+    
+    if (data.stored > 0) {
+        console.log(`✅ New ${dataType} data synced: ${data.stored} records`);
+        showSuccessToast(`Synced ${data.stored} new ${dataType} records`);
+    } else if (data.count > 0) {
+        console.log(`📊 ${dataType} data loaded: ${data.count} records`);
+    }
+    
+    return data;
 }
 
 // ========================================
-// LOADING STATE MANAGEMENT
+// LOADING STATES
 // ========================================
 
 function showGlobalLoading() {
@@ -204,7 +711,7 @@ function showGlobalLoading() {
             <div class="loading-container">
                 <div class="loading-spinner"></div>
                 <div class="loading-text">SYNCING HEALTH DATA...</div>
-                <div class="loading-subtext">CONNECTING TO YOUR WEARABLE DEVICE</div>
+                <div class="loading-subtext">PREPARING HEALTH MONITORING</div>
             </div>
         </div>
     `;
@@ -258,62 +765,54 @@ function hideWidgetLoading(widgetSelector) {
 }
 
 // ========================================
-// EMPTY STATES
+// MAIN INITIALIZATION
 // ========================================
 
-function showEmptyState(widgetSelector, dataType, message) {
-    const widget = document.querySelector(widgetSelector);
-    if (!widget) return;
+document.addEventListener('DOMContentLoaded', function() {
+    showGlobalLoading();
     
-    const content = widget.querySelector('.widget-content');
-    if (!content) return;
+    // Initialize dashboard with health monitoring
+    setTimeout(() => {
+        initializeDashboardWithHealthMonitoring(false);
+    }, 800);
     
-    const emptyStateHTML = `
-        <div class="empty-state">
-            <div class="empty-state-icon">😞</div>
-            <div class="empty-state-text">
-                <div class="empty-state-title">NO ${dataType.toUpperCase()} DATA</div>
-                <div class="empty-state-message">${message}</div>
-            </div>
-            <button class="empty-state-button" onclick="refreshData()">REFRESH DATA</button>
-        </div>
+    // Add manual health check button to UI
+    const healthCheckButtonHTML = `
+        <button id="manualHealthCheckBtn" class="button" style="
+            position: fixed; 
+            bottom: 80px; 
+            right: 20px; 
+            z-index: 1000; 
+            background: #4CAF50; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 6px; 
+            font-size: 8px; 
+            cursor: pointer; 
+            font-family: 'Press Start 2P', monospace;
+        ">
+            CHECK HEALTH
+        </button>
     `;
     
-    content.innerHTML = emptyStateHTML;
-}
-
-// ========================================
-// STARS ANIMATION
-// ========================================
-function createStars() {
-    const starsContainer = document.querySelector('.stars');
-    if (!starsContainer) return;
-
-    const starCount = 50;
-    for (let i = 0; i < starCount; i++) {
-        const star = document.createElement('div');
-        star.className = 'star';
-        star.style.left = Math.random() * 100 + '%';
-        star.style.top = Math.random() * 100 + '%';
-        const size = Math.random() * 3 + 1;
-        star.style.width = size + 'px';
-        star.style.height = size + 'px';
-        star.style.animationDelay = Math.random() * 2 + 's';
-        starsContainer.appendChild(star);
-    }
-}
-
-function enhanceStars() {
-    const stars = document.querySelectorAll('.star');
-    stars.forEach((star, index) => {
-        star.style.animationDuration = `${(index % 3 === 0 ? 4 : (index % 2 === 0 ? 2.5 : 3))}s`;
+    document.body.insertAdjacentHTML('beforeend', healthCheckButtonHTML);
+    
+    // Add event listener for manual health check
+    document.getElementById('manualHealthCheckBtn').addEventListener('click', manualHealthCheck);
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        stopHealthAlertMonitoring();
     });
+});
+
+// Keep backward compatibility
+async function initializeDashboard(forceSync = false) {
+    return await initializeDashboardWithHealthMonitoring(forceSync);
 }
 
-// ========================================
-// USER PROFILE AND DATA MANAGEMENT
-// ========================================
-
+// Additional helper functions for existing functionality
 async function loadUserProfile() {
     const userId = getCurrentUserId();
     if (!userId) {
@@ -355,57 +854,40 @@ function isSyncNeeded(lastSync, forceSync = false) {
     return lastSyncTime < fifteenMinutesAgo;
 }
 
-// ========================================
-// API RESPONSE HANDLING
-// ========================================
-
-async function handleApiResponse(response, dataType) {
-    if (!response.ok) {
-        if (response.status === 401) {
-            const errorData = await response.json().catch(() => ({}));
-            
-            // Handle reauth requirement
-            if (errorData.requiresReauth || errorData.redirectToAuth) {
-                console.log(`🔄 Google Fit re-authentication required for ${dataType}`);
-                showErrorToast('Google Fit connection expired. Please reconnect...');
-                
-                // Clear tokens and redirect to auth
-                setTimeout(() => {
-                    if (errorData.authUrl) {
-                        window.location.href = errorData.authUrl;
-                    } else {
-                        // Fallback - show connect prompt
-                        const userId = getCurrentUserId();
-                        if (userId) {
-                            displayConnectGoogleFitPrompt(userId);
-                        }
-                    }
-                }, 2000);
-                
-                return null;
+async function fetchUserGoalsWithProgress() {
+    try {
+        const userId = getCurrentUserId();
+        if (!userId) return {};
+        
+        const response = await fetch(`${API_BASE_URL}/goals?userId=${userId}`, {
+            headers: {
+                'Content-Type': 'application/json'
             }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch goals: ${response.status}`);
         }
         
-        // Log other HTTP errors
-        console.warn(`API request failed for ${dataType}: ${response.status} ${response.statusText}`);
-        return null;
+        const result = await response.json();
+        const goals = result.data || [];
+        
+        const goalsMap = {};
+        goals.forEach(goal => {
+            goalsMap[goal.goalType] = {
+                target: goal.targetValue,
+                icon: goal.icon,
+                id: goal.id
+            };
+        });
+        
+        return goalsMap;
+        
+    } catch (error) {
+        console.error('Error fetching goals:', error);
+        return {};
     }
-    
-    const data = await response.json();
-    
-    if (data.stored > 0) {
-        console.log(`✅ New ${dataType} data synced: ${data.stored} records`);
-        showSuccessToast(`Synced ${data.stored} new ${dataType} records`);
-    } else if (data.count > 0) {
-        console.log(`📊 ${dataType} data loaded: ${data.count} records (${data.usingFallback ? 'cached' : 'fresh'})`);
-    }
-    
-    return data;
 }
-
-// ========================================
-// FITNESS DATA MANAGEMENT
-// ========================================
 
 async function loadCachedData(userId) {
     try {
@@ -426,91 +908,10 @@ async function loadCachedData(userId) {
         updateDashboardWithTodaysData(todaysData, goalsMap);
     } catch (error) {
         console.error('Failed to load cached data:', error);
-        // Show empty states if even cached data fails
         showEmptyState('.steps-widget', 'STEPS', 'UNABLE TO LOAD DATA - CHECK CONNECTION');
         showEmptyState('.heartrate-widget', 'HEART RATE', 'UNABLE TO LOAD DATA - CHECK CONNECTION');
         showEmptyState('.calorie-widget', 'CALORIES', 'UNABLE TO LOAD DATA - CHECK CONNECTION');
     }
-}
-
-async function fetchTodaysFitnessData(userId) {
-    const today = getTodayDate();
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
-    // Debug logging
-    debugDateRange('fitness data', yesterday, today);
-    
-    showWidgetLoading('.steps-widget', 'Syncing steps...');
-    showWidgetLoading('.heartrate-widget', 'Reading heart rate...');
-    showWidgetLoading('.calorie-widget', 'Calculating calories...');
-    
-    try {
-        const [stepsResponse, heartRateResponse, caloriesResponse, summaryResponse, goalsMap] = await Promise.all([
-            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=steps&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
-            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=heartrate&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
-            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=calories&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
-            fetch(`${API_BASE_URL}/wearable/health-summary?userId=${userId}`),
-            fetchUserGoalsWithProgress()
-        ]);
-
-        const [stepsData, heartRateData, caloriesData, summaryData] = await Promise.all([
-            handleApiResponse(stepsResponse, 'steps'),
-            handleApiResponse(heartRateResponse, 'heartrate'),
-            handleApiResponse(caloriesResponse, 'calories'),
-            summaryResponse.ok ? summaryResponse.json() : null
-        ]);
-
-        // Focus on today's data specifically
-        const todaysData = {
-            steps: getTodaysDataFromSet(stepsData, today),
-            heartRate: getTodaysDataFromSet(heartRateData, today),
-            calories: getTodaysDataFromSet(caloriesData, today),
-            summary: summaryData
-        };
-
-        updateDashboardWithTodaysData(todaysData, goalsMap);
-
-        hideWidgetLoading('.steps-widget');
-        hideWidgetLoading('.heartrate-widget');
-        hideWidgetLoading('.calorie-widget');
-
-    } catch (error) {
-        console.error('Error fetching fitness data:', error);
-        
-        hideWidgetLoading('.steps-widget');
-        hideWidgetLoading('.heartrate-widget');
-        hideWidgetLoading('.calorie-widget');
-        
-        // Re-throw the error so it can be caught by the calling function
-        throw error;
-    }
-}
-
-function getTodaysDataFromSet(dataSet, todayDate) {
-    if (!dataSet || !dataSet.data || dataSet.data.length === 0) {
-        return null;
-    }
-    
-    const todaysEntry = dataSet.data.find(entry => entry.date === todayDate);
-    const recentEntries = dataSet.data.slice(-7);
-    
-    // If no today's data, use the latest available entry as fallback
-    if (!todaysEntry && dataSet.data.length > 0) {
-        const latestEntry = dataSet.data[dataSet.data.length - 1];
-        console.log(`No data for ${todayDate}, using latest entry from ${latestEntry.date}`);
-        
-        return {
-            today: latestEntry,
-            recent: recentEntries,
-            isLatestFallback: true
-        };
-    }
-    
-    return {
-        today: todaysEntry,
-        recent: recentEntries,
-        isLatestFallback: false
-    };
 }
 
 async function getStoredOrFetchData(userId, dataType, days = 7) {
@@ -543,16 +944,15 @@ async function getStoredOrFetchData(userId, dataType, days = 7) {
     return null;
 }
 
-// ========================================
-// UI UPDATE FUNCTIONS
-// ========================================
-
 function updateUserDataWidget(userData) {
     // Update user name with real data
     const userNameElements = document.querySelectorAll('.user-name');
     userNameElements.forEach(element => {
         if (userData.firstName && userData.lastName) {
             const fullName = `${userData.firstName.toUpperCase()} ${userData.lastName.toUpperCase()}`;
+            element.textContent = fullName;
+        } else if (userData.first_name && userData.last_name) {
+            const fullName = `${userData.first_name.toUpperCase()} ${userData.last_name.toUpperCase()}`;
             element.textContent = fullName;
         }
     });
@@ -561,97 +961,331 @@ function updateUserDataWidget(userData) {
     if (userEmailElement && userData.email) {
         userEmailElement.textContent = userData.email;
     }
-    
-    // Update user avatar with real initials
-    const userAvatarElements = document.querySelectorAll('.user-avatar');
-    userAvatarElements.forEach(element => {
-        if (userData.firstName && userData.lastName) {
-            const initials = `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`;
-            element.textContent = initials;
-        }
-    });
-    
-    // Update device info with device name
-    const deviceNameElement = document.querySelector('.device-name-main');
-    const deviceStatusElement = document.querySelector('.device-status-main');
-    const userStatusElements = document.querySelectorAll('.user-status');
-    
-    const deviceName = userData.deviceName || 'GOOGLE FIT';
-    
-    if (deviceNameElement) {
-        deviceNameElement.textContent = deviceName;
-    }
-    
-    if (deviceStatusElement) {
-        const lastSync = userData.last_sync;
-        if (lastSync) {
-            const syncTime = getTimeAgo(new Date(lastSync));
-            const isRecent = new Date(lastSync) > new Date(Date.now() - 15 * 60 * 1000);
-            const syncStatus = isRecent ? `LIVE - ${syncTime}` : `SYNCED ${syncTime}`;
-            deviceStatusElement.textContent = syncStatus;
-            deviceStatusElement.style.color = isRecent ? '#4CAF50' : '#FFA500';
-        } else {
-            deviceStatusElement.textContent = 'NEVER SYNCED';
-            deviceStatusElement.style.color = '#F44336';
-        }
-    }
-    
-    // Update nav user status with device name
-    userStatusElements.forEach(element => {
-        element.textContent = `${deviceName} CONNECTED`;
-    });
 }
 
-function updateDashboardWithTodaysData(todaysData, goalsMap = {}) {
-    console.log('Dashboard data update:', {
-        hasSteps: !!todaysData.steps,
-        hasHeartRate: !!todaysData.heartRate,
-        hasCalories: !!todaysData.calories,
-        goalsCount: Object.keys(goalsMap).length
+function showEmptyState(widgetSelector, dataType, message) {
+    const widget = document.querySelector(widgetSelector);
+    if (!widget) return;
+    
+    const content = widget.querySelector('.widget-content');
+    if (!content) return;
+    
+    const emptyStateHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">😞</div>
+            <div class="empty-state-text">
+                <div class="empty-state-title">NO ${dataType.toUpperCase()} DATA</div>
+                <div class="empty-state-message">${message}</div>
+            </div>
+            <button class="empty-state-button" onclick="refreshData()">REFRESH DATA</button>
+        </div>
+    `;
+    
+    content.innerHTML = emptyStateHTML;
+}
+
+function refreshData() {
+    console.log('🔄 Manual refresh triggered - forcing fresh sync');
+    showGlobalLoading();
+    setTimeout(() => {
+        initializeDashboardWithHealthMonitoring(true);
+    }, 500);
+}
+
+// Placeholder functions for chart creation and other UI elements
+function createPixelatedStepsCircle(percentage) {
+    // Implementation for steps circle visualization
+    console.log(`Creating steps circle with ${percentage}% progress`);
+}
+
+function addCelebrationEffect(widgetSelector, percentage) {
+    // Implementation for celebration effects
+    console.log(`Adding celebration effect to ${widgetSelector} with ${percentage}%`);
+}
+
+function updateStepsRecommendation(percentage, stepsRemaining, goalSteps) {
+    // Implementation for steps recommendations
+    console.log(`Updating steps recommendation: ${percentage}% complete, ${stepsRemaining} steps remaining`);
+}
+
+function createHeartRateChartWithRealData(recentHR) {
+    // Implementation for heart rate chart
+    console.log('Creating heart rate chart with recent data:', recentHR.length, 'data points');
+}
+
+function updateHeartRateRecommendation(currentBPM, targetBPM) {
+    // Implementation for heart rate recommendations
+    console.log(`Updating heart rate recommendation: current ${currentBPM} BPM, target ${targetBPM} BPM`);
+}
+
+function createCalorieChartWithRealData(percentage) {
+    // Implementation for calorie chart
+    console.log(`Creating calorie chart with ${percentage}% progress`);
+}
+
+function updateCaloriesRecommendation(percentage, caloriesRemaining, goalCalories) {
+    // Implementation for calorie recommendations
+    console.log(`Updating calorie recommendation: ${percentage}% complete, ${caloriesRemaining} calories remaining`);
+}
+
+function displayConnectGoogleFitPrompt(userId) {
+    // Implementation for Google Fit connection prompt
+    console.log(`Displaying Google Fit connection prompt for user ${userId}`);
+}
+
+function handleOAuthCallback() {
+    // Implementation for OAuth callback handling
+    console.log('Handling OAuth callback');
+}
+
+function createPixelatedStepsCircle(percentage) {
+    console.log(`🎯 Creating steps circle with ${percentage}% progress`);
+    
+    const circle = document.querySelector('.steps-progress-circular');
+    if (circle) {
+        const circumference = 314; // 2 * π * 50 (radius)
+        const offset = circumference - (percentage / 100) * circumference;
+        
+        // Animate the circle
+        circle.style.strokeDashoffset = offset;
+        circle.style.transition = 'stroke-dashoffset 2s ease-in-out';
+        
+        console.log(`✅ Steps circle updated: ${percentage}% (offset: ${offset})`);
+    } else {
+        console.warn('⚠️ Steps progress circle element not found');
+    }
+}
+
+function createHeartRateChartWithRealData(recentHR) {
+    console.log('❤️ Creating heart rate chart with recent data:', recentHR.length, 'data points');
+    
+    const canvas = document.getElementById('heartRateChart');
+    if (!canvas) {
+        console.warn('⚠️ Heart rate chart canvas not found');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    if (!recentHR || recentHR.length === 0) {
+        // Draw placeholder
+        ctx.fillStyle = '#D32F2F';
+        ctx.font = '12px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('NO DATA', width / 2, height / 2);
+        return;
+    }
+    
+    // Prepare data
+    const validData = recentHR.filter(d => d.value > 0);
+    if (validData.length === 0) {
+        ctx.fillStyle = '#D32F2F';
+        ctx.font = '12px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('NO VALID DATA', width / 2, height / 2);
+        return;
+    }
+    
+    const maxHR = Math.max(...validData.map(d => d.value));
+    const minHR = Math.min(...validData.map(d => d.value));
+    const range = maxHR - minHR || 1;
+    
+    // Draw pixelated line chart
+    ctx.strokeStyle = '#D32F2F';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    
+    validData.forEach((point, index) => {
+        const x = (index / (validData.length - 1)) * (width - 40) + 20;
+        const y = height - 20 - ((point.value - minHR) / range) * (height - 40);
+        
+        if (index === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+        
+        // Draw pixel points
+        ctx.fillStyle = '#F44336';
+        ctx.fillRect(x - 2, y - 2, 4, 4);
     });
     
-    if (todaysData.steps) {
-        updateTodaysStepsWidget(todaysData.steps, goalsMap);
-    } else {
-        showEmptyState('.steps-widget', 'STEPS', 'SYNC YOUR DEVICE TO SEE STEP COUNT');
-    }
+    ctx.stroke();
     
-    if (todaysData.heartRate) {
-        updateTodaysHeartRateWidget(todaysData.heartRate, goalsMap);
-    } else {
-        showEmptyState('.heartrate-widget', 'HEART RATE', 'SYNC YOUR DEVICE TO SEE HEART RATE DATA');
-    }
+    // Update heart rate stats
+    updateHeartRateStats(validData);
     
-    if (todaysData.calories) {
-        updateTodaysCaloriesWidget(todaysData.calories, goalsMap);
-    } else {
-        showEmptyState('.calorie-widget', 'CALORIES', 'SYNC YOUR DEVICE TO SEE CALORIE DATA');
-    }
-    
-    if (todaysData.summary && todaysData.summary.summary) {
-        enhanceWidgetsWithSummary(todaysData.summary.summary);
-    }
-    
-    updateUserDataWidgetWithGoals(goalsMap, todaysData);
+    console.log('✅ Heart rate chart created successfully');
 }
+
+function createCalorieChartWithRealData(percentage) {
+    console.log(`🔥 Creating calorie chart with ${percentage}% progress`);
+    
+    const canvas = document.getElementById('calorieChart');
+    if (!canvas) {
+        console.warn('⚠️ Calorie chart canvas not found');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 20;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw background circle
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+    
+    // Draw progress arc
+    const startAngle = -Math.PI / 2; // Start from top
+    const endAngle = startAngle + (percentage / 100) * 2 * Math.PI;
+    
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.strokeStyle = '#FFA000';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    
+    // Draw percentage text
+    ctx.fillStyle = '#FFB74D';
+    ctx.font = '16px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${percentage}%`, centerX, centerY + 5);
+    
+    console.log('✅ Calorie chart created successfully');
+}
+
+function createSleepChartWithRealData(sleepData) {
+    console.log('😴 Creating sleep chart with data:', sleepData);
+    
+    const canvas = document.getElementById('sleepChart');
+    if (!canvas) {
+        console.warn('⚠️ Sleep chart canvas not found');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 20;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (!sleepData || sleepData.value === 0) {
+        // Draw placeholder
+        ctx.fillStyle = '#7B1FA2';
+        ctx.font = '12px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('NO DATA', centerX, centerY);
+        return;
+    }
+    
+    const totalSleep = sleepData.value;
+    const deepSleep = sleepData.deep_sleep || totalSleep * 0.25;
+    const lightSleep = sleepData.light_sleep || totalSleep * 0.55;
+    const remSleep = sleepData.rem_sleep || totalSleep * 0.20;
+    
+    // Draw sleep phases as segments
+    let currentAngle = -Math.PI / 2;
+    
+    // Deep sleep (dark purple)
+    const deepAngle = (deepSleep / totalSleep) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + deepAngle);
+    ctx.strokeStyle = '#4A148C';
+    ctx.lineWidth = 12;
+    ctx.stroke();
+    currentAngle += deepAngle;
+    
+    // Light sleep (medium purple)
+    const lightAngle = (lightSleep / totalSleep) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + lightAngle);
+    ctx.strokeStyle = '#7B1FA2';
+    ctx.lineWidth = 12;
+    ctx.stroke();
+    currentAngle += lightAngle;
+    
+    // REM sleep (light purple)
+    const remAngle = (remSleep / totalSleep) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + remAngle);
+    ctx.strokeStyle = '#BA68C8';
+    ctx.lineWidth = 12;
+    ctx.stroke();
+    
+    // Draw total hours in center
+    ctx.fillStyle = '#BA68C8';
+    ctx.font = '14px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    const hours = (totalSleep / 60).toFixed(1);
+    ctx.fillText(`${hours}h`, centerX, centerY + 5);
+    
+    console.log('✅ Sleep chart created successfully');
+}
+
+// ========================================
+// ENHANCED DATA PROCESSING FUNCTIONS
+// ========================================
+
+function getTodaysDataFromSet(dataSet, todayDate) {
+    if (!dataSet || !dataSet.data || dataSet.data.length === 0) {
+        console.warn(`⚠️ No data available for processing`);
+        return { 
+            today: null, 
+            recent: [], 
+            isLatestFallback: false 
+        };
+    }
+    
+    const todaysEntry = dataSet.data.find(entry => entry.date === todayDate);
+    const recentEntries = dataSet.data.slice(-7);
+    
+    if (!todaysEntry && dataSet.data.length > 0) {
+        const latestEntry = dataSet.data[dataSet.data.length - 1];
+        console.log(`📅 No data for ${todayDate}, using latest entry from ${latestEntry.date}`);
+        
+        return {
+            today: latestEntry,
+            recent: recentEntries,
+            isLatestFallback: true
+        };
+    }
+    
+    return {
+        today: todaysEntry,
+        recent: recentEntries,
+        isLatestFallback: false
+    };
+}
+
+// ========================================
+// ENHANCED UPDATE FUNCTIONS WITH BETTER ERROR HANDLING
+// ========================================
 
 function updateTodaysStepsWidget(stepsData, goalsMap = {}) {
-    // Add debug logging
-    console.log('🔍 Steps widget data received:', {
-        hasToday: !!stepsData.today,
-        todayValue: stepsData.today?.value,
-        todayDate: stepsData.today?.date,
-        recentCount: stepsData.recent?.length,
-        isLatestFallback: stepsData.isLatestFallback
-    });
+    console.log('👟 Updating steps widget with data:', stepsData);
     
     let currentSteps = 0;
     let isUsingFallback = false;
     
-    if (stepsData.today && stepsData.today.value > 0) {
+    if (stepsData && stepsData.today && stepsData.today.value > 0) {
         currentSteps = stepsData.today.value;
-        isUsingFallback = stepsData.isLatestFallback;
-    } else if (stepsData.recent && stepsData.recent.length > 0) {
+        isUsingFallback = stepsData.isLatestFallback || false;
+    } else if (stepsData && stepsData.recent && stepsData.recent.length > 0) {
         const recentSteps = stepsData.recent.filter(day => day.value > 0);
         if (recentSteps.length > 0) {
             currentSteps = recentSteps[recentSteps.length - 1].value;
@@ -660,18 +1294,20 @@ function updateTodaysStepsWidget(stepsData, goalsMap = {}) {
     }
     
     if (currentSteps === 0) {
-        showEmptyState('.steps-widget', 'STEPS', 'NO STEP DATA AVAILABLE');
+        showEmptyState('.steps-widget', 'STEPS', 'NO STEP DATA AVAILABLE - SYNC YOUR DEVICE');
         return;
     }
     
     const goalSteps = goalsMap.steps?.target || 10000;
     const percentage = Math.min(100, Math.round((currentSteps / goalSteps) * 100));
     
+    // Update DOM elements
     const stepsNumberElement = document.querySelector('.steps-widget .stat-number');
     const stepsProgressElement = document.querySelector('.steps-widget .progress-text');
     
     if (stepsNumberElement) {
         stepsNumberElement.textContent = currentSteps.toLocaleString();
+        stepsNumberElement.setAttribute('data-value', currentSteps);
     }
     
     if (stepsProgressElement) {
@@ -680,34 +1316,33 @@ function updateTodaysStepsWidget(stepsData, goalsMap = {}) {
         stepsProgressElement.textContent = progressText + fallbackText;
     }
     
-    // Create pixelated steps progress circle
+    // Update global health data
+    updateGlobalHealthData({ steps: currentSteps });
+    
+    // Create visual progress circle
     createPixelatedStepsCircle(percentage);
     
-    // Add celebration effect if 100%
+    // Add celebration effect if goal reached
     if (percentage >= 100) {
         addCelebrationEffect('.steps-widget', percentage);
     }
     
+    // Update recommendation
     updateStepsRecommendation(percentage, goalSteps - currentSteps, goalSteps);
+    
+    console.log(`✅ Steps widget updated: ${currentSteps} steps (${percentage}%)`);
 }
 
 function updateTodaysHeartRateWidget(heartRateData, goalsMap = {}) {
-    // Add debug logging
-    console.log('🔍 Heart rate widget data received:', {
-        hasToday: !!heartRateData.today,
-        todayValue: heartRateData.today?.value,
-        todayDate: heartRateData.today?.date,
-        recentCount: heartRateData.recent?.length,
-        isLatestFallback: heartRateData.isLatestFallback
-    });
+    console.log('❤️ Updating heart rate widget with data:', heartRateData);
     
     let currentBPM = 0;
     let isUsingFallback = false;
     
-    if (heartRateData.today && heartRateData.today.value > 0) {
+    if (heartRateData && heartRateData.today && heartRateData.today.value > 0) {
         currentBPM = heartRateData.today.value;
-        isUsingFallback = heartRateData.isLatestFallback;
-    } else if (heartRateData.recent && heartRateData.recent.length > 0) {
+        isUsingFallback = heartRateData.isLatestFallback || false;
+    } else if (heartRateData && heartRateData.recent && heartRateData.recent.length > 0) {
         const recentHR = heartRateData.recent.filter(day => day.value > 0);
         if (recentHR.length > 0) {
             currentBPM = recentHR[recentHR.length - 1].value;
@@ -716,48 +1351,44 @@ function updateTodaysHeartRateWidget(heartRateData, goalsMap = {}) {
     }
     
     if (currentBPM === 0) {
-        showEmptyState('.heartrate-widget', 'HEART RATE', 'NO HEART RATE DATA AVAILABLE');
+        showEmptyState('.heartrate-widget', 'HEART RATE', 'NO HEART RATE DATA AVAILABLE - SYNC YOUR DEVICE');
         return;
     }
     
+    // Update DOM elements
     const hrNumberElement = document.querySelector('.heartrate-widget .stat-number');
-    const hrProgressElement = document.querySelector('.heartrate-widget .progress-text');
-    
     if (hrNumberElement) {
         hrNumberElement.textContent = currentBPM;
+        hrNumberElement.setAttribute('data-value', currentBPM);
     }
     
-    if (hrProgressElement && isUsingFallback) {
-        hrProgressElement.textContent = `${hrProgressElement.textContent} (LATEST DATA)`;
-    }
+    // Update global health data
+    updateGlobalHealthData({ heartRate: currentBPM });
     
-    if (heartRateData.recent && heartRateData.recent.length > 0) {
+    // Create chart with recent data
+    if (heartRateData && heartRateData.recent && heartRateData.recent.length > 0) {
         const recentHR = heartRateData.recent.filter(day => day.value > 0);
         if (recentHR.length > 0) {
             createHeartRateChartWithRealData(recentHR);
         }
     }
     
+    // Update recommendation
     updateHeartRateRecommendation(currentBPM, goalsMap.heart_rate?.target);
+    
+    console.log(`✅ Heart rate widget updated: ${currentBPM} BPM`);
 }
 
 function updateTodaysCaloriesWidget(caloriesData, goalsMap = {}) {
-    // Add debug logging
-    console.log('🔍 Calories widget data received:', {
-        hasToday: !!caloriesData.today,
-        todayValue: caloriesData.today?.value,
-        todayDate: caloriesData.today?.date,
-        recentCount: caloriesData.recent?.length,
-        isLatestFallback: caloriesData.isLatestFallback
-    });
+    console.log('🔥 Updating calories widget with data:', caloriesData);
     
     let currentCalories = 0;
     let isUsingFallback = false;
     
-    if (caloriesData.today && caloriesData.today.value > 0) {
+    if (caloriesData && caloriesData.today && caloriesData.today.value > 0) {
         currentCalories = caloriesData.today.value;
-        isUsingFallback = caloriesData.isLatestFallback;
-    } else if (caloriesData.recent && caloriesData.recent.length > 0) {
+        isUsingFallback = caloriesData.isLatestFallback || false;
+    } else if (caloriesData && caloriesData.recent && caloriesData.recent.length > 0) {
         const recentCalories = caloriesData.recent.filter(day => day.value > 0);
         if (recentCalories.length > 0) {
             currentCalories = recentCalories[recentCalories.length - 1].value;
@@ -766,18 +1397,20 @@ function updateTodaysCaloriesWidget(caloriesData, goalsMap = {}) {
     }
     
     if (currentCalories === 0) {
-        showEmptyState('.calorie-widget', 'CALORIES', 'NO CALORIE DATA AVAILABLE');
+        showEmptyState('.calorie-widget', 'CALORIES', 'NO CALORIE DATA AVAILABLE - SYNC YOUR DEVICE');
         return;
     }
     
     const goalCalories = goalsMap.calories?.target || 2500;
     const percentage = Math.min(100, Math.round((currentCalories / goalCalories) * 100));
     
+    // Update DOM elements
     const caloriesNumberElement = document.querySelector('.calorie-widget .stat-number');
     const caloriesProgressElement = document.querySelector('.calorie-widget .progress-text');
     
     if (caloriesNumberElement) {
         caloriesNumberElement.textContent = currentCalories.toLocaleString();
+        caloriesNumberElement.setAttribute('data-value', currentCalories);
     }
     
     if (caloriesProgressElement) {
@@ -786,738 +1419,222 @@ function updateTodaysCaloriesWidget(caloriesData, goalsMap = {}) {
         caloriesProgressElement.textContent = progressText + fallbackText;
     }
     
-    // Add celebration effect if 100%
+    // Update global health data
+    updateGlobalHealthData({ calories: currentCalories });
+    
+    // Add celebration effect if goal reached
     if (percentage >= 100) {
         addCelebrationEffect('.calorie-widget', percentage);
     }
     
+    // Create visual chart
     createCalorieChartWithRealData(percentage);
+    
+    // Update recommendation
     updateCaloriesRecommendation(percentage, goalCalories - currentCalories, goalCalories);
-}
-
-function enhanceWidgetsWithSummary(summaryData) {
-    if (summaryData.heartRate) {
-        const restingElement = document.querySelector('.heart-stats .heart-stat:first-child .heart-value');
-        const maxElement = document.querySelector('.heart-stats .heart-stat:last-child .heart-value');
-        
-        if (restingElement && summaryData.heartRate.lowest) {
-            restingElement.textContent = `${summaryData.heartRate.lowest} BPM`;
-        }
-        
-        if (maxElement && summaryData.heartRate.highest) {
-            maxElement.textContent = `${summaryData.heartRate.highest} BPM`;
-        }
-    }
-}
-
-function updateUserDataWidgetWithGoals(goalsMap, todaysData) {
-    const goalStatsElement = document.querySelector('.goal-stats');
-    if (!goalStatsElement) return;
     
-    const goalStats = [];
-    
-    // Calculate steps progress
-    if (todaysData.steps && (todaysData.steps.today || todaysData.steps.recent?.length > 0)) {
-        const currentSteps = todaysData.steps.today?.value || 
-            (todaysData.steps.recent?.filter(d => d.value > 0).pop()?.value || 0);
-        const goalSteps = goalsMap.steps?.target || 10000;
-        const stepsProgress = Math.min(100, Math.round((currentSteps / goalSteps) * 100));
-        
-        let stepClass = 'needs-work';
-        if (stepsProgress >= 100) stepClass = 'achieved';
-        else if (stepsProgress >= 80) stepClass = 'close';
-        
-        goalStats.push({
-            text: `STEPS: ${stepsProgress}%`,
-            class: stepClass
-        });
-    }
-    
-    // Calculate calories progress
-    if (todaysData.calories && (todaysData.calories.today || todaysData.calories.recent?.length > 0)) {
-        const currentCalories = todaysData.calories.today?.value || 
-            (todaysData.calories.recent?.filter(d => d.value > 0).pop()?.value || 0);
-        const goalCalories = goalsMap.calories?.target || 2500;
-        const caloriesProgress = Math.min(100, Math.round((currentCalories / goalCalories) * 100));
-        
-        let calorieClass = 'needs-work';
-        if (caloriesProgress >= 100) calorieClass = 'achieved';
-        else if (caloriesProgress >= 75) calorieClass = 'close';
-        
-        goalStats.push({
-            text: `CALORIES: ${caloriesProgress}%`,
-            class: calorieClass
-        });
-    }
-    
-    // Add sleep progress if available
-    if (goalsMap.sleep?.target) {
-        goalStats.push({
-            text: `SLEEP: 90%`,
-            class: 'achieved'
-        });
-    }
-    
-    goalStatsElement.innerHTML = goalStats.map(stat => 
-        `<span class="goal-stat ${stat.class}">${stat.text}</span>`
-    ).join('');
+    console.log(`✅ Calories widget updated: ${currentCalories} calories (${percentage}%)`);
 }
 
 // ========================================
-// RECOMMENDATION UPDATES
+// ENHANCED DEBUGGING FOR API CALLS
+// ========================================
+
+async function fetchTodaysFitnessData(userId) {
+    const today = getTodayDate();
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    console.log(`📊 Fetching fitness data for user ${userId} from ${yesterday} to ${today}`);
+    
+    showWidgetLoading('.steps-widget', 'Syncing steps...');
+    showWidgetLoading('.heartrate-widget', 'Reading heart rate...');
+    showWidgetLoading('.calorie-widget', 'Calculating calories...');
+    
+    try {
+        const [stepsResponse, heartRateResponse, caloriesResponse, goalsMap] = await Promise.all([
+            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=steps&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
+            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=heartrate&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
+            fetch(`${API_BASE_URL}/wearable/fitness-data?dataType=calories&startDate=${yesterday}&endDate=${today}&userId=${userId}`),
+            fetchUserGoalsWithProgress()
+        ]);
+
+        // Enhanced debugging
+        console.log('🌐 API Response Status:', {
+            steps: `${stepsResponse.status} ${stepsResponse.statusText}`,
+            heartRate: `${heartRateResponse.status} ${heartRateResponse.statusText}`,
+            calories: `${caloriesResponse.status} ${caloriesResponse.statusText}`
+        });
+
+        const [stepsData, heartRateData, caloriesData] = await Promise.all([
+            handleApiResponse(stepsResponse, 'steps'),
+            handleApiResponse(heartRateResponse, 'heartrate'),
+            handleApiResponse(caloriesResponse, 'calories')
+        ]);
+
+        // Debug the actual data structure
+        console.log('📋 Parsed API Data:', {
+            stepsData: {
+                hasData: !!stepsData,
+                dataCount: stepsData?.data?.length || 0,
+                structure: stepsData ? Object.keys(stepsData) : 'null'
+            },
+            heartRateData: {
+                hasData: !!heartRateData,
+                dataCount: heartRateData?.data?.length || 0,
+                structure: heartRateData ? Object.keys(heartRateData) : 'null'
+            },
+            caloriesData: {
+                hasData: !!caloriesData,
+                dataCount: caloriesData?.data?.length || 0,
+                structure: caloriesData ? Object.keys(caloriesData) : 'null'
+            }
+        });
+
+        // Focus on today's data specifically
+        const todaysData = {
+            steps: getTodaysDataFromSet(stepsData, today),
+            heartRate: getTodaysDataFromSet(heartRateData, today),
+            calories: getTodaysDataFromSet(caloriesData, today)
+        };
+
+        console.log('📅 Today\'s Processed Data:', {
+            steps: todaysData.steps?.today?.value || 'No data',
+            heartRate: todaysData.heartRate?.today?.value || 'No data',
+            calories: todaysData.calories?.today?.value || 'No data'
+        });
+
+        // Update dashboard with data
+        updateDashboardWithTodaysData(todaysData, goalsMap);
+        
+        // Update global health data for alert system
+        const healthDataForAlerts = {
+            steps: todaysData.steps?.today?.value || 0,
+            heartRate: todaysData.heartRate?.today?.value || 0,
+            calories: todaysData.calories?.today?.value || 0,
+            sleepHours: 7.5 // You can get this from sleep data if available
+        };
+        
+        updateGlobalHealthData(healthDataForAlerts);
+
+        hideWidgetLoading('.steps-widget');
+        hideWidgetLoading('.heartrate-widget');
+        hideWidgetLoading('.calorie-widget');
+
+        return todaysData;
+
+    } catch (error) {
+        console.error('❌ Error fetching fitness data:', error);
+        
+        hideWidgetLoading('.steps-widget');
+        hideWidgetLoading('.heartrate-widget');
+        hideWidgetLoading('.calorie-widget');
+        
+        // Show error state
+        showEmptyState('.steps-widget', 'STEPS', 'SYNC FAILED - CHECK CONNECTION');
+        showEmptyState('.heartrate-widget', 'HEART RATE', 'SYNC FAILED - CHECK CONNECTION');
+        showEmptyState('.calorie-widget', 'CALORIES', 'SYNC FAILED - CHECK CONNECTION');
+        
+        throw error;
+    }
+}
+
+// ========================================
+// HELPER FUNCTIONS FOR RECOMMENDATIONS AND STATS
 // ========================================
 
 function updateStepsRecommendation(percentage, stepsRemaining, goalSteps) {
-    const recElement = document.querySelector('.steps-widget .widget-recommendation');
-    if (!recElement) return;
+    const recommendationElement = document.querySelector('.steps-widget .widget-recommendation');
+    if (!recommendationElement) return;
     
-    const titleElement = recElement.querySelector('.rec-title');
-    const textElement = recElement.querySelector('.rec-text');
+    let title, text;
     
     if (percentage >= 100) {
-        titleElement.textContent = 'GOAL ACHIEVED!';
-        textElement.textContent = 'GREAT JOB! YOU\'VE REACHED YOUR DAILY STEP GOAL';
+        title = "GOAL ACHIEVED! 🎉";
+        text = "EXCELLENT WORK! YOU'VE REACHED YOUR DAILY STEP GOAL";
     } else if (percentage >= 80) {
-        const walkMinutes = Math.ceil(stepsRemaining / 100) * 5;
-        titleElement.textContent = 'ALMOST THERE!';
-        textElement.textContent = `TAKE A ${walkMinutes}-MINUTE WALK TO REACH YOUR GOAL`;
+        title = "ALMOST THERE!";
+        text = `TAKE A ${Math.ceil(stepsRemaining / 120)}-MINUTE WALK TO REACH YOUR GOAL`;
     } else if (percentage >= 50) {
-        titleElement.textContent = 'KEEP MOVING!';
-        textElement.textContent = `${stepsRemaining.toLocaleString()} STEPS TO GO - YOU CAN DO IT!`;
+        title = "HALFWAY THERE!";
+        text = `${stepsRemaining.toLocaleString()} MORE STEPS TO GO - YOU CAN DO IT!`;
     } else {
-        titleElement.textContent = 'GET STARTED!';
-        textElement.textContent = 'BEGIN WITH A SHORT 10-MINUTE WALK TO BUILD MOMENTUM';
+        title = "GET MOVING!";
+        text = `START WITH A 10-MINUTE WALK TO BOOST YOUR STEP COUNT`;
     }
+    
+    recommendationElement.innerHTML = `
+        <div class="rec-content">
+            <span class="rec-title">${title}</span>
+            <span class="rec-text">${text}</span>
+        </div>
+    `;
 }
 
-function updateHeartRateRecommendation(currentBPM, targetBPM = null) {
-    const recElement = document.querySelector('.heartrate-widget .widget-recommendation');
-    if (!recElement) return;
+function updateHeartRateRecommendation(currentBPM, targetBPM) {
+    const recommendationElement = document.querySelector('.heartrate-widget .widget-recommendation');
+    if (!recommendationElement) return;
     
-    const titleElement = recElement.querySelector('.rec-title');
-    const textElement = recElement.querySelector('.rec-text');
+    let title, text, icon = "💧";
     
-    if (targetBPM && currentBPM > 0) {
-        if (currentBPM <= targetBPM) {
-            titleElement.textContent = 'TARGET ACHIEVED';
-            textElement.textContent = `YOUR HEART RATE IS WITHIN YOUR TARGET OF ${targetBPM} BPM`;
-        } else {
-            titleElement.textContent = 'ABOVE TARGET';
-            textElement.textContent = `CONSIDER RESTING - TARGET IS ${targetBPM} BPM`;
-        }
+    if (currentBPM > 100) {
+        title = "ELEVATED HEART RATE";
+        text = "CONSIDER RELAXATION TECHNIQUES OR HYDRATION";
+        icon = "🧘";
+    } else if (currentBPM < 60) {
+        title = "LOW HEART RATE";
+        text = "GREAT RESTING HEART RATE - SIGN OF GOOD FITNESS";
+        icon = "💪";
     } else {
-        if (currentBPM > 100) {
-            titleElement.textContent = 'ELEVATED HEART RATE';
-            textElement.textContent = 'CONSIDER RESTING AND STAYING HYDRATED';
-        } else if (currentBPM > 80) {
-            titleElement.textContent = 'STAY HYDRATED';
-            textElement.textContent = 'YOUR HEART RATE IS SLIGHTLY ELEVATED - DRINK MORE WATER';
-        } else if (currentBPM > 0) {
-            titleElement.textContent = 'HEALTHY RANGE';
-            textElement.textContent = 'YOUR HEART RATE IS IN A GOOD RANGE TODAY';
-        } else {
-            titleElement.textContent = 'NO DATA';
-            textElement.textContent = 'SYNC YOUR DEVICE TO SEE HEART RATE TRENDS';
-        }
+        title = "NORMAL HEART RATE";
+        text = "YOUR HEART RATE IS IN A HEALTHY RANGE";
+        icon = "❤️";
     }
+    
+    recommendationElement.innerHTML = `
+        <div class="rec-icon">${icon}</div>
+        <div class="rec-content">
+            <span class="rec-title">${title}</span>
+            <span class="rec-text">${text}</span>
+        </div>
+    `;
 }
 
 function updateCaloriesRecommendation(percentage, caloriesRemaining, goalCalories) {
-    const recElement = document.querySelector('.calorie-widget .widget-recommendation');
-    if (!recElement) return;
+    const recommendationElement = document.querySelector('.calorie-widget .widget-recommendation');
+    if (!recommendationElement) return;
     
-    const titleElement = recElement.querySelector('.rec-title');
-    const textElement = recElement.querySelector('.rec-text');
+    let title, text;
     
     if (percentage >= 100) {
-        titleElement.textContent = 'GOAL REACHED!';
-        textElement.textContent = 'EXCELLENT WORK ON YOUR CALORIE BURN TODAY!';
+        title = "CALORIE GOAL MET! 🔥";
+        text = "FANTASTIC! YOU'VE BURNED YOUR TARGET CALORIES TODAY";
     } else if (percentage >= 75) {
-        titleElement.textContent = 'ALMOST THERE!';
-        textElement.textContent = 'ADD 15 MINUTES OF ACTIVITY TO REACH YOUR GOAL';
-    } else if (percentage >= 50) {
-        titleElement.textContent = 'BOOST YOUR BURN';
-        textElement.textContent = 'ADD 20 MINUTES OF CARDIO TO REACH YOUR CALORIE GOAL';
+        title = "ALMOST THERE!";
+        text = `${caloriesRemaining} MORE CALORIES TO BURN - KEEP IT UP!`;
     } else {
-        titleElement.textContent = 'GET ACTIVE';
-        textElement.textContent = 'START WITH LIGHT EXERCISE TO INCREASE CALORIE BURN';
+        title = "BOOST YOUR BURN";
+        text = "ADD 20 MINUTES OF CARDIO TO REACH YOUR CALORIE GOAL";
     }
-}
-
-// ========================================
-// GOOGLE FIT CONNECTION
-// ========================================
-
-function displayConnectGoogleFitPrompt(userId) {
-    const promptDiv = document.getElementById('googleFitPrompt');
-    const connectButton = document.getElementById('connectGoogleFitBtn');
-
-    if (!promptDiv || !connectButton) {
-        createDynamicGoogleFitPrompt(userId);
-        return;
-    }
-
-    promptDiv.style.display = 'block';
-    connectButton.onclick = async () => {
-        try {
-            connectButton.disabled = true;
-            connectButton.textContent = 'Connecting...';
-            
-            const response = await fetch(`${API_BASE_URL}/wearable/auth/google?userId=${userId}`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
-            const data = await response.json();
-            
-            if (data.authUrl) {
-                localStorage.setItem('oauthUserId', userId);
-                window.location.href = data.authUrl;
-            } else {
-                showErrorToast('Failed to get Google Fit auth URL.');
-                connectButton.disabled = false;
-                connectButton.textContent = 'Connect Google Fit';
-            }
-        } catch (error) {
-            console.error('Error connecting Google Fit:', error);
-            showErrorToast('Error connecting Google Fit.');
-            connectButton.disabled = false;
-            connectButton.textContent = 'Connect Google Fit';
-        }
-    };
-}
-
-function createDynamicGoogleFitPrompt(userId) {
-    const menuContent = document.querySelector('.menu-content');
-    if (!menuContent) return;
     
-    const promptHTML = `
-        <div id="dynamicGoogleFitPrompt" class="widget-recommendation" style="margin: 20px 0; padding: 15px; background: #2a2a2a; border: 2px solid #4CAF50; border-radius: 8px;">
-            <div class="rec-icon">🔗</div>
-            <div class="rec-content">
-                <span class="rec-title">CONNECT GOOGLE FIT</span>
-                <span class="rec-text">Connect your Google Fit account to sync your health data automatically.</span>
-                <button id="dynamicConnectGoogleFitBtn" class="button" style="width: auto; margin-top: 10px; background: #4CAF50; border: none; padding: 8px 16px; color: white; cursor: pointer;">
-                    Connect Google Fit
-                </button>
-            </div>
+    recommendationElement.innerHTML = `
+        <div class="rec-icon">🏃</div>
+        <div class="rec-content">
+            <span class="rec-title">${title}</span>
+            <span class="rec-text">${text}</span>
         </div>
     `;
-    
-    menuContent.insertAdjacentHTML('beforeend', promptHTML);
-    
-    const dynamicButton = document.getElementById('dynamicConnectGoogleFitBtn');
-    if (dynamicButton) {
-        dynamicButton.onclick = async () => {
-            try {
-                dynamicButton.disabled = true;
-                dynamicButton.textContent = 'Connecting...';
-                
-                const response = await fetch(`${API_BASE_URL}/wearable/auth/google?userId=${userId}`, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const data = await response.json();
-                
-                if (data.authUrl) {
-                    localStorage.setItem('oauthUserId', userId);
-                    window.location.href = data.authUrl;
-                } else {
-                    showErrorToast('Failed to get Google Fit auth URL.');
-                    dynamicButton.disabled = false;
-                    dynamicButton.textContent = 'Connect Google Fit';
-                }
-            } catch (error) {
-                console.error('Error connecting Google Fit:', error);
-                showErrorToast('Error connecting Google Fit.');
-                dynamicButton.disabled = false;
-                dynamicButton.textContent = 'Connect Google Fit';
-            }
-        };
-    }
 }
 
-function handleOAuthCallback() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
-    const oauthSuccess = urlParams.get('oauth');
+function updateHeartRateStats(recentHR) {
+    const restingElement = document.querySelector('.heart-stat .heart-value');
+    const maxElement = document.querySelectorAll('.heart-stat .heart-value')[1];
     
-    if (error) {
-        console.error('OAuth authorization failed:', error);
-        showErrorToast('OAuth authorization failed.');
-        const newUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-        return;
-    }
-    
-    if (oauthSuccess === 'success') {
-        console.log('Google Fit connected successfully');
-        const newUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
+    if (recentHR && recentHR.length > 0) {
+        const values = recentHR.map(d => d.value);
+        const minHR = Math.min(...values);
+        const maxHR = Math.max(...values);
         
-        const promptDiv = document.getElementById('googleFitPrompt');
-        const dynamicPromptDiv = document.getElementById('dynamicGoogleFitPrompt');
-        
-        if (promptDiv) promptDiv.style.display = 'none';
-        if (dynamicPromptDiv) dynamicPromptDiv.style.display = 'none';
-        
-        showSuccessToast('Google Fit connected successfully!');
-        
-        setTimeout(() => {
-            initializeDashboard(true); // Force sync after OAuth
-        }, 1000);
-        
-        return;
-    }
-}
-
-// ========================================
-// CHART FUNCTIONS WITH REAL DATA
-// ========================================
-
-function createHeartRateChartWithRealData(heartRateData) {
-    const canvas = document.getElementById('heartRateChart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const hrValues = heartRateData.map(day => day.value);
-    const maxHR = Math.max(...hrValues, 100);
-    const minHR = Math.min(...hrValues, 50);
-    
-    canvas.width = 400; 
-    canvas.height = 160;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = false;
-    
-    // Draw grid
-    ctx.strokeStyle = '#333'; 
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 8; i++) {
-        const y = (canvas.height / 8) * i;
-        ctx.beginPath(); 
-        ctx.moveTo(0, y); 
-        ctx.lineTo(canvas.width, y); 
-        ctx.stroke();
-    }
-    for (let i = 0; i <= hrValues.length; i++) {
-        const x = (canvas.width / hrValues.length) * i;
-        ctx.beginPath(); 
-        ctx.moveTo(x, 0); 
-        ctx.lineTo(x, canvas.height); 
-        ctx.stroke();
-    }
-    
-    // Draw heart rate line with real data
-    ctx.strokeStyle = '#D32F2F'; 
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    hrValues.forEach((hr, index) => {
-        const x = (canvas.width / (hrValues.length - 1)) * index;
-        const y = canvas.height - ((hr - minHR) / (maxHR - minHR)) * canvas.height;
-        if (index === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    
-    // Draw data points
-    ctx.fillStyle = '#D32F2F';
-    hrValues.forEach((hr, index) => {
-        const x = (canvas.width / (hrValues.length - 1)) * index;
-        const y = canvas.height - ((hr - minHR) / (maxHR - minHR)) * canvas.height;
-        ctx.fillRect(x - 3, y - 3, 6, 6);
-    });
-}
-
-// ========================================
-// PIXELATED STEPS CIRCLE
-// ========================================
-
-function createPixelatedStepsCircle(percentage) {
-    const container = document.querySelector('.steps-widget .circular-progress-container');
-    if (!container) return;
-    
-    // Clear existing canvas if any
-    const existingCanvas = container.querySelector('#stepsCanvas');
-    if (existingCanvas) {
-        existingCanvas.remove();
-    }
-    
-    // Create new canvas
-    const canvas = document.createElement('canvas');
-    canvas.id = 'stepsCanvas';
-    canvas.width = 140;
-    canvas.height = 140;
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.imageRendering = 'pixelated';
-    canvas.style.imageRendering = '-moz-crisp-edges';
-    canvas.style.imageRendering = 'crisp-edges';
-    
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const outerRadius = 60;
-    const innerRadius = 45;
-    const progress = percentage / 100;
-    
-    // Draw pixelated background ring
-    drawPixelatedRing(ctx, centerX, centerY, outerRadius, innerRadius, '#333', 2 * Math.PI);
-    
-    // Draw pixelated progress ring
-    const progressAngle = 2 * Math.PI * progress;
-    drawPixelatedRing(ctx, centerX, centerY, outerRadius, innerRadius, '#388E3C', progressAngle, -Math.PI / 2);
-    
-    // Add pixel effects for high percentages
-    if (percentage > 80) {
-        drawPixelStepEffects(ctx, centerX, centerY, outerRadius + 5, Math.floor(percentage / 25));
-    }
-    
-    container.appendChild(canvas);
-}
-
-function drawPixelatedRing(ctx, centerX, centerY, outerRadius, innerRadius, color, angle, startAngle = 0) {
-    const pixelSize = 6; // Changed from 4 to 6 to eliminate outline visibility
-    ctx.fillStyle = color;
-    
-    for (let a = 0; a < angle; a += 0.06) { // Adjusted increment for larger pixels
-        const currentAngle = startAngle + a;
-        for (let r = innerRadius; r < outerRadius; r += pixelSize) {
-            const x = centerX + Math.cos(currentAngle) * r;
-            const y = centerY + Math.sin(currentAngle) * r;
-            ctx.fillRect(Math.floor(x/pixelSize) * pixelSize, Math.floor(y/pixelSize) * pixelSize, pixelSize, pixelSize);
-        }
-    }
-}
-
-function drawPixelStepEffects(ctx, centerX, centerY, radius, effectCount) {
-    const colors = ['#388E3C', '#66BB6A', '#4CAF50'];
-    
-    for (let i = 0; i < effectCount; i++) {
-        const angle = (2 * Math.PI / effectCount) * i;
-        const x = centerX + Math.cos(angle) * radius;
-        const y = centerY + Math.sin(angle) * radius;
-        
-        ctx.fillStyle = colors[i % colors.length];
-        
-        // Draw clean step pixels in a pattern
-        for (let j = 0; j < 3; j++) {
-            const stepX = x + (j - 1) * 4;
-            const stepY = y - j * 2;
-            ctx.fillRect(Math.floor(stepX), Math.floor(stepY), 3, 3);
-        }
-    }
-}
-
-// ========================================
-// UPDATED CHART FUNCTIONS - CLEANER PIXEL STYLE
-// ========================================
-
-function createCalorieChartWithRealData(percentage) {
-    const canvas = document.getElementById('calorieChart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    canvas.width = 180; 
-    canvas.height = 180;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = false;
-    
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radius = 65;
-    const progress = percentage / 100;
-    
-    // Draw pixelated background circle
-    drawPixelatedCircle(ctx, centerX, centerY, radius, '#333', 6);
-    
-    // Draw pixelated progress arc
-    const progressAngle = 2 * Math.PI * progress;
-    drawPixelatedArc(ctx, centerX, centerY, radius, progressAngle, '#FF5722', 6);
-    
-    // Add pixel flame effects for high percentages
-    if (percentage > 75) {
-        drawPixelFlameEffects(ctx, centerX, centerY, radius + 10, Math.floor(percentage / 20));
-    }
-    
-    // Center text without background boxes
-    ctx.fillStyle = percentage >= 100 ? '#FFD700' : '#FF5722';
-    ctx.font = '14px "Press Start 2P"';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${Math.round(percentage)}%`, centerX, centerY + 5);
-}
-
-function createSleepChart() {
-    const canvas = document.getElementById('sleepChart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    canvas.width = 180; 
-    canvas.height = 180;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = false;
-    
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const outerRadius = 65;
-    const innerRadius = 35;
-    
-    // Sleep phase data with cleaner colors
-    const phases = [
-        { percentage: 0.30, color: '#1565C0', name: 'DEEP' },   // Deep sleep - darker blue
-        { percentage: 0.50, color: '#42A5F5', name: 'LIGHT' },  // Light sleep - medium blue  
-        { percentage: 0.20, color: '#81D4FA', name: 'REM' }     // REM sleep - light blue
-    ];
-    
-    let currentAngle = -Math.PI / 2; // Start from top
-    
-    // Draw each sleep phase as clean pixel segments
-    phases.forEach((phase, index) => {
-        const phaseAngle = 2 * Math.PI * phase.percentage;
-        drawPixelatedDonutSegment(ctx, centerX, centerY, outerRadius, innerRadius, phase.color, phaseAngle, currentAngle);
-        currentAngle += phaseAngle;
-    });
-    
-    // Add subtle pixel decorations around the donut
-    drawSleepPixelStars(ctx, centerX, centerY, outerRadius + 8);
-    
-    // Center text without background boxes
-    ctx.fillStyle = '#E3F2FD';
-    ctx.font = '12px "Press Start 2P"';
-    ctx.textAlign = 'center';
-    ctx.fillText('90%', centerX, centerY - 2);
-    ctx.font = '8px "Press Start 2P"';
-    ctx.fillText('7.2H', centerX, centerY + 12);
-}
-
-// Helper functions for cleaner pixel rendering
-function drawPixelatedCircle(ctx, centerX, centerY, radius, color, pixelSize) {
-    ctx.fillStyle = color;
-    
-    for (let angle = 0; angle < 2 * Math.PI; angle += 0.02) {
-        for (let r = radius - pixelSize; r <= radius; r += pixelSize) {
-            const x = centerX + Math.cos(angle) * r;
-            const y = centerY + Math.sin(angle) * r;
-            ctx.fillRect(Math.floor(x), Math.floor(y), pixelSize, pixelSize);
-        }
-    }
-}
-
-function drawPixelatedArc(ctx, centerX, centerY, radius, angle, color, pixelSize) {
-    ctx.fillStyle = color;
-    
-    for (let a = 0; a < angle; a += 0.02) {
-        const currentAngle = -Math.PI / 2 + a; // Start from top
-        for (let r = radius - pixelSize; r <= radius; r += pixelSize) {
-            const x = centerX + Math.cos(currentAngle) * r;
-            const y = centerY + Math.sin(currentAngle) * r;
-            ctx.fillRect(Math.floor(x), Math.floor(y), pixelSize, pixelSize);
-        }
-    }
-}
-
-function drawPixelatedDonutSegment(ctx, centerX, centerY, outerRadius, innerRadius, color, angle, startAngle) {
-    ctx.fillStyle = color;
-    const pixelSize = 3;
-    
-    for (let a = 0; a < angle; a += 0.015) {
-        const currentAngle = startAngle + a;
-        for (let r = innerRadius; r < outerRadius; r += pixelSize) {
-            const x = centerX + Math.cos(currentAngle) * r;
-            const y = centerY + Math.sin(currentAngle) * r;
-            
-            // Create clean pixel blocks
-            ctx.fillRect(Math.floor(x/pixelSize) * pixelSize, Math.floor(y/pixelSize) * pixelSize, pixelSize, pixelSize);
-        }
-    }
-}
-
-function drawPixelFlameEffects(ctx, centerX, centerY, radius, flameCount) {
-    const colors = ['#FF5722', '#FFA000', '#FFD700'];
-    
-    for (let i = 0; i < flameCount; i++) {
-        const angle = (2 * Math.PI / flameCount) * i;
-        const x = centerX + Math.cos(angle) * radius;
-        const y = centerY + Math.sin(angle) * radius;
-        
-        ctx.fillStyle = colors[i % colors.length];
-        
-        // Draw clean flame pixels in a pattern
-        for (let j = 0; j < 3; j++) {
-            const flameX = x + (j - 1) * 4;
-            const flameY = y - j * 2;
-            ctx.fillRect(Math.floor(flameX), Math.floor(flameY), 3, 3);
-        }
-    }
-}
-
-function drawSleepPixelStars(ctx, centerX, centerY, radius) {
-    const starColor = '#E3F2FD';
-    ctx.fillStyle = starColor;
-    
-    // Draw small pixel stars around the sleep chart
-    for (let i = 0; i < 6; i++) {
-        const angle = (2 * Math.PI / 6) * i;
-        const x = centerX + Math.cos(angle) * radius;
-        const y = centerY + Math.sin(angle) * radius;
-        
-        // Draw a simple pixel star pattern
-        ctx.fillRect(Math.floor(x) - 1, Math.floor(y), 3, 1); // horizontal line
-        ctx.fillRect(Math.floor(x), Math.floor(y) - 1, 1, 3); // vertical line
-    }
-}
-
-// ========================================
-// UTILITY FUNCTIONS
-// ========================================
-
-function showErrorToast(message) {
-    const toast = document.createElement('div');
-    toast.className = 'error-toast';
-    toast.innerHTML = `
-        <div class="toast-content">
-            <span class="toast-icon">❌</span>
-            <span class="toast-message">${message}</span>
-        </div>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-        }
-    }, 4000);
-}
-
-function showSuccessToast(message) {
-    const toast = document.createElement('div');
-    toast.className = 'success-toast';
-    toast.innerHTML = `
-        <div class="toast-content">
-            <span class="toast-icon">✅</span>
-            <span class="toast-message">${message}</span>
-        </div>
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-        }
-    }, 3000);
-}
-
-function refreshData() {
-    console.log('🔄 Manual refresh triggered - forcing fresh sync');
-    showGlobalLoading();
-    setTimeout(() => {
-        initializeDashboard(true); // Force sync
-    }, 500);
-}
-
-// ========================================
-// MAIN INITIALIZATION
-// ========================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    showGlobalLoading();
-    
-    createStars();
-    enhanceStars();
-    
-    setTimeout(() => {
-        initializeDashboard(true); // Force sync on page load
-    }, 800);
-    
-    const widgets = document.querySelectorAll('.widget');
-    
-    widgets.forEach((widget, index) => {
-        widget.addEventListener('click', function() {
-            this.style.transform = 'scale(0.98) translateY(-8px)';
-            setTimeout(() => { 
-                this.style.transform = 'scale(1.02) translateY(-8px)'; 
-            }, 100);
-        });
-    });
-
-    createSleepChart();
-    
-    // Add force sync button handler
-    const forceSyncBtn = document.getElementById('forceSyncBtn');
-    if (forceSyncBtn) {
-        forceSyncBtn.addEventListener('click', () => {
-            console.log('🚀 Force sync button clicked');
-            showGlobalLoading();
-            initializeDashboard(true);
-        });
-    }
-});
-
-async function initializeDashboard(forceSync = false) {
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('code') || urlParams.get('oauth') || urlParams.get('error')) {
-            handleOAuthCallback();
-            return;
-        }
-        
-        const userId = getCurrentUserId();
-        if (!userId) {
-            hideGlobalLoading();
-            window.location.href = '../auth/auth.html';
-            return;
-        }
-        
-        console.log('Dashboard initializing for user:', userId);
-        
-        const userData = await loadUserProfile();
-        if (!userData) {
-            hideGlobalLoading();
-            return;
-        }
-        
-        console.log('User profile loaded, Google Fit connected:', !!(userData.fit_tokens && userData.fit_tokens.trim()));
-        updateUserDataWidget(userData);
-        
-        const isGoogleFitConnected = userData.fit_tokens && userData.fit_tokens.trim() !== '';
-        
-        if (!isGoogleFitConnected) {
-            hideGlobalLoading();
-            setTimeout(() => {
-                displayConnectGoogleFitPrompt(userId);
-            }, 100);
-            return;
-        }
-        
-        const syncNeeded = isSyncNeeded(userData.last_sync, forceSync);
-        
-        if (syncNeeded) {
-            console.log(`🔄 ${forceSync ? 'Force syncing' : 'Syncing'} fresh data from Google Fit`);
-            try {
-                await fetchTodaysFitnessData(userId);
-            } catch (error) {
-                console.error('Fresh sync failed, falling back to cached data:', error);
-                showErrorToast('Sync failed, loading cached data');
-                await loadCachedData(userId);
-            }
-        } else {
-            console.log('📋 Loading cached data (last sync was recent)');            
-            await loadCachedData(userId);
-        }
-        
-        console.log('Dashboard initialization complete');
-        hideGlobalLoading();
-        
-    } catch (error) {
-        console.error('Dashboard initialization error:', error);
-        hideGlobalLoading();
-        showErrorToast('Failed to initialize dashboard. Please refresh the page.');
+        if (restingElement) restingElement.textContent = `${minHR} BPM`;
+        if (maxElement) maxElement.textContent = `${maxHR} BPM`;
     }
 }

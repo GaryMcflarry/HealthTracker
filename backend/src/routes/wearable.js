@@ -525,8 +525,17 @@ function processCaloriePoints(points) {
 // ========================================
 
 async function fetchSleepFromActivity(start, end) {
-  console.log('🛏️ Attempting to derive sleep from activity data...');
+  console.log('🛏️ Attempting to fetch sleep data from HealthSync...');
   
+  // First try HealthSync sources
+  const healthSyncData = await fetchHealthSyncSleepData(start, end);
+  if (healthSyncData.length > 0) {
+    console.log(`✅ Successfully fetched ${healthSyncData.length} days of HealthSync sleep data`);
+    return healthSyncData;
+  }
+  
+  // Fallback to original activity-based detection
+  console.log('🔄 Falling back to activity-based sleep detection...');
   try {
     const request = {
       userId: 'me',
@@ -552,7 +561,6 @@ async function fetchSleepFromActivity(start, end) {
           for (const dataset of bucket.dataset) {
             if (dataset.point) {
               for (const point of dataset.point) {
-                // Look for sleep activity type (72 = sleep)
                 if (point.value && point.value[0] && point.value[0].intVal === 72) {
                   const startTime = parseInt(point.startTimeNanos) / 1000000;
                   const endTime = parseInt(point.endTimeNanos) / 1000000;
@@ -567,6 +575,11 @@ async function fetchSleepFromActivity(start, end) {
           sleepData.push({
             date: date,
             value: Math.round(sleepMinutes),
+            deep_sleep: Math.round(sleepMinutes * 0.25),
+            light_sleep: Math.round(sleepMinutes * 0.55),
+            rem_sleep: Math.round(sleepMinutes * 0.20),
+            awake_time: 0,
+            efficiency: Math.round((sleepMinutes / (sleepMinutes + 30)) * 100), // Assume 30min awake
             dataType: 'sleep'
           });
         }
@@ -1148,14 +1161,6 @@ async function storeCaloriesData(userId, dayData) {
 
 async function storeSleepData(userId, dayData) {
   try {
-    // Convert sleep data to hours and calculate phases using your existing schema
-    const sleepHours = dayData.value > 50 ? (dayData.value / 60) : dayData.value;
-    const totalMinutes = Math.round(sleepHours * 60);
-    const deepSleepMinutes = Math.round(totalMinutes * 0.25);
-    const lightSleepMinutes = Math.round(totalMinutes * 0.55);  
-    const remSleepMinutes = Math.round(totalMinutes * 0.20);
-    const sleepEfficiency = sleepHours >= 7 ? Math.min(95, 70 + (sleepHours * 3)) : Math.round((sleepHours / 8) * 85);
-    
     const existing = await db
       .select()
       .from(sleepDataTable)
@@ -1165,23 +1170,24 @@ async function storeSleepData(userId, dayData) {
       ))
       .limit(1);
 
+    const sleepData = {
+      deep_sleep_minutes: dayData.deep_sleep || 0,
+      light_sleep_minutes: dayData.light_sleep || 0,
+      rem_sleep_minutes: dayData.rem_sleep || 0,
+      awake_minutes: dayData.awake_time || 0,
+      sleep_efficiency_percent: dayData.efficiency || 0
+    };
+
     if (existing.length > 0) {
       await db
         .update(sleepDataTable)
-        .set({ 
-          deep_sleep_minutes: deepSleepMinutes,
-          light_sleep_minutes: lightSleepMinutes,
-          rem_sleep_minutes: remSleepMinutes,
-          awake_minutes: Math.max(0, totalMinutes - deepSleepMinutes - lightSleepMinutes - remSleepMinutes),
-          sleep_efficiency_percent: sleepEfficiency
-        })
+        .set(sleepData)
         .where(and(
           eq(sleepDataTable.user_id, userId),
           eq(sleepDataTable.date, dayData.date)
         ));
-      console.log(`📝 Updated sleep data for ${dayData.date}: ${sleepHours}h (${sleepEfficiency}% efficiency)`);
+      console.log(`📝 Updated sleep data for ${dayData.date}: ${dayData.value}min (${dayData.efficiency}% efficiency)`);
     } else {
-      // Insert using your exact existing schema
       await db
         .insert(sleepDataTable)
         .values({
@@ -1189,13 +1195,9 @@ async function storeSleepData(userId, dayData) {
           date: dayData.date,
           bedtime_start: '23:00:00',
           bedtime_end: '07:00:00',
-          deep_sleep_minutes: deepSleepMinutes,
-          light_sleep_minutes: lightSleepMinutes,
-          rem_sleep_minutes: remSleepMinutes,
-          awake_minutes: Math.max(0, totalMinutes - deepSleepMinutes - lightSleepMinutes - remSleepMinutes),
-          sleep_efficiency_percent: sleepEfficiency
+          ...sleepData
         });
-      console.log(`➕ Inserted sleep data for ${dayData.date}: ${sleepHours}h (${sleepEfficiency}% efficiency)`);
+      console.log(`➕ Inserted sleep data for ${dayData.date}: ${dayData.value}min (${dayData.efficiency}% efficiency)`);
     }
     return true;
   } catch (error) {
@@ -1213,5 +1215,314 @@ async function fetchGoogleFitData(dataType, startDate, endDate) {
   
   return await fetchDataWithFallbacks(dataType, startDate, endDate);
 }
+
+
+router.get('/test-healthsync-sleep/:userId', asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { days = 7 } = req.query;
+  
+  console.log(`🛏️ Testing HealthSync sleep data for user ${userId} (${days} days)`);
+  
+  try {
+    await setOAuthCredentialsForUser(parseInt(userId));
+    
+    const end = new Date();
+    const start = new Date(end.getTime() - (parseInt(days) * 24 * 60 * 60 * 1000));
+    
+    console.log(`📅 Date range: ${start.toISOString()} to ${end.toISOString()}`);
+    
+    const sleepData = await fetchHealthSyncSleepData(start, end);
+    
+    // Store the data
+    if (sleepData.length > 0) {
+      console.log('💾 Storing HealthSync sleep data...');
+      for (const dayData of sleepData) {
+        await storeSleepData(parseInt(userId), dayData);
+      }
+      await updateUserLastSync(parseInt(userId));
+    }
+    
+    res.json({
+      message: 'HealthSync sleep data test completed',
+      userId: userId,
+      period: `${days} days`,
+      data: sleepData,
+      count: sleepData.length,
+      stored: sleepData.length,
+      format: 'Enhanced sleep data with phases and efficiency'
+    });
+    
+  } catch (error) {
+    console.error('❌ HealthSync sleep test failed:', error);
+    res.status(500).json({
+      error: 'HealthSync sleep test failed',
+      details: error.message
+    });
+  }
+}));
+
+function generateSleepRecommendations(tests) {
+  const recommendations = [];
+  
+  const hasAnySleepData = tests.some(test => test.success && test.test.includes('Sleep'));
+  const hasDataSources = tests.find(test => test.test === 'Available Data Sources');
+  
+  if (!hasAnySleepData) {
+    recommendations.push('❌ No sleep data found in any source');
+    recommendations.push('🔧 Possible solutions:');
+    recommendations.push('   1. Enable sleep tracking in Google Fit app');
+    recommendations.push('   2. Connect a sleep-tracking device (Fitbit, Samsung Health, etc.)');
+    recommendations.push('   3. Manually log sleep in Google Fit');
+    recommendations.push('   4. Check if sleep permissions are granted in OAuth');
+  }
+  
+  if (hasDataSources && hasDataSources.sleepSources?.length === 0) {
+    recommendations.push('⚠️ No sleep data sources available - user may need to set up sleep tracking');
+  }
+  
+  return recommendations;
+}
+
+// Helper function for testing individual sleep data sources
+async function testSleepDataSource(dataSourceId, dataTypeName, start, end, debugResults, testName) {
+  try {
+    console.log(`🧪 Testing: ${testName} (${dataSourceId})`);
+    
+    const request = {
+      userId: 'me',
+      resource: {
+        aggregateBy: [{
+          dataTypeName: dataTypeName,
+          dataSourceId: dataSourceId
+        }],
+        bucketByTime: { durationMillis: 86400000 }, // 24 hours
+        startTimeMillis: start.getTime(),
+        endTimeMillis: end.getTime()
+      }
+    };
+
+    const response = await fitness.users.dataset.aggregate(request);
+    
+    let totalPoints = 0;
+    let totalSleepMinutes = 0;
+    const dailyData = [];
+    
+    if (response.data.bucket) {
+      for (const bucket of response.data.bucket) {
+        const date = new Date(parseInt(bucket.startTimeMillis)).toISOString().split('T')[0];
+        let dayPoints = 0;
+        let daySleep = 0;
+        
+        if (bucket.dataset && bucket.dataset.length > 0) {
+          for (const dataset of bucket.dataset) {
+            if (dataset.point && dataset.point.length > 0) {
+              dayPoints += dataset.point.length;
+              totalPoints += dataset.point.length;
+              
+              // Log first few points for inspection
+              if (dataset.point.length > 0 && dailyData.length < 3) {
+                console.log(`📊 Sample points for ${date}:`, 
+                  dataset.point.slice(0, 3).map(p => ({
+                    startTime: new Date(parseInt(p.startTimeNanos) / 1000000).toISOString(),
+                    endTime: new Date(parseInt(p.endTimeNanos) / 1000000).toISOString(),
+                    value: p.value
+                  }))
+                );
+              }
+              
+              // Calculate sleep duration
+              if (dataTypeName === 'com.google.sleep.segment') {
+                daySleep = processSleepPoints(dataset.point);
+              } else if (dataTypeName === 'com.google.activity.segment') {
+                // Look for sleep activity type (72)
+                for (const point of dataset.point) {
+                  if (point.value && point.value[0] && point.value[0].intVal === 72) {
+                    const startTime = parseInt(point.startTimeNanos) / 1000000;
+                    const endTime = parseInt(point.endTimeNanos) / 1000000;
+                    daySleep += (endTime - startTime) / (1000 * 60);
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        if (dayPoints > 0) {
+          dailyData.push({
+            date: date,
+            points: dayPoints,
+            sleepMinutes: Math.round(daySleep)
+          });
+        }
+        
+        totalSleepMinutes += daySleep;
+      }
+    }
+    
+    console.log(`✅ ${testName}: ${totalPoints} points, ${Math.round(totalSleepMinutes)} total sleep minutes`);
+    
+    debugResults.tests.push({
+      test: testName,
+      success: totalPoints > 0,
+      dataSourceId: dataSourceId,
+      dataTypeName: dataTypeName,
+      totalPoints: totalPoints,
+      totalSleepMinutes: Math.round(totalSleepMinutes),
+      dailyBreakdown: dailyData,
+      rawResponse: response.data.bucket?.length > 0 ? response.data.bucket[0] : null
+    });
+    
+  } catch (error) {
+    console.error(`❌ ${testName} failed:`, error.message);
+    debugResults.tests.push({
+      test: testName,
+      success: false,
+      dataSourceId: dataSourceId,
+      error: error.message
+    });
+  }
+}
+
+// Add this new function to handle the HealthSync sleep data sources
+async function fetchHealthSyncSleepData(start, end) {
+  console.log('🛏️ Fetching sleep data from HealthSync sources...');
+  
+  try {
+    // Get all available sleep data sources (we saw 13 HealthSync sources in your investigation)
+    const sourcesResponse = await fitness.users.dataSources.list({ userId: 'me' });
+    const sleepSources = sourcesResponse.data.dataSource?.filter(source => 
+      source.dataStreamId?.includes('healthsync') && 
+      source.dataType?.name === 'com.google.sleep.segment'
+    ) || [];
+    
+    console.log(`📊 Found ${sleepSources.length} HealthSync sleep sources`);
+    
+    const allSleepData = [];
+    
+    // Fetch data from each HealthSync source
+    for (const source of sleepSources) {
+      try {
+        console.log(`🔄 Fetching from: ${source.dataStreamId}`);
+        
+        const datasetId = `${start.getTime()}000000-${end.getTime()}000000`;
+        const response = await fitness.users.dataSources.datasets.get({
+          userId: 'me',
+          dataSourceId: source.dataStreamId,
+          datasetId: datasetId
+        });
+        
+        if (response.data.point && response.data.point.length > 0) {
+          console.log(`✅ Found ${response.data.point.length} sleep points from ${source.dataStreamId}`);
+          allSleepData.push(...response.data.point);
+        }
+        
+      } catch (error) {
+        console.warn(`⚠️ Failed to fetch from ${source.dataStreamId}:`, error.message);
+      }
+    }
+    
+    console.log(`📊 Total sleep points collected: ${allSleepData.length}`);
+    
+    // Process the sleep data into daily format
+    return processSleepDataPoints(allSleepData);
+    
+  } catch (error) {
+    console.error('❌ HealthSync sleep data fetch failed:', error);
+    return [];
+  }
+}
+
+function processSleepDataPoints(sleepPoints) {
+  console.log('🔄 Processing sleep data points...');
+  
+  const dailySleepMap = new Map();
+  
+  for (const point of sleepPoints) {
+    try {
+      const startTime = new Date(parseInt(point.startTimeNanos) / 1000000);
+      const endTime = new Date(parseInt(point.endTimeNanos) / 1000000);
+      const date = startTime.toISOString().split('T')[0];
+      
+      const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+      const sleepType = point.value?.[0]?.intVal || 0;
+      
+      // Initialize daily data if not exists
+      if (!dailySleepMap.has(date)) {
+        dailySleepMap.set(date, {
+          date: date,
+          totalSleep: 0,
+          deepSleep: 0,
+          lightSleep: 0,
+          remSleep: 0,
+          awakeTime: 0,
+          segments: []
+        });
+      }
+      
+      const dayData = dailySleepMap.get(date);
+      
+      // Sleep segment types (based on Google Fit documentation):
+      // 1 = Awake, 2 = Sleep (light), 3 = Out-of-bed, 4 = Light sleep, 5 = Deep sleep, 6 = REM sleep
+      switch (sleepType) {
+        case 1: // Awake
+          dayData.awakeTime += durationMinutes;
+          break;
+        case 2: // Sleep (general)
+        case 4: // Light sleep
+          dayData.lightSleep += durationMinutes;
+          dayData.totalSleep += durationMinutes;
+          break;
+        case 5: // Deep sleep
+          dayData.deepSleep += durationMinutes;
+          dayData.totalSleep += durationMinutes;
+          break;
+        case 6: // REM sleep
+          dayData.remSleep += durationMinutes;
+          dayData.totalSleep += durationMinutes;
+          break;
+        default:
+          // If unknown type, assume it's sleep
+          dayData.lightSleep += durationMinutes;
+          dayData.totalSleep += durationMinutes;
+      }
+      
+      dayData.segments.push({
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        type: sleepType,
+        duration: durationMinutes
+      });
+      
+    } catch (error) {
+      console.warn('⚠️ Error processing sleep point:', error);
+    }
+  }
+  
+  // Convert to array and calculate sleep efficiency
+  const processedData = [];
+  for (const [date, dayData] of dailySleepMap) {
+    if (dayData.totalSleep > 0) {
+      const efficiency = dayData.totalSleep > 0 ? 
+        Math.round((dayData.totalSleep / (dayData.totalSleep + dayData.awakeTime)) * 100) : 0;
+      
+      processedData.push({
+        date: date,
+        value: Math.round(dayData.totalSleep), // Total sleep in minutes
+        deep_sleep: Math.round(dayData.deepSleep),
+        light_sleep: Math.round(dayData.lightSleep),
+        rem_sleep: Math.round(dayData.remSleep),
+        awake_time: Math.round(dayData.awakeTime),
+        efficiency: Math.min(100, Math.max(0, efficiency)),
+        dataType: 'sleep'
+      });
+      
+      console.log(`📊 ${date}: ${Math.round(dayData.totalSleep)}min total (Deep: ${Math.round(dayData.deepSleep)}, Light: ${Math.round(dayData.lightSleep)}, REM: ${Math.round(dayData.remSleep)}, Efficiency: ${efficiency}%)`);
+    }
+  }
+  
+  return processedData.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+
 
 module.exports = router;

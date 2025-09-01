@@ -34,16 +34,37 @@ const fitness = google.fitness({ version: 'v1', auth: oauth2Client });
 console.log('🔗 Health Sync Integration Enabled');
 console.log('📱 Data Flow: GT2 → Huawei Health → Health Sync → Google Fit → Your API');
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const usersRoutes = require('./routes/users');
-const goalsRoutes = require('./routes/goals');
-const stepsDataRoutes = require('./routes/stepsData');
-const heartRateDataRoutes = require('./routes/healthRateData');
-const sleepDataRoutes = require('./routes/sleepData');
-const caloriesDataRoutes = require('./routes/caloriesData');
-const notificationsRoutes = require('./routes/notifications');
-const wearableRoutes = require('./routes/wearable'); // New wearable integration routes
+// Import routes with error handling
+let authRoutes, usersRoutes, goalsRoutes, stepsDataRoutes, heartRateDataRoutes, 
+    sleepDataRoutes, caloriesDataRoutes, notificationsRoutes, wearableRoutes;
+
+try {
+  authRoutes = require('./routes/auth');
+  usersRoutes = require('./routes/users');
+  goalsRoutes = require('./routes/goals');
+  stepsDataRoutes = require('./routes/stepsData');
+  heartRateDataRoutes = require('./routes/healthRateData');
+  sleepDataRoutes = require('./routes/sleepData');
+  caloriesDataRoutes = require('./routes/caloriesData');
+  wearableRoutes = require('./routes/wearable');
+  
+  // Import notifications route with fallback
+  try {
+    notificationsRoutes = require('./routes/notifications');
+    console.log('✅ Notifications routes loaded successfully');
+  } catch (notifError) {
+    console.error('❌ Error loading notifications routes:', notifError.message);
+    // Create a fallback router
+    notificationsRoutes = express.Router();
+    notificationsRoutes.get('/test', (req, res) => {
+      res.json({ message: 'Notifications route fallback active' });
+    });
+  }
+  
+} catch (error) {
+  console.error('❌ Error loading routes:', error.message);
+  process.exit(1);
+}
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -53,22 +74,43 @@ app.use('/api/steps', stepsDataRoutes);
 app.use('/api/heartrate', heartRateDataRoutes);
 app.use('/api/sleep', sleepDataRoutes);
 app.use('/api/calories', caloriesDataRoutes);
-app.use('/api/notifications', notificationsRoutes);
-app.use('/api/wearable', wearableRoutes); // Wearable integration routes
+app.use('/api/wearable', wearableRoutes);
+
+// Use notifications routes with validation
+if (notificationsRoutes && typeof notificationsRoutes === 'function') {
+  app.use('/api/notifications', notificationsRoutes);
+  console.log('✅ Notifications API mounted at /api/notifications');
+} else {
+  console.warn('⚠️ Notifications routes not properly loaded, creating fallback');
+  app.use('/api/notifications', express.Router().get('/status', (req, res) => {
+    res.json({ status: 'Notifications service unavailable' });
+  }));
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    services: {
+      notifications: !!notificationsRoutes,
+      wearable: !!wearableRoutes,
+      auth: !!authRoutes
+    }
   });
 });
 
 // Dashboard API endpoint (aggregated data)
 app.get('/api/dashboard', async (req, res) => {
   try {
-    const userId = req.user.userID;
+    // Remove req.user.userID dependency since no auth
+    const userId = req.query.userId || req.headers['x-user-id'];
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+    
     const { period = 'daily' } = req.query;
     const { db } = require('./db');
     const { 
@@ -86,36 +128,36 @@ app.get('/api/dashboard', async (req, res) => {
     // Fetch all data in parallel
     const [stepsData, heartRateData, sleepData, caloriesData, goals] = await Promise.all([
       db.select().from(stepsDataTable).where(and(
-        eq(stepsDataTable.userID, userId),
+        eq(stepsDataTable.user_id, parseInt(userId)),
         gte(stepsDataTable.date, startDate),
         lte(stepsDataTable.date, endDate)
       )),
       db.select().from(heartRateDataTable).where(and(
-        eq(heartRateDataTable.userID, userId),
+        eq(heartRateDataTable.user_id, parseInt(userId)),
         gte(heartRateDataTable.date, startDate),
         lte(heartRateDataTable.date, endDate)
       )),
       db.select().from(sleepDataTable).where(and(
-        eq(sleepDataTable.userID, userId),
+        eq(sleepDataTable.user_id, parseInt(userId)),
         gte(sleepDataTable.date, startDate),
         lte(sleepDataTable.date, endDate)
       )),
       db.select().from(caloriesDataTable).where(and(
-        eq(caloriesDataTable.userID, userId),
+        eq(caloriesDataTable.user_id, parseInt(userId)),
         gte(caloriesDataTable.date, startDate),
         lte(caloriesDataTable.date, endDate)
       )),
-      db.select().from(goalsTable).where(eq(goalsTable.userID, userId))
+      db.select().from(goalsTable).where(eq(goalsTable.user_id, parseInt(userId)))
     ]);
 
     // Calculate summaries
     const totalSteps = stepsData.reduce((sum, entry) => sum + (entry.steps_count || 0), 0);
     const totalCalories = caloriesData.reduce((sum, entry) => sum + (entry.calories || 0), 0);
     const averageHeartRate = heartRateData.length > 0 
-      ? Math.round(heartRateData.reduce((sum, entry) => sum + entry.heartRateBpm, 0) / heartRateData.length)
+      ? Math.round(heartRateData.reduce((sum, entry) => sum + entry.heart_rate_bpm, 0) / heartRateData.length)
       : 0;
     const averageSleep = sleepData.length > 0
-      ? Math.round((sleepData.reduce((sum, entry) => sum + entry.sleepDuration, 0) / sleepData.length) * 100) / 100
+      ? Math.round((sleepData.reduce((sum, entry) => sum + (entry.deep_sleep_minutes + entry.light_sleep_minutes + entry.rem_sleep_minutes), 0) / sleepData.length) * 100) / 100
       : 0;
 
     // Calculate goal progress
@@ -145,14 +187,10 @@ app.get('/api/dashboard', async (req, res) => {
     });
   } catch (error) {
     console.error('Dashboard error:', error);
-    res.status(500).json({ error: 'Failed to fetch dashboard data' });
+    res.status(500).json({ error: 'Failed to fetch dashboard data', details: error.message });
   }
 });
 
-// Serve the main HTML file for any non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
 
 // Global error handler
 app.use((error, req, res, next) => {
@@ -192,6 +230,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Health Tracker server running on port ${PORT}`);
   console.log(`📊 Dashboard available at http://localhost:${PORT}`);
   console.log(`🔗 API endpoints available at http://localhost:${PORT}/api`);
+  console.log(`📧 Notifications API: http://localhost:${PORT}/api/notifications`);
   console.log(`📱 Google Fit Integration: ${process.env.HEALTH_SYNC_ENABLED === 'true' ? 'ENABLED' : 'DISABLED'}`);
   if (process.env.HEALTH_SYNC_ENABLED === 'true') {
     console.log(`   📋 Available wearable endpoints:`);
@@ -203,3 +242,5 @@ app.listen(PORT, () => {
     console.log(`      GET  /api/wearable/test-sync - Test Health Sync integration`);
   }
 });
+
+module.exports = app;
