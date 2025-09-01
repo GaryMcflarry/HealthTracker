@@ -10,7 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <meta name="description" content="View your comprehensive health statistics including steps, heart rate, sleep quality, and calories burned">
+    <meta name="description"
+        content="View your comprehensive health statistics including steps, heart rate, sleep quality, and calories burned">
     <meta name="theme-color" content="#FF6F00">
 </head>
 
@@ -64,7 +65,7 @@
                             <span class="menu-text">LOG OUT</span>
                         </a>
                     </div>
-                    
+
                     <!-- Last Sync Status -->
                     <div class="nav-sync-status" id="navSyncStatus">
                         <div class="nav-sync-icon">🔄</div>
@@ -79,15 +80,16 @@
     </nav>
 
     <div class="nav-overlay" id="navOverlay"></div>
-
     <div class="stats-container">
         <header class="stats-header">
             <h1 class="stats-title">HEALTH STATISTICS</h1>
             <div class="header-controls">
                 <div class="period-selector">
-                    <button class="period-btn active" data-period="daily" aria-label="View daily statistics">DAILY</button>
+                    <button class="period-btn active" data-period="daily"
+                        aria-label="View daily statistics">DAILY</button>
                     <button class="period-btn" data-period="weekly" aria-label="View weekly statistics">WEEKLY</button>
-                    <button class="period-btn" data-period="monthly" aria-label="View monthly statistics">MONTHLY</button>
+                    <button class="period-btn" data-period="monthly"
+                        aria-label="View monthly statistics">MONTHLY</button>
                 </div>
             </div>
         </header>
@@ -145,7 +147,7 @@
             <!-- Heart Rate Chart -->
             <div class="stat-widget heartrate-chart-widget">
                 <div class="widget-header">
-                     <div class="pixel-logo">
+                    <div class="pixel-logo">
                         <img src="../../assets/stats/pixel-heart.gif" alt="Steps Data" />
                     </div>
                     <h3 class="widget-title">HEART RATE TRENDS</h3>
@@ -154,7 +156,8 @@
                 </div>
                 <div class="widget-content">
                     <div class="chart-container">
-                        <canvas id="heartRateChart" width="600" height="300" aria-label="Heart rate trends chart"></canvas>
+                        <canvas id="heartRateChart" width="600" height="300"
+                            aria-label="Heart rate trends chart"></canvas>
                     </div>
                     <div class="chart-stats">
                         <div class="stat-item">
@@ -177,7 +180,7 @@
             <!-- Sleep Quality Chart -->
             <div class="stat-widget sleep-chart-widget">
                 <div class="widget-header">
-                     <div class="pixel-logo">
+                    <div class="pixel-logo">
                         <img src="../../assets/stats/moon.gif" alt="Steps Data" />
                     </div>
                     <h3 class="widget-title">SLEEP QUALITY</h3>
@@ -209,7 +212,7 @@
             <!-- Calories Chart -->
             <div class="stat-widget calories-chart-widget">
                 <div class="widget-header">
-                     <div class="pixel-logo">
+                    <div class="pixel-logo">
                         <img src="../../assets/stats/flame.gif" alt="Steps Data" />
                     </div>
                     <h3 class="widget-title">CALORIES BURNED</h3>
@@ -240,70 +243,78 @@
         </div>
 
         <!-- Comparison Panel -->
-        <div class="comparison-panel" id="comparisonPanel" style="display: none;">
-            <div class="comparison-header">
-                <h3>📊 PERIOD COMPARISON</h3>
-            </div>
-            <div class="comparison-grid">
-                <div class="comparison-item">
-                    <div class="comparison-metric">STEPS</div>
-                    <div class="comparison-values">
-                        <span class="current-value" id="stepsCurrentComp">0</span>
-                        <span class="vs-text">VS</span>
-                        <span class="previous-value" id="stepsPreviousComp">0</span>
-                    </div>
-                    <div class="comparison-change" id="stepsChange">0%</div>
+<div id="comparisonPanel" style="display: none;">
+    <div class="comparison-header">
+        <h3 id="comparisonTitle">COMPARISON</h3>
+    </div>
+    
+    <div class="comparison-grid">
+        <!-- Steps Comparison -->
+        <div class="comparison-item">
+            <div class="comparison-metric">STEPS</div>
+            <div class="comparison-values">
+                <div class="comparison-current">
+                    <span class="current-period-label">CURRENT</span>
+                    <span id="stepsCurrentComp">0</span>
                 </div>
-                <div class="comparison-item">
-                    <div class="comparison-metric">HEART RATE</div>
-                    <div class="comparison-values">
-                        <span class="current-value" id="hrCurrentComp">0</span>
-                        <span class="vs-text">VS</span>
-                        <span class="previous-value" id="hrPreviousComp">0</span>
-                    </div>
-                    <div class="comparison-change" id="hrChange">0%</div>
-                </div>
-                <div class="comparison-item">
-                    <div class="comparison-metric">SLEEP</div>
-                    <div class="comparison-values">
-                        <span class="current-value" id="sleepCurrentComp">0H</span>
-                        <span class="vs-text">VS</span>
-                        <span class="previous-value" id="sleepPreviousComp">0H</span>
-                    </div>
-                    <div class="comparison-change" id="sleepChange">0%</div>
-                </div>
-                <div class="comparison-item">
-                    <div class="comparison-metric">CALORIES</div>
-                    <div class="comparison-values">
-                        <span class="current-value" id="caloriesCurrentComp">0</span>
-                        <span class="vs-text">VS</span>
-                        <span class="previous-value" id="caloriesPreviousComp">0</span>
-                    </div>
-                    <div class="comparison-change" id="caloriesChange">0%</div>
+                <div class="comparison-previous">
+                    <span class="previous-period-label">PREVIOUS</span>
+                    <span id="stepsPreviousComp">0</span>
                 </div>
             </div>
+            <div id="stepsChange" class="comparison-change neutral">0%</div>
         </div>
+        
+        <!-- Heart Rate Comparison -->
+        <div class="comparison-item">
+            <div class="comparison-metric">HEART RATE</div>
+            <div class="comparison-values">
+                <div class="comparison-current">
+                    <span class="current-period-label">CURRENT</span>
+                    <span id="hrCurrentComp">0 BPM</span>
+                </div>
+                <div class="comparison-previous">
+                    <span class="previous-period-label">PREVIOUS</span>
+                    <span id="hrPreviousComp">0 BPM</span>
+                </div>
+            </div>
+            <div id="hrChange" class="comparison-change neutral">0%</div>
+        </div>
+        
+        <!-- Sleep Comparison -->
+        <div class="comparison-item">
+            <div class="comparison-metric">SLEEP</div>
+            <div class="comparison-values">
+                <div class="comparison-current">
+                    <span class="current-period-label">CURRENT</span>
+                    <span id="sleepCurrentComp">0H</span>
+                </div>
+                <div class="comparison-previous">
+                    <span class="previous-period-label">PREVIOUS</span>
+                    <span id="sleepPreviousComp">0H</span>
+                </div>
+            </div>
+            <div id="sleepChange" class="comparison-change neutral">0%</div>
+        </div>
+        
+        <!-- Calories Comparison -->
+        <div class="comparison-item">
+            <div class="comparison-metric">CALORIES</div>
+            <div class="comparison-values">
+                <div class="comparison-current">
+                    <span class="current-period-label">CURRENT</span>
+                    <span id="caloriesCurrentComp">0</span>
+                </div>
+                <div class="comparison-previous">
+                    <span class="previous-period-label">PREVIOUS</span>
+                    <span id="caloriesPreviousComp">0</span>
+                </div>
+            </div>
+            <div id="caloriesChange" class="comparison-change neutral">0%</div>
+        </div>
+    </div>
+</div>
 
-        <!-- Export Modal -->
-        <div class="export-modal" id="exportModal" style="display: none;">
-            <div class="export-modal-content">
-                <div class="export-header">
-                    <h3>📤 EXPORT HEALTH DATA</h3>
-                    <button class="close-btn" onclick="document.getElementById('exportModal').style.display='none'">×</button>
-                </div>
-                <div class="export-options">
-                    <label for="exportFormat">FORMAT:</label>
-                    <select id="exportFormat">
-                        <option value="json">JSON</option>
-                        <option value="csv">CSV</option>
-                    </select>
-                    <div class="export-buttons">
-                        <button class="export-btn" onclick="exportHealthData(document.getElementById('exportFormat').value)">EXPORT</button>
-                        <button class="cancel-btn" onclick="document.getElementById('exportModal').style.display='none'">CANCEL</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Loading Overlay -->
         <div class="loading-overlay" id="loadingOverlay" style="display: none;">
@@ -341,7 +352,8 @@
                         <span class="shortcut-desc">Refresh data</span>
                     </div>
                 </div>
-                <button class="close-shortcuts" onclick="document.getElementById('keyboardShortcuts').style.display='none'">CLOSE</button>
+                <button class="close-shortcuts"
+                    onclick="document.getElementById('keyboardShortcuts').style.display='none'">CLOSE</button>
             </div>
         </div>
     </div>
