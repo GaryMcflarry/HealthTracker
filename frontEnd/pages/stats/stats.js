@@ -45,8 +45,14 @@ function getDateRange(period, date) {
     
     switch (period) {
         case 'daily':
-            // Show last 7 days ending on the selected date
-            startDate.setDate(endDate.getDate() - 6);
+            // For daily view: show last 7 days for charts, but for comparison use single day
+            if (comparisonMode) {
+                // When in comparison mode, use single day
+                startDate.setDate(endDate.getDate());
+            } else {
+                // For charts, show last 7 days ending on the selected date
+                startDate.setDate(endDate.getDate() - 6);
+            }
             break;
         case 'weekly':
             // Show last 4 weeks (28 days) ending on the selected date
@@ -1269,21 +1275,18 @@ function getPreviousDate(date, period) {
     
     switch (period) {
         case 'daily':
-            // For daily: go back by the number of days in current range
-            // Daily view shows 7 days, so go back 7 days
-            previousDate.setDate(date.getDate() - 7);
+            // For daily: compare today vs yesterday (go back 1 day)
+            previousDate.setDate(date.getDate() - 1);
             break;
             
         case 'weekly':
-            // For weekly: go back by the number of weeks in current range  
-            // Weekly view shows 4 weeks, so go back 4 weeks (28 days)
-            previousDate.setDate(date.getDate() - 28);
+            // For weekly: go back 1 week (7 days)
+            previousDate.setDate(date.getDate() - 7);
             break;
             
         case 'monthly':
-            // For monthly: go back by the number of months in current range
-            // Monthly view shows 6 months, so go back 6 months
-            previousDate.setMonth(date.getMonth() - 6);
+            // For monthly: go back 1 month
+            previousDate.setMonth(date.getMonth() - 1);
             break;
     }
     
