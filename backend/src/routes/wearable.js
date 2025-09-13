@@ -8,9 +8,9 @@ const { asyncHandler } = require('../lib/utils');
 
 // Initialize Google OAuth2 client
 const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID || '140323638250-v75qjj2ki2qhal2rsscbnhkvhkcctpa0.apps.googleusercontent.com',
-  process.env.GOOGLE_CLIENT_SECRET || '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',
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/wearable/auth/callback'
+  '140323638250-v75qjj2ki2qhal2rsscbnhkvhkcctpa0.apps.googleusercontent.com',
+  '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',
+  'http://localhost:3000/api/wearable/auth/callback'
 );
 
 const fitness = google.fitness({ version: 'v1', auth: oauth2Client });

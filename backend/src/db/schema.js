@@ -71,10 +71,11 @@ const goalsTable = mysqlTable('goals', {
 // Notifications table
 const notificationsTable = mysqlTable('notifications', {
   id: int('id').primaryKey().autoincrement(),
-  user_id: int('user_id').references(() => usersTable.id),
   title: varchar('title', { length: 50 }),
   message: varchar('message', { length: 200 }),
   notification_type: varchar('notification_type', { length: 20 }),
+  high_amount: int('high_amount', {length: 10}),
+  low_amount: int('low_amount', {length: 10}),
   icon: varchar('icon', { length: 100 })
 });
 
