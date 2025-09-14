@@ -50,10 +50,10 @@ router.post('/check-health-alerts/:userId', async (req, res) => {
       return res.status(400).json({ error: 'No email configured for alerts' });
     }
     
-    // Get user goals and notification settings
+    // Get user goals and notification settings with actual messages
     const [userGoals, notificationSettings] = await Promise.all([
       getUserGoals(userId),
-      getNotificationSettings(userId)
+      getNotificationSettings()
     ]);
     
     console.log(`📊 Goals loaded:`, userGoals);
@@ -116,28 +116,39 @@ async function getUserGoals(userId) {
   return goalsMap;
 }
 
-// Get notification settings from database
-async function getNotificationSettings(userId) {
+// Get notification settings with actual messages from database
+async function getNotificationSettings() {
   const notifications = await db.select().from(notificationsTable);
-  // Note: No user_id filter since your schema doesn't have user_id field
     
   const settings = {
-    steps: {},
-    calories: {},
-    heart_rate: {}
+    steps: { notifications: [] },
+    calories: { notifications: [] },
+    heart_rate: { notifications: [] }
   };
   
   notifications.forEach(notif => {
     const type = notif.notification_type;
+    const notificationData = {
+      id: notif.id,
+      title: notif.title,
+      message: notif.message,
+      high_amount: notif.high_amount,
+      low_amount: notif.low_amount,
+      icon: notif.icon,
+      type: type
+    };
     
-    // Use your actual schema field names
+    // Categorize notifications by type
     if (type.includes('steps')) {
+      settings.steps.notifications.push(notificationData);
       if (notif.high_amount) settings.steps.high = notif.high_amount;
       if (notif.low_amount) settings.steps.low = notif.low_amount;
     } else if (type.includes('calories')) {
+      settings.calories.notifications.push(notificationData);
       if (notif.high_amount) settings.calories.high = notif.high_amount;
       if (notif.low_amount) settings.calories.low = notif.low_amount;
     } else if (type.includes('heart_rate')) {
+      settings.heart_rate.notifications.push(notificationData);
       if (notif.high_amount) settings.heart_rate.high = notif.high_amount;
       if (notif.low_amount) settings.heart_rate.low = notif.low_amount;
     }
@@ -145,6 +156,7 @@ async function getNotificationSettings(userId) {
   
   return settings;
 }
+
 // Main alert checking logic
 async function checkHealthAlerts(healthData, userGoals, notificationSettings, userId) {
   const alerts = [];
@@ -176,7 +188,7 @@ async function checkHealthAlerts(healthData, userGoals, notificationSettings, us
   return alerts;
 }
 
-// Steps alert checking
+// Steps alert checking with database messages
 async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, userId) {
   const alerts = [];
   const cooldownKey = `steps_${userId}`;
@@ -190,46 +202,50 @@ async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, use
     const percentage = Math.round((currentSteps / stepsGoal.target) * 100);
     alerts.push({
       type: 'steps_goal_achieved',
-      title: 'Steps Goal Achieved! 🎯',
+      title: 'Steps Goal Achieved!',
       message: `Congratulations! You've reached ${percentage}% of your daily step goal with ${currentSteps.toLocaleString()} steps. Target: ${stepsGoal.target.toLocaleString()} steps.`,
       category: 'achievement',
       priority: 'high',
       data: { current: currentSteps, goal: stepsGoal.target, percentage },
-      icon: stepsGoal.icon || '👟'
+      icon: stepsGoal.icon || './backend/assets/emailImgs/steps.png',
+      imageUrl: './backend/assets/emailImgs/achievement.gif'
     });
     setCooldown(cooldownKey);
   }
   
-  // High threshold alert
-  if (stepsNotifications.high && currentSteps >= stepsNotifications.high) {
-    alerts.push({
-      type: 'steps_high_threshold',
-      title: 'High Step Count Alert! ⚡',
-      message: `Wow! You've taken ${currentSteps.toLocaleString()} steps today, which is above your high threshold of ${stepsNotifications.high.toLocaleString()}. Great job staying active!`,
-      category: 'health_alert',
-      priority: 'medium',
-      data: { current: currentSteps, threshold: stepsNotifications.high },
-      icon: '⚡'
-    });
-  }
-  
-  // Low threshold alert
-  if (stepsNotifications.low && currentSteps <= stepsNotifications.low) {
-    alerts.push({
-      type: 'steps_low_threshold',
-      title: 'Low Step Count Alert 📉',
-      message: `You've only taken ${currentSteps.toLocaleString()} steps today, which is below your target of ${stepsNotifications.low.toLocaleString()}. Consider taking a short walk!`,
-      category: 'encouragement',
-      priority: 'medium',
-      data: { current: currentSteps, threshold: stepsNotifications.low },
-      icon: '📉'
-    });
-  }
+  // Check against database notification thresholds
+  stepsNotifications.notifications.forEach(notification => {
+    if (notification.high_amount && currentSteps >= notification.high_amount) {
+      alerts.push({
+        type: 'steps_high_threshold',
+        title: notification.title || 'High Step Count Alert!',
+        message: notification.message.replace('{current}', currentSteps.toLocaleString()).replace('{threshold}', notification.high_amount.toLocaleString()),
+        category: 'health_alert',
+        priority: 'medium',
+        data: { current: currentSteps, threshold: notification.high_amount },
+        icon: notification.icon || './backend/assets/emailImgs/steps.png',
+        imageUrl: './backend/assets/emailImgs/high_alert.gif'
+      });
+    }
+    
+    if (notification.low_amount && currentSteps <= notification.low_amount) {
+      alerts.push({
+        type: 'steps_low_threshold',
+        title: notification.title || 'Low Step Count Alert',
+        message: notification.message.replace('{current}', currentSteps.toLocaleString()).replace('{threshold}', notification.low_amount.toLocaleString()),
+        category: 'encouragement',
+        priority: 'medium',
+        data: { current: currentSteps, threshold: notification.low_amount },
+        icon: notification.icon || './backend/assets/emailImgs/steps.png',
+        imageUrl: './backend/assets/emailImgs/low_alert.gif'
+      });
+    }
+  });
   
   return alerts;
 }
 
-// Calorie alert checking
+// Calorie alert checking with database messages
 async function checkCalorieAlerts(currentCalories, caloriesGoal, caloriesNotifications, userId) {
   const alerts = [];
   const cooldownKey = `calories_${userId}`;
@@ -243,46 +259,50 @@ async function checkCalorieAlerts(currentCalories, caloriesGoal, caloriesNotific
     const percentage = Math.round((currentCalories / caloriesGoal.target) * 100);
     alerts.push({
       type: 'calories_goal_achieved',
-      title: 'Calorie Goal Achieved! 🔥',
+      title: 'Calorie Goal Achieved!',
       message: `Amazing! You've burned ${currentCalories.toLocaleString()} calories today, reaching ${percentage}% of your ${caloriesGoal.target.toLocaleString()} calorie target.`,
       category: 'achievement',
       priority: 'high',
       data: { current: currentCalories, goal: caloriesGoal.target, percentage },
-      icon: caloriesGoal.icon || '🔥'
+      icon: caloriesGoal.icon || './backend/assets/emailImgs/calories.png',
+      imageUrl: './backend/assets/emailImgs/fire.gif'
     });
     setCooldown(cooldownKey);
   }
   
-  // High threshold alert
-  if (caloriesNotifications.high && currentCalories >= caloriesNotifications.high) {
-    alerts.push({
-      type: 'calories_high_threshold',
-      title: 'High Calorie Burn Alert! 💪',
-      message: `Excellent work! You've burned ${currentCalories.toLocaleString()} calories, which is above your high threshold of ${caloriesNotifications.high.toLocaleString()}.`,
-      category: 'health_alert',
-      priority: 'medium',
-      data: { current: currentCalories, threshold: caloriesNotifications.high },
-      icon: '💪'
-    });
-  }
-  
-  // Low threshold alert
-  if (caloriesNotifications.low && currentCalories <= caloriesNotifications.low) {
-    alerts.push({
-      type: 'calories_low_threshold',
-      title: 'Low Calorie Burn Alert 📊',
-      message: `You've burned ${currentCalories.toLocaleString()} calories today, which is below your target of ${caloriesNotifications.low.toLocaleString()}. Consider increasing your activity!`,
-      category: 'encouragement',
-      priority: 'medium',
-      data: { current: currentCalories, threshold: caloriesNotifications.low },
-      icon: '📊'
-    });
-  }
+  // Check against database notification thresholds
+  caloriesNotifications.notifications.forEach(notification => {
+    if (notification.high_amount && currentCalories >= notification.high_amount) {
+      alerts.push({
+        type: 'calories_high_threshold',
+        title: notification.title || 'High Calorie Burn Alert!',
+        message: notification.message.replace('{current}', currentCalories.toLocaleString()).replace('{threshold}', notification.high_amount.toLocaleString()),
+        category: 'health_alert',
+        priority: 'medium',
+        data: { current: currentCalories, threshold: notification.high_amount },
+        icon: notification.icon || './backend/assets/emailImgs/calories.png',
+        imageUrl: './backend/assets/emailImgs/strong.gif'
+      });
+    }
+    
+    if (notification.low_amount && currentCalories <= notification.low_amount) {
+      alerts.push({
+        type: 'calories_low_threshold',
+        title: notification.title || 'Low Calorie Burn Alert',
+        message: notification.message.replace('{current}', currentCalories.toLocaleString()).replace('{threshold}', notification.low_amount.toLocaleString()),
+        category: 'encouragement',
+        priority: 'medium',
+        data: { current: currentCalories, threshold: notification.low_amount },
+        icon: notification.icon || './backend/assets/emailImgs/calories.png',
+        imageUrl: './backend/assets/emailImgs/chart.gif'
+      });
+    }
+  });
   
   return alerts;
 }
 
-// Heart rate alert checking
+// Heart rate alert checking with database messages
 async function checkHeartRateAlerts(currentHeartRate, heartRateGoal, heartRateNotifications, userId) {
   const alerts = [];
   const cooldownKey = `heart_rate_${userId}`;
@@ -291,33 +311,36 @@ async function checkHeartRateAlerts(currentHeartRate, heartRateGoal, heartRateNo
     return alerts;
   }
   
-  // High threshold alert (potentially concerning)
-  if (heartRateNotifications.high && currentHeartRate >= heartRateNotifications.high) {
-    alerts.push({
-      type: 'heart_rate_high_threshold',
-      title: 'High Heart Rate Alert! ❤️‍🔥',
-      message: `Your heart rate is ${currentHeartRate} BPM, which is above your high threshold of ${heartRateNotifications.high} BPM. Please ensure you're not overexerting yourself.`,
-      category: 'health_concern',
-      priority: 'high',
-      data: { current: currentHeartRate, threshold: heartRateNotifications.high },
-      icon: '❤️‍🔥'
-    });
-    setCooldown(cooldownKey);
-  }
-  
-  // Low threshold alert (potentially concerning)
-  if (heartRateNotifications.low && currentHeartRate <= heartRateNotifications.low) {
-    alerts.push({
-      type: 'heart_rate_low_threshold',
-      title: 'Low Heart Rate Alert 💙',
-      message: `Your heart rate is ${currentHeartRate} BPM, which is below your low threshold of ${heartRateNotifications.low} BPM. If you're not resting, you might want to check with a healthcare provider.`,
-      category: 'health_concern',
-      priority: 'high',
-      data: { current: currentHeartRate, threshold: heartRateNotifications.low },
-      icon: '💙'
-    });
-    setCooldown(cooldownKey);
-  }
+  // Check against database notification thresholds
+  heartRateNotifications.notifications.forEach(notification => {
+    if (notification.high_amount && currentHeartRate >= notification.high_amount) {
+      alerts.push({
+        type: 'heart_rate_high_threshold',
+        title: notification.title || 'High Heart Rate Alert!',
+        message: notification.message.replace('{current}', currentHeartRate).replace('{threshold}', notification.high_amount),
+        category: 'health_concern',
+        priority: 'high',
+        data: { current: currentHeartRate, threshold: notification.high_amount },
+        icon: notification.icon || './backend/assets/emailImgs/heart.png',
+        imageUrl: './backend/assets/emailImgs/heart_high.gif'
+      });
+      setCooldown(cooldownKey);
+    }
+    
+    if (notification.low_amount && currentHeartRate <= notification.low_amount) {
+      alerts.push({
+        type: 'heart_rate_low_threshold',
+        title: notification.title || 'Low Heart Rate Alert',
+        message: notification.message.replace('{current}', currentHeartRate).replace('{threshold}', notification.low_amount),
+        category: 'health_concern',
+        priority: 'high',
+        data: { current: currentHeartRate, threshold: notification.low_amount },
+        icon: notification.icon || './backend/assets/emailImgs/heart.png',
+        imageUrl: './backend/assets/emailImgs/heart_low.gif'
+      });
+      setCooldown(cooldownKey);
+    }
+  });
   
   return alerts;
 }
@@ -334,12 +357,13 @@ async function checkSleepAlerts(currentSleep, sleepGoal, userId) {
   if (currentSleep >= sleepGoal.target) {
     alerts.push({
       type: 'sleep_goal_achieved',
-      title: 'Sleep Goal Achieved! 😴',
+      title: 'Sleep Goal Achieved!',
       message: `Well rested! You got ${currentSleep} hours of sleep, meeting your ${sleepGoal.target}-hour target. Quality sleep is essential for health and recovery.`,
       category: 'achievement',
       priority: 'medium',
       data: { current: currentSleep, goal: sleepGoal.target },
-      icon: sleepGoal.icon || '😴'
+      icon: sleepGoal.icon || './backend/assets/emailImgs/sleep.png',
+      imageUrl: './backend/assets/emailImgs/sleep.gif'
     });
     setCooldown(cooldownKey);
   }
@@ -347,14 +371,13 @@ async function checkSleepAlerts(currentSleep, sleepGoal, userId) {
   return alerts;
 }
 
-
 // Send email alerts
 async function sendHealthAlerts(userData, alerts) {
   let sent = 0;
   let failed = 0;
   
   try {
-    const emailContent = generateEmailHTML(userData, alerts);
+    const emailContent = generateStarryEmailHTML(userData, alerts);
     
     const mailOptions = {
       from: 'FitTracker Health <garymcflarry0807@gmail.com>',
@@ -375,8 +398,8 @@ async function sendHealthAlerts(userData, alerts) {
   return { sent, failed };
 }
 
-// Enhanced email template
-function generateEmailHTML(userData, alerts) {
+// Enhanced starry email template with images
+function generateStarryEmailHTML(userData, alerts) {
   const userName = userData.first_name || 'User';
   const title = alerts.length === 1 ? alerts[0].title : `${alerts.length} Health Alerts`;
   
@@ -391,13 +414,16 @@ function generateEmailHTML(userData, alerts) {
     const categoryColor = categoryColors[alert.category] || '#666';
     
     alertsHTML += `
-      <div style="margin: 20px 0; padding: 20px; background-color: #f9f9f9; border-left: 5px solid ${categoryColor}; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h3 style="margin: 0 0 12px 0; color: ${categoryColor}; font-size: 18px;">
-          ${alert.icon} ${alert.title}
-        </h3>
+      <div style="margin: 20px 0; padding: 25px; background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%); border-left: 5px solid ${categoryColor}; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); backdrop-filter: blur(10px); position: relative;">
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+          <img src="${alert.imageUrl || alert.icon}" alt="${alert.title}" style="width: 48px; height: 48px; margin-right: 15px; border-radius: 8px;">
+          <h3 style="margin: 0; color: ${categoryColor}; font-size: 20px; font-weight: bold;">
+            ${alert.title}
+          </h3>
+        </div>
         <p style="margin: 0; color: #333; line-height: 1.6; font-size: 16px;">${alert.message}</p>
         ${alert.data ? `
-          <div style="margin-top: 12px; padding: 10px; background-color: #f0f0f0; border-radius: 4px; font-size: 14px; color: #666;">
+          <div style="margin-top: 15px; padding: 12px; background: rgba(240, 240, 240, 0.8); border-radius: 8px; font-size: 14px; color: #666; backdrop-filter: blur(5px);">
             <strong>Details:</strong> Current: ${alert.data.current} | ${alert.data.goal ? `Goal: ${alert.data.goal}` : alert.data.threshold ? `Threshold: ${alert.data.threshold}` : ''}
           </div>
         ` : ''}
@@ -412,40 +438,109 @@ function generateEmailHTML(userData, alerts) {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
+        <style>
+            @keyframes twinkle {
+                0%, 100% { opacity: 0.3; transform: scale(1); }
+                50% { opacity: 1; transform: scale(1.2); }
+            }
+            
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+            }
+            
+            .starry-bg {
+                position: relative;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                overflow: hidden;
+            }
+            
+            .starry-bg::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image: 
+                    radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+                    radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+                    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+                    radial-gradient(1px 1px at 130px 80px, #fff, transparent),
+                    radial-gradient(2px 2px at 160px 30px, #fff, transparent),
+                    radial-gradient(1px 1px at 200px 60px, #fff, transparent),
+                    radial-gradient(2px 2px at 240px 20px, #fff, transparent),
+                    radial-gradient(1px 1px at 280px 90px, #fff, transparent),
+                    radial-gradient(2px 2px at 320px 50px, #fff, transparent),
+                    radial-gradient(1px 1px at 360px 10px, #fff, transparent);
+                background-repeat: repeat;
+                background-size: 400px 120px;
+                animation: twinkle 4s ease-in-out infinite alternate;
+                opacity: 0.7;
+            }
+            
+            .content-container {
+                position: relative;
+                z-index: 2;
+            }
+            
+            .floating-icon {
+                animation: float 3s ease-in-out infinite;
+            }
+        </style>
     </head>
-    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: white;">
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
-                <h1 style="margin: 0; font-size: 28px; font-weight: bold;">🏃‍♂️ FitTracker Health</h1>
-                <p style="margin: 15px 0 0 0; font-size: 18px; opacity: 0.9;">${title}</p>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: white; box-shadow: 0 0 20px rgba(0,0,0,0.1);">
+            <!-- Header with Starry Background -->
+            <div class="starry-bg" style="color: white; padding: 40px 30px; text-align: center; position: relative;">
+                <div class="content-container">
+                    <div class="floating-icon" style="margin-bottom: 20px;">
+                        <img src="./backend/assets/emailImgs/user.gif" alt="FitTracker" style="width: 64px; height: 64px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3);">
+                    </div>
+                    <h1 style="margin: 0; font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">FitTracker Health</h1>
+                    <p style="margin: 15px 0 0 0; font-size: 18px; opacity: 0.95; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">${title}</p>
+                </div>
             </div>
             
             <!-- Content -->
-            <div style="padding: 40px 30px;">
-                <p style="font-size: 18px; color: #333; margin: 0 0 20px 0;">Hi ${userName},</p>
+            <div style="padding: 40px 30px; background: linear-gradient(45deg, #f8f9ff 0%, #fff5f8 100%); position: relative;">
+                <!-- Subtle star overlay for content area -->
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.05; background-image: radial-gradient(1px 1px at 50px 50px, #667eea, transparent), radial-gradient(1px 1px at 150px 100px, #764ba2, transparent), radial-gradient(1px 1px at 250px 25px, #667eea, transparent); background-size: 200px 150px; pointer-events: none;"></div>
                 
-                ${alertsHTML}
-                
-                <!-- Call to Action -->
-                <div style="margin: 40px 0; padding: 25px; background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 10px; text-align: center;">
-                    <p style="margin: 0 0 15px 0; color: #1976d2; font-weight: bold; font-size: 18px;">
-                        Keep tracking your health journey! 💪
-                    </p>
-                    <a href="http://localhost:3000/dashboard" 
-                       style="display: inline-block; background-color: #1976d2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                        View Full Dashboard →
-                    </a>
+                <div style="position: relative; z-index: 2;">
+                    <p style="font-size: 20px; color: #333; margin: 0 0 25px 0; font-weight: 500;">Hi ${userName},</p>
+                    
+                    ${alertsHTML}
+                    
+                    <!-- Call to Action -->
+                    <div style="margin: 40px 0; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; text-align: center; position: relative; overflow: hidden;">
+                        <!-- Mini stars in CTA -->
+                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(1px 1px at 30px 20px, rgba(255,255,255,0.4), transparent), radial-gradient(1px 1px at 70px 60px, rgba(255,255,255,0.3), transparent), radial-gradient(1px 1px at 120px 30px, rgba(255,255,255,0.4), transparent); background-size: 150px 80px;"></div>
+                        
+                        <div style="position: relative; z-index: 2;">
+                            <p style="margin: 0 0 20px 0; color: white; font-weight: bold; font-size: 20px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                                Keep tracking your health journey!
+                            </p>
+                            <a href="http://localhost:3000/dashboard" 
+                               style="display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 16px; border: 2px solid rgba(255,255,255,0.3); backdrop-filter: blur(10px); transition: all 0.3s ease;">
+                                View Full Dashboard →
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- Footer -->
-            <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #dee2e6; text-align: center;">
-                <p style="margin: 0; font-size: 14px; color: #6c757d; line-height: 1.4;">
-                    This is an automated health notification from FitTracker.<br>
-                    To adjust your notification preferences, visit your dashboard settings.<br>
-                    <a href="mailto:garymcflarry0807@gmail.com" style="color: #1976d2;">Contact Support</a>
-                </p>
+            <div style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); padding: 25px 30px; color: white; text-align: center; position: relative;">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(1px 1px at 40px 20px, rgba(255,255,255,0.2), transparent), radial-gradient(1px 1px at 80px 50px, rgba(255,255,255,0.1), transparent); background-size: 120px 70px;"></div>
+                
+                <div style="position: relative; z-index: 2;">
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6; opacity: 0.9;">
+                        This is an automated health notification from FitTracker.<br>
+                        To adjust your notification preferences, visit your dashboard settings.<br>
+                        <a href="mailto:garymcflarry0807@gmail.com" style="color: #74b9ff;">Contact Support</a>
+                    </p>
+                </div>
             </div>
         </div>
     </body>
@@ -473,6 +568,5 @@ function isInCooldown(key) {
 function setCooldown(key) {
   alertCooldowns.set(key, Date.now());
 }
-
 
 module.exports = router;
