@@ -1,7 +1,5 @@
-// API Configuration
 const API_BASE_URL = 'http://localhost:3000/api';
 
-// Toast Notification System
 class ToastManager {
     constructor() {
         this.container = document.getElementById('toastContainer');
@@ -30,7 +28,6 @@ class ToastManager {
 
         this.container.appendChild(toast);
 
-        // Auto remove after duration
         setTimeout(() => {
             if (toast.parentElement) {
                 toast.style.animation = 'slideOut 0.3s ease forwards';
@@ -58,14 +55,12 @@ class ToastManager {
 
 const toast = new ToastManager();
 
-// Authentication functions
 async function login() {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     const loginBtn = document.getElementById('loginBtn');
     const buttonText = loginBtn.querySelector('.button-text');
 
-    // Validation
     if (!email || !password) {
         toast.warning('Missing Fields', 'Please fill in all required fields');
         return;
@@ -76,7 +71,6 @@ async function login() {
         return;
     }
 
-    // Show loading state
     loginBtn.disabled = true;
     loginBtn.classList.add('loading');
     buttonText.textContent = 'LOGGING IN...';
@@ -93,13 +87,11 @@ async function login() {
         const data = await response.json();
 
         if (response.ok) {
-            // Store token and user data
             localStorage.setItem('authToken', data.token);
             localStorage.setItem('userData', JSON.stringify(data.user));
             
             toast.success('Login Successful', `Welcome back, ${data.user.firstName}!`);
             
-            // Redirect to dashboard after a short delay
             setTimeout(() => {
                 window.location.href = '../dashboard/dashboard.html';
             }, 1500);
@@ -107,10 +99,8 @@ async function login() {
             toast.error('Login Failed', data.error || 'Invalid credentials');
         }
     } catch (error) {
-        console.error('Login error:', error);
         toast.error('Connection Error', 'Unable to connect to server. Please try again.');
     } finally {
-        // Reset button state
         loginBtn.disabled = false;
         loginBtn.classList.remove('loading');
         buttonText.textContent = 'LOGIN';
@@ -134,20 +124,17 @@ async function register() {
     const registerBtn = document.getElementById('registerBtn');
     const buttonText = registerBtn.querySelector('.button-text');
 
-    // Validation
     const validation = validateRegistrationForm(formData);
     if (!validation.isValid) {
         toast.error('Validation Error', validation.message);
         return;
     }
 
-    // Show loading state
     registerBtn.disabled = true;
     registerBtn.classList.add('loading');
     buttonText.textContent = 'CREATING...';
 
     try {
-        // Remove confirmPassword from the data sent to server
         const { confirmPassword, ...registrationData } = formData;
 
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -161,13 +148,11 @@ async function register() {
         const data = await response.json();
 
         if (response.ok) {
-            // Store token and user data
             localStorage.setItem('authToken', data.token);
             localStorage.setItem('userData', JSON.stringify(data.user));
             
             toast.success('Account Created', `Welcome to Health Tracker, ${data.user.firstName}!`);
             
-            // Close dialog and redirect after delay
             setTimeout(() => {
                 closeRegisterDialog();
                 window.location.href = '../dashboard/dashboard.html';
@@ -176,17 +161,14 @@ async function register() {
             toast.error('Registration Failed', data.error || 'Unable to create account');
         }
     } catch (error) {
-        console.error('Registration error:', error);
         toast.error('Connection Error', 'Unable to connect to server. Please try again.');
     } finally {
-        // Reset button state
         registerBtn.disabled = false;
         registerBtn.classList.remove('loading');
         buttonText.textContent = 'CREATE ACCOUNT';
     }
 }
 
-// Form validation functions
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -225,7 +207,6 @@ function validateRegistrationForm(data) {
         return { isValid: false, message: 'Passwords do not match' };
     }
 
-    // Check if user is at least 13 years old
     const birthDate = new Date(data.dateOfBirth);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
@@ -238,7 +219,6 @@ function validateRegistrationForm(data) {
     return { isValid: true, message: '' };
 }
 
-// Dialog functions
 function openRegisterDialog() {
     document.getElementById('registerDialog').style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -247,11 +227,9 @@ function openRegisterDialog() {
 function closeRegisterDialog() {
     document.getElementById('registerDialog').style.display = 'none';
     document.body.style.overflow = 'auto';
-    // Reset form
     document.getElementById('registerForm').reset();
 }
 
-// Token verification
 async function verifyToken(token) {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -261,25 +239,20 @@ async function verifyToken(token) {
         });
 
         if (response.ok) {
-            const userData = await response.json();
             toast.info('Already Logged In', 'Redirecting to dashboard...');
             setTimeout(() => {
                 window.location.href = '../dashboard/dashboard.html';
             }, 1500);
         } else {
-            // Token is invalid, remove it
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
         }
     } catch (error) {
-        console.error('Token verification error:', error);
-        // Remove invalid token
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
     }
 }
 
-// Create twinkling stars background
 function createStars() {
     const starsContainer = document.querySelector('.stars');
     const starCount = 50;
@@ -288,24 +261,19 @@ function createStars() {
         const star = document.createElement('div');
         star.className = 'star';
         
-        // Random position
         star.style.left = Math.random() * 100 + '%';
         star.style.top = Math.random() * 100 + '%';
         
-        // Random size
         const size = Math.random() * 3 + 1;
         star.style.width = size + 'px';
         star.style.height = size + 'px';
         
-        // Random animation delay
         star.style.animationDelay = Math.random() * 2 + 's';
         
         starsContainer.appendChild(star);
     }
 }
 
-
-// Enhanced button click effects
 function addPixelEffects() {
     const buttons = document.querySelectorAll('.pixel-button');
     const inputs = document.querySelectorAll('.pixel-input');
@@ -346,7 +314,6 @@ function addPixelEffects() {
     });
 }
 
-// Enhanced form validation with real-time feedback
 function setupRealTimeValidation() {
     const emailInput = document.getElementById('regEmail');
     const passwordInput = document.getElementById('regPassword');
@@ -379,25 +346,6 @@ function setupRealTimeValidation() {
     }
 }
 
-// Auto-fill demo data for testing (remove in production)
-function fillDemoData() {
-    if (confirm('Fill with demo data for testing?')) {
-        document.getElementById('firstName').value = 'John';
-        document.getElementById('lastName').value = 'Doe';
-        document.getElementById('regEmail').value = 'john.doe@example.com';
-        document.getElementById('phoneNumber').value = '+1234567890';
-        document.getElementById('dateOfBirth').value = '1990-01-01';
-        document.getElementById('gender').value = 'male';
-        document.getElementById('height').value = '175';
-        document.getElementById('weight').value = '70';
-        document.getElementById('regPassword').value = 'password123';
-        document.getElementById('confirmPassword').value = 'password123';
-        
-        toast.info('Demo Data', 'Form filled with demo data for testing');
-    }
-}
-
-// Network status monitoring
 function setupNetworkMonitoring() {
     window.addEventListener('online', function() {
         toast.success('Connection Restored', 'You are back online!');
@@ -408,21 +356,12 @@ function setupNetworkMonitoring() {
     });
 }
 
-// Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Create twinkling stars
     createStars();
-
-    // Initialize pixel effects
     addPixelEffects();
-
-    // Setup real-time validation
     setupRealTimeValidation();
-
-    // Setup network monitoring
     setupNetworkMonitoring();
 
-    // Login form event listener
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
@@ -431,7 +370,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Register form event listener
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', function(e) {
@@ -440,14 +378,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Close dialog on escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeRegisterDialog();
         }
     });
 
-    // Close dialog on overlay click
     const registerDialog = document.getElementById('registerDialog');
     if (registerDialog) {
         registerDialog.addEventListener('click', function(e) {
@@ -457,28 +393,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add double-click to logo for demo data (development only)
-    const logoCircle = document.querySelector('.logo-circle');
-    if (logoCircle) {
-        logoCircle.addEventListener('dblclick', function() {
-            if (document.getElementById('registerDialog').style.display === 'flex') {
-                fillDemoData();
-            }
-        });
-    }
-
-    // Check if user is already logged in
     const token = localStorage.getItem('authToken');
     if (token) {
         verifyToken(token);
     }
 });
-
-// Export functions for testing (development only)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        isValidEmail,
-        validateRegistrationForm,
-        ToastManager
-    };
-}

@@ -10,8 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <meta name="description"
-        content="View your comprehensive health statistics including steps, heart rate, sleep quality, and calories burned">
+    <meta name="description" content="View your comprehensive health statistics including steps, heart rate, sleep quality, and calories burned">
     <meta name="theme-color" content="#FF6F00">
 </head>
 
@@ -20,10 +19,7 @@
 
     <nav class="navigation-container">
         <div class="nav-header">
-            <div class="current-page">
-                <!-- <span class="page-label">CURRENT:</span>
-                <span class="page-name">STATISTICS</span> -->
-            </div>
+            <div class="current-page"></div>
 
             <button class="menu-button" id="menuButton" aria-label="Open navigation menu">
                 <div class="hamburger">
@@ -66,7 +62,6 @@
                         </a>
                     </div>
 
-                    <!-- Last Sync Status -->
                     <div class="nav-sync-status" id="navSyncStatus">
                         <div class="nav-sync-icon">🔄</div>
                         <div class="nav-sync-text">
@@ -85,23 +80,19 @@
             <h1 class="stats-title">HEALTH STATISTICS</h1>
             <div class="header-controls">
                 <div class="period-selector">
-                    <button class="period-btn active" data-period="daily"
-                        aria-label="View daily statistics">DAILY</button>
+                    <button class="period-btn active" data-period="daily" aria-label="View daily statistics">DAILY</button>
                     <button class="period-btn" data-period="weekly" aria-label="View weekly statistics">WEEKLY</button>
-                    <button class="period-btn" data-period="monthly"
-                        aria-label="View monthly statistics">MONTHLY</button>
+                    <button class="period-btn" data-period="monthly" aria-label="View monthly statistics">MONTHLY</button>
                 </div>
             </div>
         </header>
 
-        <!-- Time Period Navigation -->
         <div class="time-navigation">
             <button class="nav-btn" id="prevPeriod" aria-label="Go to previous period">◀ PREV</button>
             <div class="current-period" id="currentPeriod">TODAY</div>
             <button class="nav-btn" id="nextPeriod" aria-label="Go to next period">NEXT ▶</button>
         </div>
 
-        <!-- Comparison Toggle -->
         <div class="comparison-toggle">
             <label class="toggle-switch">
                 <input type="checkbox" id="comparisonMode" aria-label="Enable period comparison">
@@ -110,17 +101,14 @@
             <span class="toggle-label">COMPARE WITH PREVIOUS PERIOD</span>
         </div>
 
-        <!-- Stats Grid -->
         <div class="stats-grid">
-            <!-- Steps Chart -->
             <div class="stat-widget steps-chart-widget">
                 <div class="widget-header">
                     <div class="pixel-logo">
                         <img src="../../assets/stats/shoe.png" alt="Steps Data" />
                     </div>
                     <h3 class="widget-title">STEPS WALKED</h3>
-                    <div class="chart-controls">
-                    </div>
+                    <div class="chart-controls"></div>
                 </div>
                 <div class="widget-content">
                     <div class="chart-container">
@@ -144,20 +132,17 @@
                 </div>
             </div>
 
-            <!-- Heart Rate Chart -->
             <div class="stat-widget heartrate-chart-widget">
                 <div class="widget-header">
                     <div class="pixel-logo">
                         <img src="../../assets/stats/pixel-heart.gif" alt="Steps Data" />
                     </div>
                     <h3 class="widget-title">HEART RATE TRENDS</h3>
-                    <div class="chart-controls">
-                    </div>
+                    <div class="chart-controls"></div>
                 </div>
                 <div class="widget-content">
                     <div class="chart-container">
-                        <canvas id="heartRateChart" width="600" height="300"
-                            aria-label="Heart rate trends chart"></canvas>
+                        <canvas id="heartRateChart" width="600" height="300" aria-label="Heart rate trends chart"></canvas>
                     </div>
                     <div class="chart-stats">
                         <div class="stat-item">
@@ -177,15 +162,13 @@
                 </div>
             </div>
 
-            <!-- Sleep Quality Chart -->
             <div class="stat-widget sleep-chart-widget">
                 <div class="widget-header">
                     <div class="pixel-logo">
                         <img src="../../assets/stats/moon.gif" alt="Steps Data" />
                     </div>
                     <h3 class="widget-title">SLEEP QUALITY</h3>
-                    <div class="chart-controls">
-                    </div>
+                    <div class="chart-controls"></div>
                 </div>
                 <div class="widget-content">
                     <div class="chart-container">
@@ -209,15 +192,13 @@
                 </div>
             </div>
 
-            <!-- Calories Chart -->
             <div class="stat-widget calories-chart-widget">
                 <div class="widget-header">
                     <div class="pixel-logo">
                         <img src="../../assets/stats/flame.gif" alt="Steps Data" />
                     </div>
                     <h3 class="widget-title">CALORIES BURNED</h3>
-                    <div class="chart-controls">
-                    </div>
+                    <div class="chart-controls"></div>
                 </div>
                 <div class="widget-content">
                     <div class="chart-container">
@@ -242,81 +223,74 @@
             </div>
         </div>
 
-        <!-- Comparison Panel -->
-<div id="comparisonPanel" style="display: none;">
-    <div class="comparison-header">
-        <h3 id="comparisonTitle">COMPARISON</h3>
-    </div>
-    
-    <div class="comparison-grid">
-        <!-- Steps Comparison -->
-        <div class="comparison-item">
-            <div class="comparison-metric">STEPS</div>
-            <div class="comparison-values">
-                <div class="comparison-current">
-                    <span class="current-period-label">CURRENT</span>
-                    <span id="stepsCurrentComp">0</span>
+        <div id="comparisonPanel" style="display: none;">
+            <div class="comparison-header">
+                <h3 id="comparisonTitle">COMPARISON</h3>
+            </div>
+            
+            <div class="comparison-grid">
+                <div class="comparison-item">
+                    <div class="comparison-metric">STEPS</div>
+                    <div class="comparison-values">
+                        <div class="comparison-current">
+                            <span class="current-period-label">CURRENT</span>
+                            <span id="stepsCurrentComp">0</span>
+                        </div>
+                        <div class="comparison-previous">
+                            <span class="previous-period-label">PREVIOUS</span>
+                            <span id="stepsPreviousComp">0</span>
+                        </div>
+                    </div>
+                    <div id="stepsChange" class="comparison-change neutral">0%</div>
                 </div>
-                <div class="comparison-previous">
-                    <span class="previous-period-label">PREVIOUS</span>
-                    <span id="stepsPreviousComp">0</span>
+                
+                <div class="comparison-item">
+                    <div class="comparison-metric">HEART RATE</div>
+                    <div class="comparison-values">
+                        <div class="comparison-current">
+                            <span class="current-period-label">CURRENT</span>
+                            <span id="hrCurrentComp">0 BPM</span>
+                        </div>
+                        <div class="comparison-previous">
+                            <span class="previous-period-label">PREVIOUS</span>
+                            <span id="hrPreviousComp">0 BPM</span>
+                        </div>
+                    </div>
+                    <div id="hrChange" class="comparison-change neutral">0%</div>
+                </div>
+                
+                <div class="comparison-item">
+                    <div class="comparison-metric">SLEEP</div>
+                    <div class="comparison-values">
+                        <div class="comparison-current">
+                            <span class="current-period-label">CURRENT</span>
+                            <span id="sleepCurrentComp">0H</span>
+                        </div>
+                        <div class="comparison-previous">
+                            <span class="previous-period-label">PREVIOUS</span>
+                            <span id="sleepPreviousComp">0H</span>
+                        </div>
+                    </div>
+                    <div id="sleepChange" class="comparison-change neutral">0%</div>
+                </div>
+                
+                <div class="comparison-item">
+                    <div class="comparison-metric">CALORIES</div>
+                    <div class="comparison-values">
+                        <div class="comparison-current">
+                            <span class="current-period-label">CURRENT</span>
+                            <span id="caloriesCurrentComp">0</span>
+                        </div>
+                        <div class="comparison-previous">
+                            <span class="previous-period-label">PREVIOUS</span>
+                            <span id="caloriesPreviousComp">0</span>
+                        </div>
+                    </div>
+                    <div id="caloriesChange" class="comparison-change neutral">0%</div>
                 </div>
             </div>
-            <div id="stepsChange" class="comparison-change neutral">0%</div>
         </div>
-        
-        <!-- Heart Rate Comparison -->
-        <div class="comparison-item">
-            <div class="comparison-metric">HEART RATE</div>
-            <div class="comparison-values">
-                <div class="comparison-current">
-                    <span class="current-period-label">CURRENT</span>
-                    <span id="hrCurrentComp">0 BPM</span>
-                </div>
-                <div class="comparison-previous">
-                    <span class="previous-period-label">PREVIOUS</span>
-                    <span id="hrPreviousComp">0 BPM</span>
-                </div>
-            </div>
-            <div id="hrChange" class="comparison-change neutral">0%</div>
-        </div>
-        
-        <!-- Sleep Comparison -->
-        <div class="comparison-item">
-            <div class="comparison-metric">SLEEP</div>
-            <div class="comparison-values">
-                <div class="comparison-current">
-                    <span class="current-period-label">CURRENT</span>
-                    <span id="sleepCurrentComp">0H</span>
-                </div>
-                <div class="comparison-previous">
-                    <span class="previous-period-label">PREVIOUS</span>
-                    <span id="sleepPreviousComp">0H</span>
-                </div>
-            </div>
-            <div id="sleepChange" class="comparison-change neutral">0%</div>
-        </div>
-        
-        <!-- Calories Comparison -->
-        <div class="comparison-item">
-            <div class="comparison-metric">CALORIES</div>
-            <div class="comparison-values">
-                <div class="comparison-current">
-                    <span class="current-period-label">CURRENT</span>
-                    <span id="caloriesCurrentComp">0</span>
-                </div>
-                <div class="comparison-previous">
-                    <span class="previous-period-label">PREVIOUS</span>
-                    <span id="caloriesPreviousComp">0</span>
-                </div>
-            </div>
-            <div id="caloriesChange" class="comparison-change neutral">0%</div>
-        </div>
-    </div>
-</div>
 
-
-        <!-- Loading Overlay -->
         <div class="loading-overlay" id="loadingOverlay" style="display: none;">
             <div class="loading-container">
                 <div class="pixel-loader">
@@ -329,36 +303,8 @@
                 <div class="loading-subtext">GENERATING STATISTICS</div>
             </div>
         </div>
-
-        <!-- Keyboard Shortcuts Help -->
-        <div class="keyboard-shortcuts" id="keyboardShortcuts" style="display: none;">
-            <div class="shortcuts-content">
-                <h3>⌨️ KEYBOARD SHORTCUTS</h3>
-                <div class="shortcuts-list">
-                    <div class="shortcut-item">
-                        <span class="shortcut-key">←/→</span>
-                        <span class="shortcut-desc">Navigate periods</span>
-                    </div>
-                    <div class="shortcut-item">
-                        <span class="shortcut-key">1/2/3</span>
-                        <span class="shortcut-desc">Switch view (Daily/Weekly/Monthly)</span>
-                    </div>
-                    <div class="shortcut-item">
-                        <span class="shortcut-key">C</span>
-                        <span class="shortcut-desc">Toggle comparison</span>
-                    </div>
-                    <div class="shortcut-item">
-                        <span class="shortcut-key">R</span>
-                        <span class="shortcut-desc">Refresh data</span>
-                    </div>
-                </div>
-                <button class="close-shortcuts"
-                    onclick="document.getElementById('keyboardShortcuts').style.display='none'">CLOSE</button>
-            </div>
-        </div>
     </div>
 
-    <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 
     <script src="./stats.js"></script>

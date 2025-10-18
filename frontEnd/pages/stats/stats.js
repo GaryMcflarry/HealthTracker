@@ -1,11 +1,4 @@
-// stats.js - Cleaned and aligned with dashboard style
-
-// API Configuration
 const API_BASE_URL = 'http://localhost:3000/api';
-
-// ========================================
-// GLOBAL STATE MANAGEMENT
-// ========================================
 
 let currentPeriod = 'daily';
 let currentDate = new Date();
@@ -17,10 +10,6 @@ let healthData = {
     calories: []
 };
 
-// ========================================
-// UTILITY FUNCTIONS
-// ========================================
-
 function getCurrentUserId() {
     const userData = localStorage.getItem('userData');
     if (userData) {
@@ -28,7 +17,6 @@ function getCurrentUserId() {
             const user = JSON.parse(userData);
             return user.userID;
         } catch (e) {
-            console.error('Error parsing userData from localStorage:', e);
             return null;
         }
     }
@@ -45,37 +33,27 @@ function getDateRange(period, date) {
     
     switch (period) {
         case 'daily':
-            // For daily view: show last 7 days for charts, but for comparison use single day
             if (comparisonMode) {
-                // When in comparison mode, use single day
                 startDate.setDate(endDate.getDate());
             } else {
-                // For charts, show last 7 days ending on the selected date
                 startDate.setDate(endDate.getDate() - 6);
             }
             break;
         case 'weekly':
-            // Show last 4 weeks (28 days) ending on the selected date
             startDate.setDate(endDate.getDate() - 27);
             break;
         case 'monthly':
-            // Show last 6 months ending on the selected date
             startDate.setMonth(endDate.getMonth() - 5);
-            // Ensure we start from the 1st of the start month
             startDate.setDate(1);
-            // Ensure we end on the last day of the end month
             const lastDay = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
             endDate.setDate(lastDay.getDate());
             break;
     }
     
-    const range = {
+    return {
         start: formatDate(startDate),
         end: formatDate(endDate)
     };
-    
-    console.log(`📅 Date range for ${period}:`, range);
-    return range;
 }
 
 function getPeriodLabel(period, date) {
@@ -109,10 +87,6 @@ function getTimeAgo(date) {
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}D AGO`;
 }
-
-// ========================================
-// LOADING STATE MANAGEMENT (SIMPLIFIED)
-// ========================================
 
 function showGlobalLoading() {
     const existingOverlay = document.getElementById('loadingOverlay');
@@ -148,16 +122,11 @@ function hideGlobalLoading() {
     }
 }
 
-// ========================================
-// TOAST NOTIFICATIONS (SIMPLIFIED)
-// ========================================
-
 function showErrorToast(message) {
     const toast = document.createElement('div');
     toast.className = 'error-toast';
     toast.innerHTML = `
         <div class="toast-content">
-            <span class="toast-icon">❌</span>
             <span class="toast-message">${message}</span>
         </div>
     `;
@@ -176,7 +145,6 @@ function showSuccessToast(message) {
     toast.className = 'success-toast';
     toast.innerHTML = `
         <div class="toast-content">
-            <span class="toast-icon">✅</span>
             <span class="toast-message">${message}</span>
         </div>
     `;
@@ -189,10 +157,6 @@ function showSuccessToast(message) {
         }
     }, 3000);
 }
-
-// ========================================
-// STARS ANIMATION
-// ========================================
 
 function createStars() {
     const starsContainer = document.querySelector('.stars');
@@ -211,10 +175,6 @@ function createStars() {
         starsContainer.appendChild(star);
     }
 }
-
-// ========================================
-// USER PROFILE MANAGEMENT
-// ========================================
 
 async function loadUserProfile() {
     const userId = getCurrentUserId();
@@ -244,7 +204,6 @@ async function loadUserProfile() {
         return userData.data;
 
     } catch (error) {
-        console.error('Error loading user profile:', error);
         showErrorToast('Failed to load user profile');
         return null;
     }
@@ -256,61 +215,44 @@ function updateNavigationUserInfo(userData) {
     const userAvatarElements = document.querySelectorAll('.user-avatar');
     const syncTimeElement = document.getElementById('navLastSyncTime');
     
-    // Update user name
     if (userData.firstName && userData.lastName) {
         const fullName = `${userData.firstName.toUpperCase()} ${userData.lastName.toUpperCase()}`;
         userNameElements.forEach(element => {
             element.textContent = fullName;
         });
-    }
-    
-    // Update user avatar
-    if (userData.firstName && userData.lastName) {
+        
         const initials = `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`;
         userAvatarElements.forEach(element => {
             element.textContent = initials;
         });
     }
     
-    // Update connection status
     const deviceName = userData.deviceName || 'GOOGLE FIT';
     userStatusElements.forEach(element => {
         element.textContent = `${deviceName} CONNECTED`;
         element.style.color = userData.fit_tokens ? '#4CAF50' : '#F44336';
     });
     
-    // Update sync status
     if (syncTimeElement && userData.last_sync) {
         const syncTime = getTimeAgo(new Date(userData.last_sync));
         syncTimeElement.textContent = syncTime;
     }
 }
 
-// ========================================
-// DATA FETCHING WITH PROPER HISTORICAL SUPPORT
-// ========================================
-
 async function fetchHistoricalHealthData(dataType, startDate, endDate, userId) {
-    console.log(`📚 Fetching HISTORICAL ${dataType} data from ${startDate} to ${endDate}`);
-    
     try {
-        // ONLY fetch from stored data - no live sync
         const storedResponse = await fetch(`${API_BASE_URL}/wearable/stored-data/${dataType}/${userId}?days=365`);
         
         if (storedResponse.ok) {
             const storedData = await storedResponse.json();
             if (storedData.count > 0) {
-                console.log(`📚 Retrieved ${storedData.count} stored ${dataType} records`);
-                // Filter stored data to match requested date range
                 return filterDataByDateRange(storedData.data, startDate, endDate);
             }
         }
         
-        console.warn(`⚠️ No stored ${dataType} data available for ${startDate} to ${endDate}`);
         return [];
         
     } catch (error) {
-        console.error(`❌ Error fetching historical ${dataType} data:`, error);
         return [];
     }
 }
@@ -336,9 +278,7 @@ async function loadAllHealthData() {
     
     try {
         const dateRange = getDateRange(currentPeriod, currentDate);
-        console.log(`📅 Loading HISTORICAL ${currentPeriod} data from ${dateRange.start} to ${dateRange.end}`);
         
-        // Fetch ONLY historical data - no live sync
         const [stepsData, heartRateData, sleepData, caloriesData] = await Promise.all([
             fetchHistoricalHealthData('steps', dateRange.start, dateRange.end, userId),
             fetchHistoricalHealthData('heartrate', dateRange.start, dateRange.end, userId),
@@ -346,7 +286,6 @@ async function loadAllHealthData() {
             fetchHistoricalHealthData('calories', dateRange.start, dateRange.end, userId)
         ]);
         
-        // Store data globally
         healthData = {
             steps: stepsData || [],
             heartrate: heartRateData || [],
@@ -354,32 +293,20 @@ async function loadAllHealthData() {
             calories: caloriesData || []
         };
         
-        console.log('📊 Historical data loaded:', {
-            steps: healthData.steps.length,
-            heartrate: healthData.heartrate.length,
-            sleep: healthData.sleep.length,
-            calories: healthData.calories.length
-        });
-        
-        // Process data based on current period
         const processedData = processDataForPeriod(healthData, currentPeriod);
         
-        // Update all charts
         updateAllCharts(processedData);
         
-        // Update comparison if enabled
         if (comparisonMode) {
             await updateComparison();
         }
         
-        // Show data availability status
         updateDataAvailabilityStatus();
         
         hideGlobalLoading();
         showSuccessToast(`Historical ${currentPeriod} data loaded`);
         
     } catch (error) {
-        console.error('❌ Error loading historical data:', error);
         showErrorToast('Failed to load historical data. Please try again.');
         hideGlobalLoading();
     }
@@ -427,11 +354,9 @@ function updateDataCoverageIndicator(widgetClass, coverage, total) {
     const widget = document.querySelector(`.${widgetClass}`);
     if (!widget) return;
     
-    // Remove existing indicator
     const existingIndicator = widget.querySelector('.data-coverage-indicator');
     if (existingIndicator) existingIndicator.remove();
     
-    // Create new indicator
     const indicator = document.createElement('div');
     indicator.className = 'data-coverage-indicator';
     
@@ -550,10 +475,6 @@ function aggregateDataByMonth(data) {
         dataType: month.dataType
     }));
 }
-
-// ========================================
-// CHART CREATION FUNCTIONS (SIMPLIFIED)
-// ========================================
 
 function createStepsChart(data, chartType = 'bar') {
     const canvas = document.getElementById('stepsChart');
@@ -699,10 +620,6 @@ function createCaloriesChart(data, chartType = 'pie') {
     
     updateCaloriesStats(values);
 }
-
-// ========================================
-// CHART DRAWING HELPER FUNCTIONS
-// ========================================
 
 function drawGrid(ctx, width, height, color) {
     ctx.strokeStyle = color;
@@ -994,10 +911,6 @@ function drawNoDataMessage(ctx, width, height) {
     ctx.fillText('CONNECT GOOGLE FIT TO VIEW DATA', width / 2, height / 2 + 10);
 }
 
-// ========================================
-// STATS UPDATE FUNCTIONS
-// ========================================
-
 function updateStepsStats(values) {
     if (values.length === 0) {
         document.getElementById('stepsTotalValue').textContent = '0';
@@ -1082,33 +995,20 @@ function updateAllCharts(data) {
     createCaloriesChart(data.calories, caloriesChartType);
 }
 
-// ========================================
-// ENHANCED COMPARISON FUNCTIONS WITH CORRECT DATA
-// ========================================
-
 async function updateComparison() {
     if (!comparisonMode) return;
     
-    console.log('📊 Fetching real comparison data...');
     showGlobalLoading();
     
     try {
         const currentStats = getCurrentPeriodStats();
         const previousStats = await fetchPreviousPeriodStats();
         
-        console.log('📊 Comparison data:', {
-            current: currentStats,
-            previous: previousStats,
-            period: currentPeriod,
-            currentDate: formatDate(currentDate)
-        });
-        
         updateComparisonDisplay(currentStats, previousStats);
         updateComparisonLabels();
         hideGlobalLoading();
         
     } catch (error) {
-        console.error('❌ Error updating comparison:', error);
         hideGlobalLoading();
         showErrorToast('Failed to load comparison data');
     }
@@ -1119,13 +1019,11 @@ function updateComparisonLabels() {
     const previousDate = getPreviousDate(currentDate, currentPeriod);
     const previousLabel = getPeriodLabel(currentPeriod, previousDate);
     
-    // Update comparison headers to show what periods are being compared
     const comparisonTitle = document.getElementById('comparisonTitle');
     if (comparisonTitle) {
         comparisonTitle.textContent = `COMPARING: ${currentLabel} VS ${previousLabel}`;
     }
     
-    // Update individual comparison labels
     const currentPeriodLabels = document.querySelectorAll('.current-period-label');
     const previousPeriodLabels = document.querySelectorAll('.previous-period-label');
     
@@ -1159,7 +1057,6 @@ function getPeriodShortLabel(period, date) {
 }
 
 function getCurrentPeriodStats() {
-    // Get stats directly from the processed data instead of DOM elements
     const processedData = processDataForPeriod(healthData, currentPeriod);
     
     return {
@@ -1174,19 +1071,10 @@ async function fetchPreviousPeriodStats() {
     const userId = getCurrentUserId();
     if (!userId) return generateFallbackStats();
     
-    // Calculate CORRECT previous period date range
     const previousDate = getPreviousDate(currentDate, currentPeriod);
     const previousRange = getDateRange(currentPeriod, previousDate);
     
-    console.log(`📅 Fetching comparison data:`, {
-        currentPeriod: currentPeriod,
-        currentDate: formatDate(currentDate),
-        previousDate: formatDate(previousDate),
-        previousRange: previousRange
-    });
-    
     try {
-        // Fetch historical data for previous period
         const [prevStepsData, prevHeartRateData, prevSleepData, prevCaloriesData] = await Promise.all([
             fetchHistoricalHealthData('steps', previousRange.start, previousRange.end, userId),
             fetchHistoricalHealthData('heartrate', previousRange.start, previousRange.end, userId),
@@ -1194,7 +1082,6 @@ async function fetchPreviousPeriodStats() {
             fetchHistoricalHealthData('calories', previousRange.start, previousRange.end, userId)
         ]);
         
-        // Process the previous period data using the SAME logic as current
         const previousHealthData = {
             steps: prevStepsData || [],
             heartrate: prevHeartRateData || [],
@@ -1204,64 +1091,35 @@ async function fetchPreviousPeriodStats() {
         
         const processedPrevious = processDataForPeriod(previousHealthData, currentPeriod);
         
-        // Calculate stats using the SAME method as current period
-        const previousStats = {
+        return {
             steps: calculateTotalOrAverage(processedPrevious.steps, 'steps'),
             heartRate: calculateTotalOrAverage(processedPrevious.heartrate, 'heartrate'),
             sleep: calculateTotalOrAverage(processedPrevious.sleep, 'sleep'),
             calories: calculateTotalOrAverage(processedPrevious.calories, 'calories')
         };
         
-        console.log('✅ Previous period stats calculated:', {
-            stats: previousStats,
-            dataPoints: {
-                steps: processedPrevious.steps.length,
-                heartrate: processedPrevious.heartrate.length,
-                sleep: processedPrevious.sleep.length,
-                calories: processedPrevious.calories.length
-            }
-        });
-        
-        return previousStats;
-        
     } catch (error) {
-        console.error('❌ Error fetching previous period data:', error);
         return generateFallbackStats();
     }
 }
 
 function calculateTotalOrAverage(data, dataType) {
-    if (!data || data.length === 0) {
-        console.warn(`⚠️ No data available for ${dataType}`);
-        return 0;
-    }
+    if (!data || data.length === 0) return 0;
     
     const values = data.map(d => d.value).filter(v => v > 0);
-    if (values.length === 0) {
-        console.warn(`⚠️ No valid values for ${dataType}`);
-        return 0;
-    }
+    if (values.length === 0) return 0;
     
     const total = values.reduce((sum, val) => sum + val, 0);
-    
-    console.log(`📊 Calculating ${dataType}:`, {
-        dataPoints: values.length,
-        values: values.slice(0, 5), // Show first 5 values for debugging
-        total: total
-    });
     
     switch (dataType) {
         case 'steps':
         case 'calories':
-            // For cumulative metrics, return total
             return Math.round(total);
             
         case 'heartrate':
-            // For rate-based metrics, return average
             return Math.round(total / values.length);
             
         case 'sleep':
-            // For sleep, convert minutes to hours and average
             const avgMinutes = total / values.length;
             return parseFloat((avgMinutes / 60).toFixed(1));
             
@@ -1275,64 +1133,43 @@ function getPreviousDate(date, period) {
     
     switch (period) {
         case 'daily':
-            // For daily: compare today vs yesterday (go back 1 day)
             previousDate.setDate(date.getDate() - 1);
             break;
             
         case 'weekly':
-            // For weekly: go back 1 week (7 days)
             previousDate.setDate(date.getDate() - 7);
             break;
             
         case 'monthly':
-            // For monthly: go back 1 month
             previousDate.setMonth(date.getMonth() - 1);
             break;
     }
-    
-    console.log(`📅 Previous date calculation:`, {
-        period: period,
-        currentDate: formatDate(date),
-        previousDate: formatDate(previousDate)
-    });
     
     return previousDate;
 }
 
 function generateFallbackStats() {
-    console.warn('⚠️ Using fallback comparison stats - no historical data available');
-    
-    // Generate realistic fallback data based on typical health metrics
-    const fallbackData = {
-        steps: Math.floor(Math.random() * 5000) + 8000, // 8000-13000 steps
-        heartRate: Math.floor(Math.random() * 20) + 70, // 70-90 BPM
-        sleep: parseFloat((Math.random() * 2 + 6).toFixed(1)), // 6-8 hours
-        calories: Math.floor(Math.random() * 800) + 1800 // 1800-2600 calories
+    return {
+        steps: Math.floor(Math.random() * 5000) + 8000,
+        heartRate: Math.floor(Math.random() * 20) + 70,
+        sleep: parseFloat((Math.random() * 2 + 6).toFixed(1)),
+        calories: Math.floor(Math.random() * 800) + 1800
     };
-    
-    console.log('📊 Generated fallback stats:', fallbackData);
-    return fallbackData;
 }
 
 function updateComparisonDisplay(current, previous) {
-    console.log('📊 Updating comparison display:', { current, previous });
-    
-    // Steps
     document.getElementById('stepsCurrentComp').textContent = current.steps.toLocaleString();
     document.getElementById('stepsPreviousComp').textContent = previous.steps.toLocaleString();
     updateComparisonChange('stepsChange', current.steps, previous.steps);
     
-    // Heart Rate
     document.getElementById('hrCurrentComp').textContent = `${current.heartRate} BPM`;
     document.getElementById('hrPreviousComp').textContent = `${previous.heartRate} BPM`;
     updateComparisonChange('hrChange', current.heartRate, previous.heartRate);
     
-    // Sleep
     document.getElementById('sleepCurrentComp').textContent = `${current.sleep}H`;
     document.getElementById('sleepPreviousComp').textContent = `${previous.sleep}H`;
     updateComparisonChange('sleepChange', current.sleep, previous.sleep);
     
-    // Calories
     document.getElementById('caloriesCurrentComp').textContent = current.calories.toLocaleString();
     document.getElementById('caloriesPreviousComp').textContent = previous.calories.toLocaleString();
     updateComparisonChange('caloriesChange', current.calories, previous.calories);
@@ -1342,9 +1179,6 @@ function updateComparisonChange(elementId, current, previous) {
     const element = document.getElementById(elementId);
     if (!element) return;
     
-    console.log(`📊 Calculating change for ${elementId}:`, { current, previous });
-    
-    // Handle zero or invalid previous values
     if (!previous || previous === 0) {
         if (current > 0) {
             element.textContent = 'NEW!';
@@ -1356,23 +1190,14 @@ function updateComparisonChange(elementId, current, previous) {
         return;
     }
     
-    // Handle zero current values
     if (!current || current === 0) {
         element.textContent = 'NO DATA';
         element.className = 'comparison-change neutral';
         return;
     }
     
-    // Calculate percentage change
     const change = ((current - previous) / previous) * 100;
     
-    console.log(`📊 Change calculated for ${elementId}:`, {
-        current,
-        previous,
-        change: change.toFixed(2) + '%'
-    });
-    
-    // Format the change text
     let changeText;
     if (Math.abs(change) < 0.1) {
         changeText = '0%';
@@ -1385,7 +1210,6 @@ function updateComparisonChange(elementId, current, previous) {
     element.textContent = changeText;
     element.className = 'comparison-change';
     
-    // Add appropriate styling based on change magnitude
     if (change > 2) {
         element.classList.add('positive');
     } else if (change < -2) {
@@ -1394,22 +1218,16 @@ function updateComparisonChange(elementId, current, previous) {
         element.classList.add('neutral');
     }
     
-    // Add trend indicators for significant changes
     if (Math.abs(change) > 15) {
         element.textContent += change > 0 ? ' ↗️' : ' ↘️';
     }
 }
-
-// ========================================
-// ENHANCED PERIOD NAVIGATION WITH HISTORICAL CONTEXT
-// ========================================
 
 function updatePeriodDisplay() {
     const periodLabel = getPeriodLabel(currentPeriod, currentDate);
     const periodElement = document.getElementById('currentPeriod');
     
     if (periodElement) {
-        // Add historical context to the period display
         const today = new Date();
         const isCurrentPeriod = isCurrentTimePeriod(currentDate, currentPeriod, today);
         
@@ -1423,12 +1241,10 @@ function updatePeriodDisplay() {
         }
     }
     
-    // Update navigation buttons with better UX
     const nextBtn = document.getElementById('nextPeriod');
     const prevBtn = document.getElementById('prevPeriod');
     const today = new Date();
     
-    // Disable next button if we're at current period
     if (nextBtn) {
         const canGoNext = canNavigateNext(currentDate, currentPeriod, today);
         nextBtn.disabled = !canGoNext;
@@ -1441,13 +1257,11 @@ function updatePeriodDisplay() {
         }
     }
     
-    // Update previous button with context
     if (prevBtn) {
         const prevPeriodName = getPeriodName(currentPeriod);
         prevBtn.title = `Previous ${prevPeriodName}`;
         
-        // Show how far back we can go (optional UX enhancement)
-        const maxHistoryDays = 365; // 1 year of history
+        const maxHistoryDays = 365;
         const currentDaysBack = calculateDaysAgo(currentDate, today);
         
         if (currentDaysBack >= maxHistoryDays) {
@@ -1516,8 +1330,6 @@ function getPeriodName(period) {
 }
 
 function navigatePeriod(direction) {
-    console.log(`🔄 Navigating ${direction} for ${currentPeriod} period`);
-    
     const newDate = new Date(currentDate);
     
     switch (currentPeriod) {
@@ -1535,7 +1347,6 @@ function navigatePeriod(direction) {
     currentDate = newDate;
     updatePeriodDisplay();
     
-    // Show what period we're loading
     const periodName = getPeriodLabel(currentPeriod, currentDate);
     showSuccessToast(`Loading ${periodName.toLowerCase()}`);
     
@@ -1543,15 +1354,9 @@ function navigatePeriod(direction) {
 }
 
 function changePeriod(newPeriod) {
-    console.log(`🔄 Changing period from ${currentPeriod} to ${newPeriod}`);
-    
-    // Store previous period data for smooth transitions
-    const previousData = { ...healthData };
-    
     currentPeriod = newPeriod;
-    currentDate = new Date(); // Reset to current date when changing period
+    currentDate = new Date();
     
-    // Update active button
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.period === newPeriod) {
@@ -1561,7 +1366,6 @@ function changePeriod(newPeriod) {
     
     updatePeriodDisplay();
     
-    // Show immediate feedback
     const periodNames = {
         'daily': 'daily view',
         'weekly': 'weekly view',
@@ -1613,10 +1417,6 @@ function changeChartType(widgetClass, chartType) {
     }
 }
 
-// ========================================
-// EVENT LISTENERS AND INITIALIZATION
-// ========================================
-
 function setupEventListeners() {
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1632,7 +1432,7 @@ function setupEventListeners() {
         navigatePeriod('next');
     });
     
-    document.getElementById('comparisonMode')?.addEventListener('change', (e) => {
+    document.getElementById('comparisonMode')?.addEventListener('change', () => {
         toggleComparison();
     });
     
@@ -1646,11 +1446,7 @@ function setupEventListeners() {
     });
 }
 
-// ========================================
-// MAIN INITIALIZATION (SIMPLIFIED)
-// ========================================
-
-async function initializeStats(forceSync = false) {
+async function initializeStats() {
     try {
         const userId = getCurrentUserId();
         if (!userId) {
@@ -1677,7 +1473,6 @@ async function initializeStats(forceSync = false) {
         hideGlobalLoading();
         
     } catch (error) {
-        console.error('Stats initialization error:', error);
         hideGlobalLoading();
         showErrorToast('Failed to initialize statistics. Please refresh the page.');
     }
@@ -1694,10 +1489,6 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeStats();
     }, 500);
 });
-
-// ========================================
-// KEYBOARD SHORTCUTS (SIMPLIFIED)
-// ========================================
 
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -1732,32 +1523,8 @@ document.addEventListener('keydown', (e) => {
         case 'R':
             e.preventDefault();
             showGlobalLoading();
-            initializeStats(true);
+            initializeStats();
             showSuccessToast('Data refreshed');
             break;
     }
 });
-
-// ========================================
-// DEBUG HELPER FUNCTION
-// ========================================
-
-// Add this function for debugging comparison issues
-function debugComparisonData() {
-    console.log('🔍 DEBUG: Current health data:', {
-        steps: healthData.steps?.length || 0,
-        heartrate: healthData.heartrate?.length || 0,
-        sleep: healthData.sleep?.length || 0,
-        calories: healthData.calories?.length || 0,
-        period: currentPeriod,
-        date: formatDate(currentDate)
-    });
-    
-    const processedData = processDataForPeriod(healthData, currentPeriod);
-    console.log('🔍 DEBUG: Processed current data:', processedData);
-    
-    const currentStats = getCurrentPeriodStats();
-    console.log('🔍 DEBUG: Current stats:', currentStats);
-}
-
-// Call this in the browser console to debug: debugComparisonData()

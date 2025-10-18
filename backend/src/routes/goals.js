@@ -6,7 +6,6 @@ const { asyncHandler, calculateProgress } = require('../lib/utils');
 
 const router = express.Router();
 
-// Get all goals for user by ID (passed as query parameter)
 router.get('/', asyncHandler(async (req, res) => {
   const { userId } = req.query;
   
@@ -19,12 +18,11 @@ router.get('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid user ID format' });
   }
   
-  // Use explicit aliasing like the users endpoint
   const results = await db
     .select({
       id: goalsTable.id,
-      goalType: goalsTable.goal_type,     // Map DB 'goal_type' to JS 'goalType'
-      targetValue: goalsTable.target_value, // Map DB 'target_value' to JS 'targetValue'
+      goalType: goalsTable.goal_type,
+      targetValue: goalsTable.target_value,
       icon: goalsTable.icon
     })
     .from(goalsTable)
@@ -36,12 +34,10 @@ router.get('/', asyncHandler(async (req, res) => {
   });
 }));
 
-// Create new goal
 router.post('/', asyncHandler(async (req, res) => {
   const userId = req.user.userID;
   const { goalType, targetValue, icon } = req.body;
 
-  // Input validation like users endpoint
   if (!goalType || targetValue === undefined) {
     return res.status(400).json({ error: 'Goal type and target value are required' });
   }
@@ -56,7 +52,6 @@ router.post('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Target value must be a positive number' });
   }
 
-  // Check if goal already exists for this type
   const existingGoal = await db
     .select()
     .from(goalsTable)
@@ -71,9 +66,9 @@ router.post('/', asyncHandler(async (req, res) => {
 
   const results = await db.insert(goalsTable).values({
     user_id: userId,
-    goal_type: goalType,           // Transform goalType -> goal_type for DB
-    target_value: targetValueNum,  // Transform targetValue -> target_value for DB
-    icon: icon || '🎯'
+    goal_type: goalType,
+    target_value: targetValueNum,
+    icon: icon
   });
 
   const id = results[0]?.insertId || results[0]?.id;
@@ -84,7 +79,6 @@ router.post('/', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get goal by ID
 router.get('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { userId } = req.query;
@@ -129,7 +123,6 @@ router.get('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Update goal
 router.put('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { userId, goalType, targetValue, icon } = req.body;
@@ -149,7 +142,6 @@ router.put('/:id', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid user ID format' });
   }
 
-  // Check if goal exists and belongs to user
   const existingGoal = await db
     .select()
     .from(goalsTable)
@@ -164,7 +156,6 @@ router.put('/:id', asyncHandler(async (req, res) => {
 
   const updateData = {};
 
-  // Validate and prepare update data
   if (goalType !== undefined) {
     const validGoalTypes = ['steps', 'calories', 'sleep', 'heart_rate'];
     if (!validGoalTypes.includes(goalType)) {
@@ -188,7 +179,6 @@ router.put('/:id', asyncHandler(async (req, res) => {
     updateData.icon = icon;
   }
 
-  // Only update if there's data to update
   if (Object.keys(updateData).length === 0) {
     return res.status(400).json({ error: 'No valid fields provided for update' });
   }
@@ -201,7 +191,6 @@ router.put('/:id', asyncHandler(async (req, res) => {
       eq(goalsTable.user_id, userIdNum)
     ));
   
-  // Return updated goal data
   const updatedGoal = await db
     .select({
       id: goalsTable.id,
@@ -218,7 +207,6 @@ router.put('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Delete goal
 router.delete('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { userId } = req.body;
@@ -238,7 +226,6 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid user ID format' });
   }
   
-  // Check if goal exists and belongs to user
   const existingGoal = await db
     .select()
     .from(goalsTable)
@@ -263,7 +250,6 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get goals by type
 router.get('/type/:goalType', asyncHandler(async (req, res) => {
   const { goalType } = req.params;
   const { userId } = req.query;
@@ -301,7 +287,6 @@ router.get('/type/:goalType', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get goal statistics
 router.get('/stats/summary', asyncHandler(async (req, res) => {
   const { userId } = req.query;
   
@@ -340,7 +325,6 @@ router.get('/stats/summary', asyncHandler(async (req, res) => {
   });
 }));
 
-// Bulk create/update goals (similar to batch user operations)
 router.post('/bulk', asyncHandler(async (req, res) => {
   const { userId, goals } = req.body;
 
@@ -357,7 +341,6 @@ router.post('/bulk', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'goals must be a non-empty array' });
   }
 
-  // Validate all goals first
   for (const goal of goals) {
     if (!goal.goalType || goal.targetValue === undefined) {
       return res.status(400).json({ error: 'Each goal must have goalType and targetValue' });
@@ -373,7 +356,6 @@ router.post('/bulk', asyncHandler(async (req, res) => {
     }
   }
 
-  // Get existing goals for this user
   const existingGoals = await db
     .select()
     .from(goalsTable)
@@ -386,7 +368,6 @@ router.post('/bulk', asyncHandler(async (req, res) => {
     const existingGoal = existingGoals.find(g => g.goal_type === goal.goalType);
     
     if (existingGoal) {
-      // Update existing goal
       await db
         .update(goalsTable)
         .set({
@@ -396,12 +377,11 @@ router.post('/bulk', asyncHandler(async (req, res) => {
         .where(eq(goalsTable.id, existingGoal.id));
       updatedCount++;
     } else {
-      // Create new goal
       await db.insert(goalsTable).values({
         user_id: userIdNum,
         goal_type: goal.goalType,
         target_value: parseFloat(goal.targetValue),
-        icon: goal.icon || '🎯'
+        icon: goal.icon
       });
       createdCount++;
     }

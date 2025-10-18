@@ -1,4 +1,3 @@
-/* Reset and base styles */
 * {
     margin: 0;
     padding: 0;
@@ -13,9 +12,9 @@ body {
     padding: 20px;
     position: relative;
     overflow-x: hidden;
+    padding-top: 120px;
 }
 
-/* Twinkling/* Stars Animation */
 .stars {
     position: fixed;
     top: 0;
@@ -26,8 +25,6 @@ body {
     z-index: 1;
 }
 
-/* Navigation Sync Status */
-/* Navigation Sync Status for Dashboard */
 .nav-sync-status {
     margin-top: 15px;
     padding: 10px;
@@ -82,13 +79,9 @@ body {
     50% { opacity: 1; transform: scale(1.2); }
 }
 
-body {
-    padding-top: 120px; /* Pushes all content below nav */
-}
-
 @media (max-width: 768px) {
     body {
-        padding-top: 200px; /* Smaller padding on mobile */
+        padding-top: 200px;
     }
 }
 
@@ -97,7 +90,6 @@ body {
     margin: 0 auto;
 }
 
-/* Header Styles */
 .profile-header {
     display: flex;
     align-items: center;
@@ -105,24 +97,6 @@ body {
     margin-bottom: 30px;
     padding: 20px 0;
     border-bottom: 3px solid #333;
-}
-
-.logo-circle {
-    width: 60px;
-    height: 60px;
-    background-color: #388E3C;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid #fff;
-    box-shadow: 3px 3px 0px #333;
-}
-
-.logo-text {
-    color: #fff;
-    font-size: 16px;
-    text-shadow: 1px 1px 0px #333;
 }
 
 .profile-title {
@@ -149,7 +123,6 @@ body {
     text-shadow: 2px 2px 0px #333;
 }
 
-/* Profile Grid */
 .profile-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -157,7 +130,6 @@ body {
     gap: 25px;
 }
 
-/* Widget Base Styles */
 .profile-widget {
     border: 4px solid;
     background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(51, 51, 51, 0.8) 50%, rgba(42, 42, 42, 0.9) 100%);
@@ -174,7 +146,6 @@ body {
     overflow: hidden;
 }
 
-/* Pixel stars pattern for widgets */
 .profile-widget::before {
     content: '';
     position: absolute;
@@ -213,7 +184,6 @@ body {
     100% { opacity: 0.7; }
 }
 
-/* Color-coded widgets */
 .goals-section {
     border-color: #4CAF50;
     background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(27, 67, 50, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
@@ -222,16 +192,6 @@ body {
 .goals-section .widget-title {
     color: #66BB6A;
     text-shadow: 0 0 10px #4CAF50;
-}
-
-.alerts-section {
-    border-color: #FF9800;
-    background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(74, 42, 0, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
-}
-
-.alerts-section .widget-title {
-    color: #FFB74D;
-    text-shadow: 0 0 10px #FF9800;
 }
 
 .credentials-section {
@@ -244,28 +204,11 @@ body {
     text-shadow: 0 0 10px #2196F3;
 }
 
-.actions-section {
-    border-color: #9C27B0;
-    background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(60, 21, 69, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
-}
-
-.actions-section .widget-title {
-    color: #CE93D8;
-    text-shadow: 0 0 10px #9C27B0;
-}
-
-/* Widget Header */
 .widget-header {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
     gap: 12px;
-}
-
-.widget-icon {
-    font-size: 20px;
-    filter: none;
-    opacity: 0.9;
 }
 
 .widget-title {
@@ -274,7 +217,6 @@ body {
     letter-spacing: 1px;
 }
 
-/* Goals Section */
 .goal-item {
     display: flex;
     justify-content: space-between;
@@ -333,153 +275,13 @@ body {
     color: #ccc;
 }
 
-.goal-progress {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-}
-
-.progress-bar {
-    width: 120px;
-    height: 8px;
-    background-color: #333;
-    border: 2px solid #fff;
-    position: relative;
-    clip-path: polygon(
-        4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 
-        0 100%, 0 4px
-    );
-}
-
-.progress-fill {
-    height: 100%;
-    background-color: #4CAF50;
-    transition: width 0.5s ease;
-}
-
-.progress-text {
-    font-size: 6px;
-    color: #ccc;
-}
-
-/* Alerts Section */
-.alert-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    clip-path: polygon(
-        8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 
-        0 100%, 0 8px
-    );
-}
-
-.alert-info {
-    flex: 1;
-}
-
-.alert-label {
-    display: block;
-    font-size: 7px;
-    color: #FFB74D;
-    text-shadow: 1px 1px 0px #333;
-    margin-bottom: 4px;
-}
-
-.alert-description {
-    font-size: 5px;
-    color: #ccc;
-    line-height: 1.3;
-}
-
-.alert-toggle {
-    position: relative;
-    width: 40px;
-    height: 20px;
-}
-
-.toggle-input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #333;
-    border: 2px solid #fff;
-    transition: 0.3s;
-    clip-path: polygon(
-        4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 
-        0 100%, 0 4px
-    );
-}
-
-.toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 10px;
-    width: 10px;
-    left: 2px;
-    top: 2px;
-    background-color: #fff;
-    transition: 0.3s;
-    clip-path: polygon(
-        2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 
-        0 100%, 0 2px
-    );
-}
-
-.toggle-input:checked + .toggle-slider {
-    background-color: #4CAF50;
-}
-
-.toggle-input:checked + .toggle-slider:before {
-    transform: translateX(14px);
-}
-
-/* Credentials Section */
-.sidebar-nav {
-    display: flex;
-    margin-bottom: 20px;
-    gap: 5px;
-}
-
-.nav-btn {
-    background-color: #333;
-    border: 2px solid #fff;
-    color: #fff;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 6px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    clip-path: polygon(
-        6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
-        0 100%, 0 6px
-    );
-}
-
-.nav-btn:hover {
-    background-color: #444;
-}
-
-.nav-btn.active {
-    background-color: #2196F3;
-    border-color: #64B5F6;
+.tab-content {
+    width: 100%;
 }
 
 .tab-panel {
     display: none;
+    width: 100%;
 }
 
 .tab-panel.active {
@@ -519,125 +321,6 @@ body {
     box-shadow: 0 0 0 2px #2196F3;
 }
 
-.quick-goals-summary {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.goal-summary-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    clip-path: polygon(
-        6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
-        0 100%, 0 6px
-    );
-}
-
-.summary-label {
-    font-size: 6px;
-    color: #ccc;
-}
-
-.summary-value {
-    font-size: 6px;
-    color: #64B5F6;
-    text-shadow: 1px 1px 0px #333;
-}
-
-.device-status {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.device-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    clip-path: polygon(
-        8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 
-        0 100%, 0 8px
-    );
-}
-
-.device-item.connected {
-    border-color: #4CAF50;
-}
-
-.device-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.device-name {
-    font-size: 7px;
-    color: #fff;
-    text-shadow: 1px 1px 0px #333;
-}
-
-.device-status-text {
-    font-size: 5px;
-    color: #4CAF50;
-}
-
-.device-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.device-btn {
-    background-color: #2196F3;
-    border: 2px solid #fff;
-    color: #fff;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 5px;
-    padding: 6px 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    clip-path: polygon(
-        4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 
-        0 100%, 0 4px
-    );
-}
-
-.device-btn:hover {
-    background-color: #1976D2;
-}
-
-.device-btn.disconnect {
-    background-color: #F44336;
-}
-
-.device-btn.disconnect:hover {
-    background-color: #D32F2F;
-}
-
-.sync-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    text-align: center;
-}
-
-.sync-text {
-    font-size: 6px;
-    color: #ccc;
-}
-
-.sync-status {
-    font-size: 5px;
-    color: #4CAF50;
-}
-
-/* Buttons */
 .pixel-button {
     background-color: #388E3C;
     border: 3px solid #fff;
@@ -675,64 +358,28 @@ body {
     margin-top: 15px;
 }
 
-/* Actions Section */
-.action-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.action-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 20px 15px;
-    background: rgba(156, 39, 176, 0.1);
-    border: 2px solid #9C27B0;
-    color: #fff;
-    font-family: 'Press Start 2P', monospace;
-    cursor: pointer;
+.pixel-logo {
+    width: 50px;
+    height: 50px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
     transition: all 0.3s ease;
-    clip-path: polygon(
-        8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 
-        0 100%, 0 8px
-    );
 }
 
-.action-btn:hover {
-    background: rgba(156, 39, 176, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+.pixel-logo:hover {
+    transform: scale(1.1);
 }
 
-.action-icon {
-    font-size: 16px;
-    filter: none;
+.pixel-logo img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    object-fit: contain;
 }
 
-.action-text {
-    font-size: 6px;
-    text-align: center;
-    color: #CE93D8;
-    text-shadow: 1px 1px 0px #333;
-}
-
-.logout-btn {
-    border-color: #F44336;
-    background: rgba(244, 67, 54, 0.1);
-}
-
-.logout-btn:hover {
-    background: rgba(244, 67, 54, 0.2);
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-}
-
-.logout-btn .action-text {
-    color: #F44336;
-}
-
-/* Pixel Stars Background */
 .pixel-stars-bg {
     position: fixed;
     top: 0;
@@ -758,29 +405,25 @@ body {
         radial-gradient(1px 1px at 200px 60px, #fff, transparent);
     background-repeat: repeat;
     background-size: 250px 120px;
-    animation: twinkle 10s ease-in-out infinite alternate;
+    animation: backgroundTwinkle 10s ease-in-out infinite alternate;
 }
 
-@keyframes twinkle {
+@keyframes backgroundTwinkle {
     0% { opacity: 0.3; }
     100% { opacity: 0.7; }
 }
 
-/* Responsive Design */
 @media (max-width: 1200px) {
     .profile-grid {
         grid-template-columns: 1fr;
         gap: 20px;
-    }
-    
-    .action-grid {
-        grid-template-columns: repeat(4, 1fr);
     }
 }
 
 @media (max-width: 768px) {
     body {
         padding: 15px;
+        padding-top: 200px;
     }
     
     .profile-header {
@@ -816,96 +459,15 @@ body {
         gap: 15px;
     }
     
-    .goal-progress {
-        align-items: flex-start;
+    .goal-info {
+        margin-right: 0;
+    }
+    
+    .goal-input-group {
         width: 100%;
     }
     
-    .progress-bar {
-        width: 100%;
+    .goal-input {
+        width: 150px;
     }
-    
-    .alert-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .alert-toggle {
-        align-self: flex-end;
-    }
-    
-    .sidebar-nav {
-        flex-wrap: wrap;
-    }
-    
-    .nav-btn {
-        font-size: 5px;
-        padding: 6px 8px;
-    }
-    
-    .action-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    
-    .action-btn {
-        padding: 15px 10px;
-    }
-    
-    .action-icon {
-        font-size: 14px;
-    }
-    
-    .action-text {
-        font-size: 5px;
-    }
-    
-    .device-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .device-actions {
-        align-self: stretch;
-        justify-content: space-between;
-    }
-}
-
-/* Pixel Logo Class for Small Cute GIFs */
-.pixel-logo {
-    width: 50px;
-    height: 50px;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    transition: all 0.3s ease;
-}
-
-.pixel-logo:hover {
-    transform: scale(1.1);
-   
-}
-
-.pixel-logo img,
-.pixel-logo .gif-content {
-    width: 100%;
-    height: 100%;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    object-fit: contain;
-}
-
-/* Smaller variant if needed */
-.pixel-logo.small {
-    width: 24px;
-    height: 24px;
-    
-}
-
-/* Icon-sized variant */
-.pixel-logo.icon {
-    width: 20px;
-    height: 20px;
 }

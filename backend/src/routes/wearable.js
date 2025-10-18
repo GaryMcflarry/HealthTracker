@@ -1,1581 +1,626 @@
 const express = require('express');
-const router = express.Router();
 const { google } = require('googleapis');
-const { eq, gte, and } = require('drizzle-orm');
+const { eq, and } = require('drizzle-orm');
 const { db } = require('../db');
-const { usersTable, stepsDataTable, heartRateDataTable, sleepDataTable, calorieDataTable } = require('../db/schema');
+const { 
+  wearableIntegrationTable, 
+  stepsDataTable, 
+  heartRateDataTable, 
+  sleepDataTable, 
+  caloriesDataTable,
+  goalsTable,
+  notificationsTable 
+} = require('../db/schema');
+const { authMiddleware } = require('../lib/auth');
 const { asyncHandler } = require('../lib/utils');
 
-// Initialize Google OAuth2 client
+const router = express.Router();
+
 const oauth2Client = new google.auth.OAuth2(
-  '140323638250-v75qjj2ki2qhal2rsscbnhkvhkcctpa0.apps.googleusercontent.com',
-  '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',
-  'http://localhost:3000/api/wearable/auth/callback'
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
 );
 
 const fitness = google.fitness({ version: 'v1', auth: oauth2Client });
 
-// ========================================
-// UTILITY FUNCTIONS FOR TOKEN MANAGEMENT
-// ========================================
+router.get('/auth/google', authMiddleware, asyncHandler(async (req, res) => {
+  const scopes = [
+    'https://www.googleapis.com/auth/fitness.activity.read',
+    'https://www.googleapis.com/auth/fitness.heart_rate.read',
+    'https://www.googleapis.com/auth/fitness.sleep.read',
+    'https://www.googleapis.com/auth/fitness.location.read'
+  ];
 
-async function getUserTokens(userId) {
-  console.log(`🔍 Retrieving tokens for user: ${userId}`);
-  
-  const user = await db
-    .select({ fit_tokens: usersTable.fit_tokens })
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-    
-  if (user[0]?.fit_tokens) {
-    try {
-      const tokens = JSON.parse(user[0].fit_tokens);
-      console.log('✅ Tokens found and parsed successfully');
-      return tokens;
-    } catch (e) {
-      console.error('❌ Error parsing fit_tokens:', e);
-      return null;
-    }
-  }
-  
-  console.warn('⚠️ No tokens found for user');
-  return null;
-}
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: scopes,
+    prompt: 'consent',
+    state: req.user.userID
+  });
 
-async function saveUserTokens(userId, tokens) {
-  console.log(`💾 Saving tokens for user: ${userId}`);
-  
-  await db
-    .update(usersTable)
-    .set({ 
-      fit_tokens: JSON.stringify(tokens),
-      last_sync: new Date()
-    })
-    .where(eq(usersTable.id, userId));
-    
-  console.log('✅ Tokens saved successfully');
-}
-
-async function updateUserLastSync(userId) {
-  console.log(`🔄 Updating last_sync for user: ${userId}`);
-  
-  await db
-    .update(usersTable)
-    .set({ 
-      last_sync: new Date()
-    })
-    .where(eq(usersTable.id, userId));
-    
-  console.log('✅ User last_sync updated successfully');
-}
-
-async function setOAuthCredentialsForUser(userId) {
-  console.log(`🔐 Setting OAuth credentials for user: ${userId}`);
-  
-  const tokens = await getUserTokens(userId);
-  if (!tokens) {
-    throw new Error('User has not authorized Google Fit or tokens are missing.');
-  }
-  
-  if (!tokens.access_token) {
-     throw new Error('Invalid Google Fit tokens found for user - missing access_token.');
-  }
-
-  oauth2Client.setCredentials(tokens);
-  
-  // Check if token needs refresh
-  if (tokens.expiry_date && Date.now() >= tokens.expiry_date) {
-    console.log('🔄 Token expired, refreshing...');
-    try {
-      const { credentials } = await oauth2Client.refreshAccessToken();
-      await saveUserTokens(userId, credentials);
-      console.log('✅ Token refreshed successfully');
-    } catch (error) {
-      console.error('❌ Failed to refresh token:', error);
-      throw new Error('Failed to refresh expired token. User needs to re-authorize.');
-    }
-  } else {
-    console.log('✅ OAuth credentials set successfully');
-  }
-}
-
-// ========================================
-// AUTHENTICATION ROUTES
-// ========================================
-
-// Get Google Fit OAuth URL
-router.get('/auth/google', asyncHandler(async (req, res) => {
-  const userId = req.query.userId;
-  console.log(`🔗 Initiating Google Fit auth for user: ${userId}`);
-  
-  if (!userId) {
-      return res.status(400).json({ error: 'User ID is required to initiate Google Fit connection.' });
-  }
-  
-  try {
-    const scopes = [
-      'https://www.googleapis.com/auth/fitness.activity.read',
-      'https://www.googleapis.com/auth/fitness.heart_rate.read',
-      'https://www.googleapis.com/auth/fitness.sleep.read',
-      'https://www.googleapis.com/auth/fitness.body.read'
-    ];
-
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: scopes,
-      prompt: 'consent',
-      state: JSON.stringify({ userId: userId }) 
-    });
-
-    console.log('✅ OAuth URL generated successfully');
-    res.json({
-      message: 'Google Fit OAuth URL generated',
-      authUrl: authUrl
-    });
-  } catch (error) {
-    console.error('❌ OAuth URL generation error:', error);
-    res.status(500).json({ error: 'Failed to generate OAuth URL' });
-  }
+  res.json({ 
+    message: 'Google Fit authorization URL generated',
+    authUrl,
+    instructions: [
+      '1. Click the authorization URL to connect Google Fit',
+      '2. Grant permissions for health data access',
+      '3. You will be redirected to complete the setup'
+    ]
+  });
 }));
 
-// Handle OAuth callback
 router.get('/auth/callback', asyncHandler(async (req, res) => {
-  console.log('🔄 Handling OAuth callback...');
-  
   try {
-    const { code, state, error } = req.query;
-    
-    if (error) {
-      console.error('❌ OAuth error:', error);
-      return res.redirect('/dashboard/dashboard.html?error=oauth_failed');
-    }
-    
+    const { code, state } = req.query;
+
     if (!code) {
-      console.error('❌ No authorization code received');
-      return res.redirect('/dashboard/dashboard.html?error=oauth_failed');
+      return res.status(400).json({ error: 'Missing authorization code' });
+    }
+
+    const userId = parseInt(state);
+    if (!userId) {
+      return res.status(400).json({ error: 'Invalid user session' });
     }
 
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Parse userId from state
-    let userId = null;
-    if (state) {
-        try {
-            const stateObj = JSON.parse(state);
-            userId = stateObj.userId;
-        } catch (e) {
-            console.error("❌ Error parsing state parameter:", e);
-        }
-    }
+    await db.insert(wearableIntegrationTable).values({
+      userID: userId,
+      apiType: 'google_fit',
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      syncLastDate: new Date(),
+      isActive: true
+    }).onDuplicateKeyUpdate({
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      syncLastDate: new Date(),
+      isActive: true
+    });
 
-    if (!userId) {
-      console.error('❌ No user ID found in state');
-      return res.redirect('/dashboard/dashboard.html?error=no_user_id');
-    }
-
-    // Save tokens to the database
-    await saveUserTokens(parseInt(userId), tokens);
-    
-    console.log('✅ OAuth callback completed successfully');
-    res.redirect('/dashboard/dashboard.html?oauth=success');
+    res.json({ 
+      message: 'Google Fit integration successful!',
+      userId,
+      hasTokens: !!tokens.access_token,
+      nextSteps: [
+        'Integration is now active',
+        'Health data will sync automatically every 15 minutes',
+        'Use /api/wearable/fitness-data to fetch your data',
+        'Check /api/wearable/test-sync to verify everything is working'
+      ]
+    });
 
   } catch (error) {
-    console.error('❌ OAuth callback error:', error);
-    res.redirect('/dashboard/dashboard.html?error=oauth_callback_failed');
+    res.status(400).json({ error: 'Authentication failed', details: error.message });
   }
 }));
 
-// ========================================
-// IMPROVED DATA SOURCE CONFIGURATIONS
-// ========================================
-
-function getDataSourceConfig(dataType) {
-  const configs = {
-    steps: {
-      dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps',
-      dataTypeName: 'com.google.step_count.delta'
-    },
-    heartrate: {
-      dataSourceId: 'derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm',
-      dataTypeName: 'com.google.heart_rate.bpm'
-    },
-    calories: {
-      // Try multiple data sources for calories
-      dataSourceId: 'derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended',
-      dataTypeName: 'com.google.calories.expended',
-      alternatives: [
-        {
-          dataSourceId: 'derived:com.google.calories.expended:com.google.android.gms:platform_calories_expended',
-          dataTypeName: 'com.google.calories.expended'
-        },
-        {
-          dataSourceId: 'raw:com.google.calories.expended:com.google.android.gms:from_activities',
-          dataTypeName: 'com.google.calories.expended'
-        }
-      ]
-    },
-    sleep: {
-      // Primary sleep data source
-      dataSourceId: 'derived:com.google.sleep.segment:com.google.android.gms:merged',
-      dataTypeName: 'com.google.sleep.segment',
-      alternatives: [
-        {
-          dataSourceId: 'raw:com.google.sleep.segment:com.google.android.gms:sleep_from_activity',
-          dataTypeName: 'com.google.sleep.segment'
-        },
-        {
-          dataSourceId: 'derived:com.google.activity.segment:com.google.android.gms:merge_activity_segments',
-          dataTypeName: 'com.google.activity.segment'
-        }
-      ]
-    }
-  };
-  
-  return configs[dataType] || null;
-}
-// ENHANCED FITNESS DATA FETCHING WITH FALLBACKS
-// ========================================
-
-router.get('/fitness-data', asyncHandler(async (req, res) => {
-  const { startDate, endDate, dataType, userId } = req.query;
-  
-  console.log(`📊 Fetching ${dataType} data for user ${userId} from ${startDate} to ${endDate}`);
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required as query parameter' });
-  }
-
+router.get('/fitness-data', authMiddleware, asyncHandler(async (req, res) => {
   try {
-    // Check if user has Google Fit tokens first
-    const tokens = await getUserTokens(parseInt(userId));
-    if (!tokens) {
-      console.warn(`⚠️ No Google Fit tokens found for user ${userId}`);
-      
-      // Try to get stored data from database instead
-      const storedData = await getStoredFitnessData(parseInt(userId), dataType, startDate, endDate);
-      
-      return res.json({
-        message: `No Google Fit connection found, returning stored ${dataType} data`,
-        dataType: dataType,
-        data: storedData,
-        count: storedData.length,
-        requiresAuth: true,
-        authUrl: `/api/wearable/auth/google?userId=${userId}`
+    const userId = req.user.userID;
+    const { startDate, endDate, sync = false } = req.query;
+
+    const integration = await db
+      .select()
+      .from(wearableIntegrationTable)
+      .where(and(
+        eq(wearableIntegrationTable.userID, userId),
+        eq(wearableIntegrationTable.apiType, 'google_fit'),
+        eq(wearableIntegrationTable.isActive, true)
+      ));
+
+    if (integration.length === 0) {
+      return res.status(404).json({ 
+        error: 'Google Fit not connected', 
+        message: 'Please connect Google Fit first using /api/wearable/auth/google'
       });
     }
 
-    await setOAuthCredentialsForUser(parseInt(userId));
+    oauth2Client.setCredentials({
+      access_token: integration[0].accessToken,
+      refresh_token: integration[0].refreshToken
+    });
 
-    const start = startDate ? new Date(startDate + 'T00:00:00.000Z') : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : new Date();
-    
-    console.log(`📅 Date range: ${start.toISOString()} to ${end.toISOString()}`);
+    const start = startDate ? new Date(startDate) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const end = endDate ? new Date(endDate) : new Date();
 
-    // Get data with enhanced fetching logic
-    const processedData = await fetchDataWithFallbacks(dataType, start, end);
-    
-    console.log(`✅ Processed ${processedData.length} data points`);
+    const startTimeMillis = start.getTime();
+    const endTimeMillis = end.getTime();
 
-    // Store data in database
-    if (processedData.length > 0) {
-      console.log('💾 Storing data in database...');
-      await storeDataInDatabase(parseInt(userId), dataType, processedData);
-      
-      // Update user's last_sync timestamp
-      await updateUserLastSync(parseInt(userId));
-      
-      const newDataCount = processedData.filter(d => d.value > 0).length;
-      console.log('✅ Data stored successfully');
-      console.log(`🎉 SYNC SUCCESS: ${newDataCount} new ${dataType} records synced for user ${userId}`);
-      console.log(`📊 SYNC DETAILS: ${dataType.toUpperCase()} data from ${start.toISOString().split('T')[0]} to ${end.toISOString().split('T')[0]}`);
-    } else {
-      console.log(`⚠️ SYNC RESULT: No new ${dataType} data found for user ${userId}`);
+    const fitnessData = await Promise.allSettled([
+      fetchStepsData(startTimeMillis, endTimeMillis),
+      fetchHeartRateData(startTimeMillis, endTimeMillis),
+      fetchCaloriesData(startTimeMillis, endTimeMillis),
+      fetchSleepData(startTimeMillis, endTimeMillis)
+    ]);
+
+    const result = {
+      userId,
+      dateRange: { start: start.toISOString(), end: end.toISOString() },
+      steps: fitnessData[0].status === 'fulfilled' ? fitnessData[0].value : [],
+      heartRate: fitnessData[1].status === 'fulfilled' ? fitnessData[1].value : [],
+      calories: fitnessData[2].status === 'fulfilled' ? fitnessData[2].value : [],
+      sleep: fitnessData[3].status === 'fulfilled' ? fitnessData[3].value : [],
+      errors: fitnessData.filter(result => result.status === 'rejected').map(result => result.reason?.message),
+      lastSync: new Date().toISOString()
+    };
+
+    if (sync === 'true') {
+      await syncDataToDatabase(userId, result);
     }
+
+    await db
+      .update(wearableIntegrationTable)
+      .set({ syncLastDate: new Date() })
+      .where(and(
+        eq(wearableIntegrationTable.userID, userId),
+        eq(wearableIntegrationTable.apiType, 'google_fit')
+      ));
 
     res.json({
-      message: `Successfully fetched and stored ${dataType} data`,
-      dataType: dataType,
-      period: { startDate: start.toISOString(), endDate: end.toISOString() },
-      data: processedData,
-      count: processedData.length,
-      stored: processedData.filter(d => d.value > 0).length,
-      syncTimestamp: new Date().toISOString()
+      message: 'Successfully fetched fitness data from Google Fit',
+      data: result,
+      dataSource: 'Huawei GT2 via Health Sync → Google Fit'
     });
 
   } catch (error) {
-    console.error(`❌ SYNC FAILED: Error fetching ${dataType} data for user ${userId}:`, error);
-    
-    // Check if it's a token/auth issue and trigger re-auth
-    if (error.message.includes('token') || error.message.includes('auth') || error.message.includes('unauthorized')) {
-      console.log(`🔄 TOKEN ISSUE DETECTED: Initiating re-auth flow for user ${userId}`);
-      
-      return res.status(401).json({
-        error: 'Authentication required',
-        message: 'Google Fit token expired or invalid',
-        requiresReauth: true,
-        authUrl: `/api/wearable/auth/google?userId=${userId}`,
-        redirectToAuth: true
-      });
-    }
-    
-    // If Google Fit API fails, try to return stored data
-    try {
-      const storedData = await getStoredFitnessData(parseInt(userId), dataType, startDate, endDate);
-      console.log(`🗃️ FALLBACK: Returning ${storedData.length} stored records due to API error`);
-      
-      return res.json({
-        message: `Google Fit API error, returning stored ${dataType} data`,
-        dataType: dataType,
-        data: storedData,
-        count: storedData.length,
-        error: error.message,
-        usingFallback: true
-      });
-    } catch (dbError) {
-      console.error(`❌ Database fallback also failed:`, dbError);
-    }
-    
-    res.status(500).json({ 
-      error: `Failed to fetch ${dataType} data`,
-      details: error.message 
-    });
+    res.status(500).json({ error: 'Failed to fetch fitness data', details: error.message });
   }
 }));
 
-// ========================================
-// ENHANCED DATA FETCHING WITH MULTIPLE FALLBACKS
-// ========================================
-
-async function fetchDataWithFallbacks(dataType, start, end) {
-  const dataSource = getDataSourceConfig(dataType);
-  if (!dataSource) {
-    throw new Error(`Unsupported data type: ${dataType}`);
-  }
-
-  // Special handling for sleep data - try HealthSync first
-  if (dataType === 'sleep') {
-    try {
-      console.log('🛏️ Trying HealthSync sleep data first...');
-      const healthSyncData = await fetchHealthSyncSleepData(start, end);
-      if (healthSyncData.length > 0) {
-        console.log(`✅ HealthSync successful for sleep: ${healthSyncData.length} records`);
-        return healthSyncData;
-      }
-    } catch (error) {
-      console.warn('⚠️ HealthSync sleep data failed:', error.message);
-    }
-  }
-
-  // Try primary data source
+router.get('/health-summary', authMiddleware, asyncHandler(async (req, res) => {
   try {
-    console.log(`🔧 Trying primary data source for ${dataType}: ${dataSource.dataSourceId}`);
-    const data = await fetchFromDataSource(dataSource, start, end, dataType);
-    if (data.length > 0) {
-      console.log(`✅ Primary source successful for ${dataType}: ${data.length} records`);
-      return data;
-    }
-  } catch (error) {
-    console.warn(`⚠️ Primary data source failed for ${dataType}:`, error.message);
-  }
-
-  // Try alternative data sources if available
-  if (dataSource.alternatives && dataSource.alternatives.length > 0) {
-    for (let i = 0; i < dataSource.alternatives.length; i++) {
-      const altSource = dataSource.alternatives[i];
-      try {
-        console.log(`🔄 Trying alternative ${i + 1} for ${dataType}: ${altSource.dataSourceId}`);
-        const data = await fetchFromDataSource(altSource, start, end, dataType);
-        if (data.length > 0) {
-          console.log(`✅ Alternative source ${i + 1} successful for ${dataType}: ${data.length} records`);
-          return data;
-        }
-      } catch (error) {
-        console.warn(`⚠️ Alternative source ${i + 1} failed for ${dataType}:`, error.message);
-      }
-    }
-  }
-
-  console.warn(`⚠️ All data sources failed for ${dataType}, returning empty array`);
-  return [];
-}
-
-async function fetchFromDataSource(dataSource, start, end, dataType) {
-  const request = {
-    userId: 'me',
-    resource: {
-      aggregateBy: [{
-        dataTypeName: dataSource.dataTypeName,
-        dataSourceId: dataSource.dataSourceId
-      }],
-      bucketByTime: { durationMillis: 86400000 }, // 24 hours
-      startTimeMillis: start.getTime(),
-      endTimeMillis: end.getTime()
-    }
-  };
-
-  console.log('🌐 Making Google Fit API request...');
-  const response = await fitness.users.dataset.aggregate(request);
-  
-  return processApiResponse(response, dataType);
-}
-
-// ========================================
-// ENHANCED DATA PROCESSING
-// ========================================
-
-function processApiResponse(response, dataType) {
-  const processedData = [];
-  
-  if (!response.data.bucket || response.data.bucket.length === 0) {
-    console.warn(`⚠️ No data buckets received for ${dataType}`);
-    return processedData;
-  }
-
-  console.log(`📊 Processing ${response.data.bucket.length} buckets for ${dataType}`);
-
-  for (const bucket of response.data.bucket) {
-    const bucketDate = new Date(parseInt(bucket.startTimeMillis));
-    const date = bucketDate.toISOString().split('T')[0];
-    let value = 0;
-    let sleepBreakdown = null;
-
-    if (bucket.dataset && bucket.dataset.length > 0) {
-      for (const dataset of bucket.dataset) {
-        if (dataset.point && dataset.point.length > 0) {
-          console.log(`📋 Processing ${dataset.point.length} points for ${dataType} on ${date}`);
-          
-          // Enhanced processing based on data type
-          if (dataType === 'sleep') {
-            const sleepResult = processSleepPoints(dataset.point);
-            value += sleepResult.totalMinutes;
-            sleepBreakdown = sleepResult.breakdown;
-            console.log(`😴 Sleep processed for ${date}:`, sleepResult);
-          } else if (dataType === 'calories') {
-            value += processCaloriePoints(dataset.point);
-          } else {
-            // Standard processing for steps and heart rate
-            const dayTotal = dataset.point.reduce((sum, point) => {
-              if (point.value && point.value.length > 0) {
-                const pointValue = point.value[0];
-                const val = pointValue.intVal !== undefined ? pointValue.intVal : 
-                           pointValue.fpVal !== undefined ? pointValue.fpVal : 0;
-                return sum + val;
-              }
-              return sum;
-            }, 0);
-            value += dayTotal;
-          }
-        }
-      }
-    }
+    const userId = req.user.userID;
     
-    if (value > 0) {
-      console.log(`📊 ${date}: ${value} ${getDataUnit(dataType)}`);
-    }
+    const fitnessResponse = await fetch(`${req.protocol}://${req.get('host')}/api/wearable/fitness-data?userId=${userId}`);
+    let googleFitData = null;
     
-    const dataPoint = {
-      date: date,
-      value: Math.round(value),
-      dataType: dataType
-    };
-
-    // Add sleep breakdown if available
-    if (dataType === 'sleep' && sleepBreakdown) {
-      Object.assign(dataPoint, sleepBreakdown);
-    }
-    
-    processedData.push(dataPoint);
-  }
-
-  return processedData;
-}
-
-function processSleepPoints(points) {
-  let totalSleepMinutes = 0;
-  let deepSleep = 0;
-  let lightSleep = 0;
-  let remSleep = 0;
-  let awakeTime = 0;
-  
-  console.log(`😴 Processing ${points.length} sleep points`);
-  
-  for (const point of points) {
-    if (point.value && point.value.length > 0) {
-      // Sleep segments have start and end times
-      const startTime = parseInt(point.startTimeNanos) / 1000000;
-      const endTime = parseInt(point.endTimeNanos) / 1000000;
-      const durationMs = endTime - startTime;
-      const durationMinutes = durationMs / (1000 * 60);
-      
-      // Check sleep type
-      const sleepType = point.value[0].intVal || 0;
-      
-      console.log(`😴 Sleep segment: type ${sleepType}, duration ${durationMinutes.toFixed(1)}min`);
-      
-      // Sleep segment types:
-      // 1 = Awake, 2 = Sleep (light), 3 = Out-of-bed, 4 = Light sleep, 5 = Deep sleep, 6 = REM sleep
-      switch (sleepType) {
-        case 1: // Awake
-          awakeTime += durationMinutes;
-          break;
-        case 2: // Sleep (general)
-        case 4: // Light sleep
-          lightSleep += durationMinutes;
-          totalSleepMinutes += durationMinutes;
-          break;
-        case 5: // Deep sleep
-          deepSleep += durationMinutes;
-          totalSleepMinutes += durationMinutes;
-          break;
-        case 6: // REM sleep
-          remSleep += durationMinutes;
-          totalSleepMinutes += durationMinutes;
-          break;
-        default:
-          // If unknown type, assume it's light sleep
-          lightSleep += durationMinutes;
-          totalSleepMinutes += durationMinutes;
-      }
-    }
-  }
-  
-  const efficiency = totalSleepMinutes > 0 ? 
-    Math.round((totalSleepMinutes / (totalSleepMinutes + awakeTime)) * 100) : 0;
-  
-  console.log(`😴 Sleep summary: ${totalSleepMinutes}min total, ${efficiency}% efficiency`);
-  
-  return {
-    totalMinutes: totalSleepMinutes,
-    breakdown: {
-      deep_sleep: Math.round(deepSleep),
-      light_sleep: Math.round(lightSleep),
-      rem_sleep: Math.round(remSleep),
-      awake_time: Math.round(awakeTime),
-      efficiency: Math.min(100, Math.max(0, efficiency))
-    }
-  };
-}
-
-function processCaloriePoints(points) {
-  let totalCalories = 0;
-  
-  for (const point of points) {
-    if (point.value && point.value.length > 0) {
-      const pointValue = point.value[0];
-      const calories = pointValue.fpVal !== undefined ? pointValue.fpVal : 
-                      pointValue.intVal !== undefined ? pointValue.intVal : 0;
-      totalCalories += calories;
-    }
-  }
-  
-  return totalCalories;
-}
-
-// ========================================
-// SPECIAL FALLBACK METHODS
-// ========================================
-
-async function fetchSleepFromActivity(start, end) {
-  console.log('🛏️ Attempting to fetch sleep data from HealthSync...');
-  
-  // First try HealthSync sources
-  const healthSyncData = await fetchHealthSyncSleepData(start, end);
-  if (healthSyncData.length > 0) {
-    console.log(`✅ Successfully fetched ${healthSyncData.length} days of HealthSync sleep data`);
-    return healthSyncData;
-  }
-  
-  // Fallback to original activity-based detection
-  console.log('🔄 Falling back to activity-based sleep detection...');
-  try {
-    const request = {
-      userId: 'me',
-      resource: {
-        aggregateBy: [{
-          dataTypeName: 'com.google.activity.segment'
-        }],
-        bucketByTime: { durationMillis: 86400000 },
-        startTimeMillis: start.getTime(),
-        endTimeMillis: end.getTime()
-      }
-    };
-
-    const response = await fitness.users.dataset.aggregate(request);
-    const sleepData = [];
-
-    if (response.data.bucket) {
-      for (const bucket of response.data.bucket) {
-        const date = new Date(parseInt(bucket.startTimeMillis)).toISOString().split('T')[0];
-        let sleepMinutes = 0;
-
-        if (bucket.dataset && bucket.dataset.length > 0) {
-          for (const dataset of bucket.dataset) {
-            if (dataset.point) {
-              for (const point of dataset.point) {
-                if (point.value && point.value[0] && point.value[0].intVal === 72) {
-                  const startTime = parseInt(point.startTimeNanos) / 1000000;
-                  const endTime = parseInt(point.endTimeNanos) / 1000000;
-                  sleepMinutes += (endTime - startTime) / (1000 * 60);
-                }
-              }
-            }
-          }
-        }
-
-        if (sleepMinutes > 0) {
-          sleepData.push({
-            date: date,
-            value: Math.round(sleepMinutes),
-            deep_sleep: Math.round(sleepMinutes * 0.25),
-            light_sleep: Math.round(sleepMinutes * 0.55),
-            rem_sleep: Math.round(sleepMinutes * 0.20),
-            awake_time: 0,
-            efficiency: Math.round((sleepMinutes / (sleepMinutes + 30)) * 100), // Assume 30min awake
-            dataType: 'sleep'
-          });
-        }
-      }
+    if (fitnessResponse.ok) {
+      const fitData = await fitnessResponse.json();
+      googleFitData = fitData.data;
     }
 
-    return sleepData;
-  } catch (error) {
-    console.error('❌ Activity-based sleep detection failed:', error);
-    return [];
-  }
-}
-
-async function fetchCombinedCalories(start, end) {
-  console.log('🔥 Attempting to fetch basal + active calories...');
-  
-  try {
-    // Fetch basal metabolic rate calories
-    const basalRequest = {
-      userId: 'me',
-      resource: {
-        aggregateBy: [{
-          dataTypeName: 'com.google.calories.bmr'
-        }],
-        bucketByTime: { durationMillis: 86400000 },
-        startTimeMillis: start.getTime(),
-        endTimeMillis: end.getTime()
-      }
-    };
-
-    // Fetch active calories
-    const activeRequest = {
-      userId: 'me',
-      resource: {
-        aggregateBy: [{
-          dataTypeName: 'com.google.calories.expended'
-        }],
-        bucketByTime: { durationMillis: 86400000 },
-        startTimeMillis: start.getTime(),
-        endTimeMillis: end.getTime()
-      }
-    };
-
-    const [basalResponse, activeResponse] = await Promise.all([
-      fitness.users.dataset.aggregate(basalRequest).catch(() => ({ data: { bucket: [] } })),
-      fitness.users.dataset.aggregate(activeRequest).catch(() => ({ data: { bucket: [] } }))
+    const [stepsData, heartRateData, caloriesData, sleepData, goals] = await Promise.all([
+      db.select().from(stepsDataTable).where(eq(stepsDataTable.userID, userId)),
+      db.select().from(heartRateDataTable).where(eq(heartRateDataTable.userID, userId)),
+      db.select().from(caloriesDataTable).where(eq(caloriesDataTable.userID, userId)),
+      db.select().from(sleepDataTable).where(eq(sleepDataTable.userID, userId)),
+      db.select().from(goalsTable).where(eq(goalsTable.userID, userId))
     ]);
 
-    const combinedData = [];
-    const dateMap = new Map();
+    const dataSource = googleFitData ? googleFitData : {
+      steps: stepsData.map(s => ({ value: s.steps_count, date: s.date })),
+      heartRate: heartRateData.map(h => ({ value: h.heartRateBpm, timestamp: h.date })),
+      calories: caloriesData.map(c => ({ value: c.calories, date: c.date })),
+      sleep: sleepData.map(s => ({ value: s.sleepDuration * 60 * 60 * 1000, date: s.date }))
+    };
 
-    // Process basal calories
-    if (basalResponse.data.bucket) {
-      for (const bucket of basalResponse.data.bucket) {
-        const date = new Date(parseInt(bucket.startTimeMillis)).toISOString().split('T')[0];
-        let basalCalories = 0;
-
-        if (bucket.dataset && bucket.dataset.length > 0) {
-          basalCalories = processCaloriePoints(bucket.dataset[0].point || []);
-        }
-
-        dateMap.set(date, { basal: basalCalories, active: 0 });
-      }
-    }
-
-    // Process active calories
-    if (activeResponse.data.bucket) {
-      for (const bucket of activeResponse.data.bucket) {
-        const date = new Date(parseInt(bucket.startTimeMillis)).toISOString().split('T')[0];
-        let activeCalories = 0;
-
-        if (bucket.dataset && bucket.dataset.length > 0) {
-          activeCalories = processCaloriePoints(bucket.dataset[0].point || []);
-        }
-
-        const existing = dateMap.get(date) || { basal: 0, active: 0 };
-        existing.active = activeCalories;
-        dateMap.set(date, existing);
-      }
-    }
-
-    // Combine the data
-    for (const [date, calories] of dateMap) {
-      const totalCalories = calories.basal + calories.active;
-      if (totalCalories > 0) {
-        combinedData.push({
-          date: date,
-          value: Math.round(totalCalories),
-          dataType: 'calories'
-        });
-      }
-    }
-
-    return combinedData;
-  } catch (error) {
-    console.error('❌ Combined calories fetch failed:', error);
-    return [];
-  }
-}
-
-// ========================================
-// HEALTH DATA ROUTES
-// ========================================
-
-// Get comprehensive health summary
-router.get('/health-summary', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  
-  console.log(`📋 Generating health summary for user: ${userId}`);
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required as query parameter' });
-  }
-
-  try {
-    await setOAuthCredentialsForUser(parseInt(userId));
-
-    const today = new Date();
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    console.log('🔄 Fetching summary data from multiple sources...');
-
-    // Fetch multiple data types in parallel with error handling
-    const [stepsData, heartRateData, caloriesData, sleepData] = await Promise.all([
-      fetchGoogleFitData('steps', weekAgo, today).catch(err => { 
-        console.warn('⚠️ Steps data unavailable:', err.message); 
-        return []; 
-      }),
-      fetchGoogleFitData('heartrate', weekAgo, today).catch(err => { 
-        console.warn('⚠️ Heart rate data unavailable:', err.message); 
-        return []; 
-      }),
-      fetchGoogleFitData('calories', weekAgo, today).catch(err => { 
-        console.warn('⚠️ Calories data unavailable:', err.message); 
-        return []; 
-      }),
-      fetchGoogleFitData('sleep', weekAgo, today).catch(err => { 
-        console.warn('⚠️ Sleep data unavailable:', err.message); 
-        return []; 
-      })
-    ]);
-
-    // Calculate summary statistics
     const summary = {
-      steps: calculateMetricSummary(stepsData, 'steps'),
-      heartRate: calculateMetricSummary(heartRateData, 'heartRate'),
-      calories: calculateMetricSummary(caloriesData, 'calories'),
-      sleep: calculateMetricSummary(sleepData, 'sleep')
+      userId,
+      lastUpdated: new Date().toISOString(),
+      dataSource: googleFitData ? 'Google Fit (Real-time)' : 'Local Database',
+      metrics: {
+        totalSteps: dataSource.steps ? dataSource.steps.reduce((sum, day) => sum + (day.value || 0), 0) : 0,
+        avgHeartRate: dataSource.heartRate && dataSource.heartRate.length > 0 
+          ? Math.round(dataSource.heartRate.reduce((sum, reading) => sum + (reading.value || 0), 0) / dataSource.heartRate.length)
+          : 0,
+        totalCalories: dataSource.calories ? dataSource.calories.reduce((sum, day) => sum + (day.value || 0), 0) : 0,
+        avgSleepHours: dataSource.sleep && dataSource.sleep.length > 0
+          ? Math.round((dataSource.sleep.reduce((sum, night) => sum + (night.value || 0), 0) / dataSource.sleep.length / (60 * 60 * 1000)) * 10) / 10
+          : 0
+      },
+      goals: goals.map(goal => ({
+        ...goal,
+        progressPercentage: goal.targetValue > 0 ? Math.min(Math.round((goal.currentValue / goal.targetValue) * 100), 100) : 0
+      })),
+      insights: generateHealthInsights(dataSource, goals)
     };
 
-    console.log('✅ Health summary generated successfully');
-
     res.json({
-      message: 'Health summary generated successfully',
-      period: 'Last 7 days',
-      summary: summary,
-      generatedAt: new Date().toISOString()
+      message: 'Successfully generated health summary',
+      data: summary
     });
 
   } catch (error) {
-    console.error('❌ Health summary error:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate health summary', 
-      details: error.message 
-    });
+    res.status(500).json({ error: 'Failed to generate health summary', details: error.message });
   }
 }));
 
-// Get stored fitness data from database - works with existing schema
-router.get('/stored-data/:dataType/:userId', asyncHandler(async (req, res) => {
-  const { dataType, userId } = req.params;
-  const { days = 7 } = req.query;
-  
-  console.log(`🗃️ Retrieving stored ${dataType} data for user ${userId} (last ${days} days)`);
-  
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - parseInt(days));
-  const startDateStr = startDate.toISOString().split('T')[0];
-  
+router.get('/insights', authMiddleware, asyncHandler(async (req, res) => {
   try {
-    let data = [];
+    const userId = req.user.userID;
     
-    // Query existing schema structure exactly as it is
-    switch (dataType) {
-      case 'steps':
-        const stepsData = await db
-          .select()
-          .from(stepsDataTable)
-          .where(and(
-            eq(stepsDataTable.user_id, parseInt(userId)),
-            gte(stepsDataTable.date, startDateStr)
-          ))
-          .orderBy(stepsDataTable.date);
-        
-        // Transform to match expected format
-        data = stepsData.map(row => ({
-          date: row.date,
-          value: row.steps_count || 0,
-          dataType: 'steps'
-        }));
-        break;
-        
-      case 'heartrate':
-        const heartData = await db
-          .select()
-          .from(heartRateDataTable)
-          .where(and(
-            eq(heartRateDataTable.user_id, parseInt(userId)),
-            gte(heartRateDataTable.date, startDateStr)
-          ))
-          .orderBy(heartRateDataTable.date);
-        
-        data = heartData.map(row => ({
-          date: row.date,
-          value: row.heart_rate_bpm || 0,
-          dataType: 'heartrate'
-        }));
-        break;
-        
-      case 'calories':
-        const calorieData = await db
-          .select()
-          .from(calorieDataTable)
-          .where(and(
-            eq(calorieDataTable.user_id, parseInt(userId)),
-            gte(calorieDataTable.date, startDateStr)
-          ))
-          .orderBy(calorieDataTable.date);
-        
-        data = calorieData.map(row => ({
-          date: row.date,
-          value: row.calories || 0,
-          dataType: 'calories'
-        }));
-        break;
-        
-      case 'sleep':
-        const sleepData = await db
-          .select()
-          .from(sleepDataTable)
-          .where(and(
-            eq(sleepDataTable.user_id, parseInt(userId)),
-            gte(sleepDataTable.date, startDateStr)
-          ))
-          .orderBy(sleepDataTable.date);
-        
-        data = sleepData.map(row => ({
-          date: row.date,
-          value: (row.deep_sleep_minutes + row.light_sleep_minutes + row.rem_sleep_minutes) || 0,
-          deep_sleep: row.deep_sleep_minutes || 0,
-          light_sleep: row.light_sleep_minutes || 0,
-          rem_sleep: row.rem_sleep_minutes || 0,
-          efficiency: row.sleep_efficiency_percent || 0,
-          dataType: 'sleep'
-        }));
-        break;
+    const fitnessResponse = await fetch(`${req.protocol}://${req.get('host')}/api/wearable/fitness-data?userId=${userId}`);
+    
+    if (!fitnessResponse.ok) {
+      return res.status(404).json({ 
+        error: 'No health data found', 
+        message: 'Make sure Health Sync is running and data has been synced from your Huawei GT2',
+        setup: 'Visit /api/wearable/test-sync for setup instructions'
+      });
     }
-    
-    console.log(`✅ Retrieved ${data.length} stored ${dataType} records`);
-    
-    res.json({
-      message: `Retrieved ${dataType} data from database`,
-      dataType,
-      period: `Last ${days} days`,
-      data: data,
-      count: data.length
-    });
-    
-  } catch (error) {
-    console.error(`❌ Error retrieving stored ${dataType} data:`, error);
-    res.status(500).json({ error: error.message });
-  }
-}));
 
-// ========================================
-// HELPER FUNCTIONS
-// ========================================
-
-async function getStoredFitnessData(userId, dataType, startDate, endDate) {
-  console.log(`🗃️ Getting stored ${dataType} data for user ${userId}`);
-  
-  const start = startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const end = endDate || new Date().toISOString().split('T')[0];
-  
-  try {
-    let data = [];
+    const { data } = await fitnessResponse.json();
     
-    switch (dataType) {
-      case 'steps':
-        const stepsData = await db
-          .select()
-          .from(stepsDataTable)
-          .where(and(
-            eq(stepsDataTable.user_id, userId),
-            gte(stepsDataTable.date, start)
-          ))
-          .orderBy(stepsDataTable.date);
-        
-        data = stepsData.map(row => ({
-          date: row.date,
-          value: row.steps_count || 0,
-          dataType: 'steps'
-        }));
-        break;
-        
-      case 'heartrate':
-        const heartData = await db
-          .select()
-          .from(heartRateDataTable)
-          .where(and(
-            eq(heartRateDataTable.user_id, userId),
-            gte(heartRateDataTable.date, start)
-          ))
-          .orderBy(heartRateDataTable.date);
-        
-        data = heartData.map(row => ({
-          date: row.date,
-          value: row.heart_rate_bpm || 0,
-          dataType: 'heartrate'
-        }));
-        break;
-        
-      case 'calories':
-        const calorieData = await db
-          .select()
-          .from(calorieDataTable)
-          .where(and(
-            eq(calorieDataTable.user_id, userId),
-            gte(calorieDataTable.date, start)
-          ))
-          .orderBy(calorieDataTable.date);
-        
-        data = calorieData.map(row => ({
-          date: row.date,
-          value: row.calories || 0,
-          dataType: 'calories'
-        }));
-        break;
-        
-      case 'sleep':
-        const sleepData = await db
-          .select()
-          .from(sleepDataTable)
-          .where(and(
-            eq(sleepDataTable.user_id, userId),
-            gte(sleepDataTable.date, start)
-          ))
-          .orderBy(sleepDataTable.date);
-        
-        data = sleepData.map(row => ({
-          date: row.date,
-          value: (row.deep_sleep_minutes + row.light_sleep_minutes + row.rem_sleep_minutes) || 0,
-          dataType: 'sleep'
-        }));
-        break;
-    }
-    
-    console.log(`✅ Retrieved ${data.length} stored ${dataType} records`);
-    return data;
-    
-  } catch (error) {
-    console.error(`❌ Error retrieving stored ${dataType} data:`, error);
-    return [];
-  }
-}
-
-function getDataUnit(dataType) {
-  const units = {
-    steps: 'steps',
-    heartrate: 'bpm',
-    calories: 'cal',
-    sleep: 'minutes'
-  };
-  
-  return units[dataType] || '';
-}
-
-function calculateMetricSummary(data, metricType) {
-  if (!data || data.length === 0) {
-    return {
-      total: 0,
-      average: 0,
-      highest: 0,
-      lowest: 0,
-      data: []
+    const insights = {
+      userId,
+      generatedAt: new Date().toISOString(),
+      dataSource: 'Huawei GT2 via Health Sync → Google Fit',
+      insights: [],
+      recommendations: [],
+      alerts: [],
+      academicMetrics: {
+        dataPoints: 0,
+        completeness: '0%',
+        reliability: 'Good'
+      }
     };
-  }
 
-  const values = data.map(d => d.value).filter(v => v > 0);
-  
-  if (values.length === 0) {
-    return {
-      total: 0,
-      average: 0,
-      highest: 0,
-      lowest: 0,
-      data: data
-    };
-  }
+    if (data.steps && data.steps.length > 0) {
+      const totalSteps = data.steps.reduce((sum, day) => sum + (day.value || 0), 0);
+      const avgSteps = totalSteps / data.steps.length;
+      const trend = calculateStepsTrend(data.steps);
+      
+      insights.insights.push({
+        metric: 'daily_steps',
+        average: Math.round(avgSteps),
+        total: totalSteps,
+        trend: trend,
+        status: avgSteps >= 10000 ? 'excellent' : avgSteps >= 7500 ? 'good' : 'needs_improvement',
+        daysTracked: data.steps.length
+      });
 
-  const total = values.reduce((sum, val) => sum + val, 0);
-  const average = Math.round(total / values.length);
-  const highest = Math.max(...values);
-  const lowest = Math.min(...values);
+      insights.academicMetrics.dataPoints += data.steps.length;
 
-  return {
-    total: metricType === 'steps' || metricType === 'calories' ? total : average,
-    average,
-    highest,
-    lowest,
-    data: data
-  };
-}
-
-// ========================================
-// DATA STORAGE FUNCTIONS - USING EXISTING SCHEMA
-// ========================================
-
-async function storeDataInDatabase(userId, dataType, processedData) {
-  console.log(`💾 Storing ${processedData.length} ${dataType} records for user ${userId}`);
-  
-  let storedCount = 0;
-  for (const dayData of processedData) {
-    // Only store data with actual values to avoid cluttering database
-    if (dayData.value > 0) {
-      try {
-        const stored = await storeDataByType(userId, dataType, dayData);
-        if (stored) storedCount++;
-      } catch (error) {
-        console.error(`❌ Error storing ${dataType} data for ${dayData.date}:`, error);
+      if (avgSteps < 8000) {
+        insights.recommendations.push({
+          type: 'activity_increase',
+          priority: 'high',
+          message: `Average steps (${Math.round(avgSteps)}) below recommended 10,000`,
+          actions: [
+            'Take stairs instead of elevator',
+            'Park farther from destinations', 
+            'Take 10-minute walks every 2 hours',
+            'Use walking meetings when possible'
+          ],
+          expectedImpact: '+15% daily activity'
+        });
       }
     }
-  }
-  
-  console.log(`✅ Successfully stored ${storedCount}/${processedData.length} ${dataType} records`);
-}
 
-async function storeDataByType(userId, dataType, dayData) {
-  switch (dataType) {
-    case 'steps':
-      return await storeStepsData(userId, dayData);
-    case 'heartrate':
-      return await storeHeartRateData(userId, dayData);
-    case 'calories':
-      return await storeCaloriesData(userId, dayData);
-    case 'sleep':
-      return await storeSleepData(userId, dayData);
-    default:
-      console.warn(`⚠️ Unknown data type: ${dataType}`);
-      return false;
-  }
-}
+    if (data.heartRate && data.heartRate.length > 0) {
+      const avgHR = data.heartRate.reduce((sum, reading) => sum + (reading.value || 0), 0) / data.heartRate.length;
+      const heartRates = data.heartRate.map(r => r.value || 0).filter(hr => hr > 0);
+      const restingHR = heartRates.length > 0 ? Math.min(...heartRates) : 0;
+      const maxHR = heartRates.length > 0 ? Math.max(...heartRates) : 0;
+      
+      insights.insights.push({
+        metric: 'heart_rate',
+        average: Math.round(avgHR),
+        resting: restingHR,
+        maximum: maxHR,
+        status: restingHR < 60 ? 'excellent' : restingHR < 80 ? 'good' : 'monitor',
+        readingsCount: data.heartRate.length
+      });
 
-// Store functions using your EXACT existing schema
-async function storeStepsData(userId, dayData) {
-  try {
-    const existing = await db
-      .select()
-      .from(stepsDataTable)
-      .where(and(
-        eq(stepsDataTable.user_id, userId),
-        eq(stepsDataTable.date, dayData.date)
-      ))
-      .limit(1);
+      insights.academicMetrics.dataPoints += data.heartRate.length;
 
-    if (existing.length > 0) {
-      // Update existing record
-      await db
-        .update(stepsDataTable)
-        .set({ 
-          steps_count: dayData.value,
-          hour: '23:59:00'
-        })
-        .where(and(
-          eq(stepsDataTable.user_id, userId),
-          eq(stepsDataTable.date, dayData.date)
-        ));
-      console.log(`📝 Updated steps data for ${dayData.date}: ${dayData.value}`);
-    } else {
-      // Insert new record using your exact schema
-      await db
-        .insert(stepsDataTable)
-        .values({
-          user_id: userId,
-          date: dayData.date,
-          hour: '23:59:00',
-          steps_count: dayData.value
+      if (avgHR > 100) {
+        insights.alerts.push({
+          type: 'health_warning',
+          message: `Average heart rate elevated (${Math.round(avgHR)} bpm)`,
+          recommendation: 'Monitor closely and consider medical consultation',
+          priority: 'high',
+          timestamp: new Date().toISOString()
         });
-      console.log(`➕ Inserted steps data for ${dayData.date}: ${dayData.value}`);
-    }
-    return true;
-  } catch (error) {
-    console.error(`❌ Error storing steps data:`, error);
-    return false;
-  }
-}
-
-async function storeHeartRateData(userId, dayData) {
-  try {
-    const existing = await db
-      .select()
-      .from(heartRateDataTable)
-      .where(and(
-        eq(heartRateDataTable.user_id, userId),
-        eq(heartRateDataTable.date, dayData.date)
-      ))
-      .limit(1);
-
-    if (existing.length > 0) {
-      await db
-        .update(heartRateDataTable)
-        .set({ 
-          heart_rate_bpm: dayData.value,
-          hour: '23:59:00'
-        })
-        .where(and(
-          eq(heartRateDataTable.user_id, userId),
-          eq(heartRateDataTable.date, dayData.date)
-        ));
-      console.log(`📝 Updated heart rate data for ${dayData.date}: ${dayData.value} bpm`);
-    } else {
-      await db
-        .insert(heartRateDataTable)
-        .values({
-          user_id: userId,
-          date: dayData.date,
-          hour: '23:59:00',
-          heart_rate_bpm: dayData.value
-        });
-      console.log(`➕ Inserted heart rate data for ${dayData.date}: ${dayData.value} bpm`);
-    }
-    return true;
-  } catch (error) {
-    console.error(`❌ Error storing heart rate data:`, error);
-    return false;
-  }
-}
-
-async function storeCaloriesData(userId, dayData) {
-  try {
-    const existing = await db
-      .select()
-      .from(calorieDataTable)
-      .where(and(
-        eq(calorieDataTable.user_id, userId),
-        eq(calorieDataTable.date, dayData.date)
-      ))
-      .limit(1);
-
-    if (existing.length > 0) {
-      await db
-        .update(calorieDataTable)
-        .set({ 
-          calories: dayData.value,
-          hour: '23:59:00'
-        })
-        .where(and(
-          eq(calorieDataTable.user_id, userId),
-          eq(calorieDataTable.date, dayData.date)
-        ));
-      console.log(`📝 Updated calories data for ${dayData.date}: ${dayData.value} cal`);
-    } else {
-      await db
-        .insert(calorieDataTable)
-        .values({
-          user_id: userId,
-          date: dayData.date,
-          hour: '23:59:00',
-          calories: dayData.value
-        });
-      console.log(`➕ Inserted calories data for ${dayData.date}: ${dayData.value} cal`);
-    }
-    return true;
-  } catch (error) {
-    console.error(`❌ Error storing calories data:`, error);
-    return false;
-  }
-}
-
-async function storeSleepData(userId, dayData) {
-  try {
-    const existing = await db
-      .select()
-      .from(sleepDataTable)
-      .where(and(
-        eq(sleepDataTable.user_id, userId),
-        eq(sleepDataTable.date, dayData.date)
-      ))
-      .limit(1);
-
-    const sleepData = {
-      deep_sleep_minutes: dayData.deep_sleep || 0,
-      light_sleep_minutes: dayData.light_sleep || 0,
-      rem_sleep_minutes: dayData.rem_sleep || 0,
-      awake_minutes: dayData.awake_time || 0,
-      sleep_effeciency_percent: dayData.efficiency || 0
-    };
-
-    if (existing.length > 0) {
-      await db
-        .update(sleepDataTable)
-        .set(sleepData)
-        .where(and(
-          eq(sleepDataTable.user_id, userId),
-          eq(sleepDataTable.date, dayData.date)
-        ));
-      console.log(`📝 Updated sleep data for ${dayData.date}: ${dayData.value}min (${dayData.efficiency}% efficiency)`);
-    } else {
-      await db
-        .insert(sleepDataTable)
-        .values({
-          user_id: userId,
-          date: dayData.date,
-          bedtime_start: '23:00:00',
-          bedtime_end: '07:00:00',
-          ...sleepData
-        });
-      console.log(`➕ Inserted sleep data for ${dayData.date}: ${dayData.value}min (${dayData.efficiency}% efficiency)`);
-    }
-    return true;
-  } catch (error) {
-    console.error(`❌ Error storing sleep data:`, error);
-    return false;
-  }
-}
-
-// ========================================
-// GOOGLE FIT API FETCH HELPER
-// ========================================
-
-async function fetchGoogleFitData(dataType, startDate, endDate) {
-  console.log(`🌐 Fetching ${dataType} data from Google Fit API...`);
-  
-  return await fetchDataWithFallbacks(dataType, startDate, endDate);
-}
-
-
-router.get('/test-healthsync-sleep/:userId', asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-  const { days = 7 } = req.query;
-  
-  console.log(`🛏️ Testing HealthSync sleep data for user ${userId} (${days} days)`);
-  
-  try {
-    await setOAuthCredentialsForUser(parseInt(userId));
-    
-    const end = new Date();
-    const start = new Date(end.getTime() - (parseInt(days) * 24 * 60 * 60 * 1000));
-    
-    console.log(`📅 Date range: ${start.toISOString()} to ${end.toISOString()}`);
-    
-    const sleepData = await fetchHealthSyncSleepData(start, end);
-    
-    // Store the data
-    if (sleepData.length > 0) {
-      console.log('💾 Storing HealthSync sleep data...');
-      for (const dayData of sleepData) {
-        await storeSleepData(parseInt(userId), dayData);
       }
-      await updateUserLastSync(parseInt(userId));
     }
+
+    if (data.sleep && data.sleep.length > 0) {
+      const avgSleepHours = data.sleep.reduce((sum, night) => sum + (night.value || 0), 0) / data.sleep.length / (60 * 60 * 1000);
+      
+      insights.insights.push({
+        metric: 'sleep_quality',
+        averageHours: Math.round(avgSleepHours * 10) / 10,
+        status: avgSleepHours >= 7 ? 'good' : 'insufficient',
+        nightsTracked: data.sleep.length
+      });
+
+      if (avgSleepHours < 7) {
+        insights.recommendations.push({
+          type: 'sleep_improvement',
+          priority: 'medium',
+          message: `Sleep duration (${avgSleepHours.toFixed(1)}h) below recommended 7-9 hours`,
+          actions: [
+            'Establish consistent bedtime routine',
+            'Limit screen time 1 hour before bed',
+            'Keep bedroom cool and dark',
+            'Avoid caffeine after 2 PM'
+          ],
+          expectedImpact: 'Improved recovery and energy levels'
+        });
+      }
+    }
+
+    const totalPossibleDataPoints = 7 * 24;
+    insights.academicMetrics.completeness = Math.round((insights.academicMetrics.dataPoints / totalPossibleDataPoints) * 100) + '%';
     
     res.json({
-      message: 'HealthSync sleep data test completed',
-      userId: userId,
-      period: `${days} days`,
-      data: sleepData,
-      count: sleepData.length,
-      stored: sleepData.length,
-      format: 'Enhanced sleep data with phases and efficiency'
+      message: 'Successfully generated health insights',
+      data: insights
     });
-    
+
   } catch (error) {
-    console.error('❌ HealthSync sleep test failed:', error);
-    res.status(500).json({
-      error: 'HealthSync sleep test failed',
-      details: error.message
-    });
+    res.status(500).json({ error: 'Failed to generate insights', details: error.message });
   }
 }));
 
-function generateSleepRecommendations(tests) {
-  const recommendations = [];
-  
-  const hasAnySleepData = tests.some(test => test.success && test.test.includes('Sleep'));
-  const hasDataSources = tests.find(test => test.test === 'Available Data Sources');
-  
-  if (!hasAnySleepData) {
-    recommendations.push('❌ No sleep data found in any source');
-    recommendations.push('🔧 Possible solutions:');
-    recommendations.push('   1. Enable sleep tracking in Google Fit app');
-    recommendations.push('   2. Connect a sleep-tracking device (Fitbit, Samsung Health, etc.)');
-    recommendations.push('   3. Manually log sleep in Google Fit');
-    recommendations.push('   4. Check if sleep permissions are granted in OAuth');
-  }
-  
-  if (hasDataSources && hasDataSources.sleepSources?.length === 0) {
-    recommendations.push('⚠️ No sleep data sources available - user may need to set up sleep tracking');
-  }
-  
-  return recommendations;
-}
-
-// Helper function for testing individual sleep data sources
-async function testSleepDataSource(dataSourceId, dataTypeName, start, end, debugResults, testName) {
+router.get('/test-sync', authMiddleware, asyncHandler(async (req, res) => {
   try {
-    console.log(`🧪 Testing: ${testName} (${dataSourceId})`);
+    const userId = req.user.userID;
     
-    const request = {
+    const integration = await db
+      .select()
+      .from(wearableIntegrationTable)
+      .where(and(
+        eq(wearableIntegrationTable.userID, userId),
+        eq(wearableIntegrationTable.apiType, 'google_fit')
+      ));
+
+    const hasIntegration = integration.length > 0 && integration[0].isActive;
+    
+    res.json({
+      message: 'Health Sync Integration Test',
+      userId,
+      status: hasIntegration ? 'connected' : 'not_connected',
+      googleFitIntegration: hasIntegration ? 'active' : 'inactive',
+      lastSync: hasIntegration ? integration[0].syncLastDate : null,
+      dataFlow: [
+        '1. Huawei GT2 → Huawei Health',
+        '2. Huawei Health → Health Sync', 
+        '3. Health Sync → Google Fit',
+        `4. Google Fit → Your API`
+      ],
+      instructions: hasIntegration ? [
+        'Integration is active and ready!',
+        'Data syncs automatically every 15 minutes',
+        'Use GET /api/wearable/fitness-data to fetch current data',
+        'Check GET /api/wearable/health-summary for insights'
+      ] : [
+        'Connect Google Fit: GET /api/wearable/auth/google',
+        'Ensure Health Sync app is installed and configured',
+        'Make sure automatic sync is enabled in Health Sync',
+        'Wait 5-10 minutes after activity for data to sync'
+      ],
+      testEndpoints: {
+        connectGoogleFit: '/api/wearable/auth/google',
+        fetchData: '/api/wearable/fitness-data',
+        healthSummary: '/api/wearable/health-summary',
+        insights: '/api/wearable/insights'
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: 'Test failed', details: error.message });
+  }
+}));
+
+router.post('/sync', authMiddleware, asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user.userID;
+    
+    const fitnessResponse = await fetch(`${req.protocol}://${req.get('host')}/api/wearable/fitness-data?sync=true&userId=${userId}`);
+    
+    if (!fitnessResponse.ok) {
+      return res.status(400).json({ error: 'Failed to sync data from Google Fit' });
+    }
+
+    const { data } = await fitnessResponse.json();
+    
+    await syncDataToDatabase(userId, data);
+    
+    res.json({
+      message: 'Manual sync completed successfully',
+      syncedData: {
+        steps: data.steps ? data.steps.length : 0,
+        heartRate: data.heartRate ? data.heartRate.length : 0,
+        calories: data.calories ? data.calories.length : 0,
+        sleep: data.sleep ? data.sleep.length : 0
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: 'Manual sync failed', details: error.message });
+  }
+}));
+
+async function fetchStepsData(startTimeMillis, endTimeMillis) {
+  try {
+    const response = await fitness.users.dataSources.datasets.get({
       userId: 'me',
-      resource: {
-        aggregateBy: [{
-          dataTypeName: dataTypeName,
-          dataSourceId: dataSourceId
-        }],
-        bucketByTime: { durationMillis: 86400000 }, // 24 hours
-        startTimeMillis: start.getTime(),
-        endTimeMillis: end.getTime()
-      }
-    };
-
-    const response = await fitness.users.dataset.aggregate(request);
-    
-    let totalPoints = 0;
-    let totalSleepMinutes = 0;
-    const dailyData = [];
-    
-    if (response.data.bucket) {
-      for (const bucket of response.data.bucket) {
-        const date = new Date(parseInt(bucket.startTimeMillis)).toISOString().split('T')[0];
-        let dayPoints = 0;
-        let daySleep = 0;
-        
-        if (bucket.dataset && bucket.dataset.length > 0) {
-          for (const dataset of bucket.dataset) {
-            if (dataset.point && dataset.point.length > 0) {
-              dayPoints += dataset.point.length;
-              totalPoints += dataset.point.length;
-              
-              // Log first few points for inspection
-              if (dataset.point.length > 0 && dailyData.length < 3) {
-                console.log(`📊 Sample points for ${date}:`, 
-                  dataset.point.slice(0, 3).map(p => ({
-                    startTime: new Date(parseInt(p.startTimeNanos) / 1000000).toISOString(),
-                    endTime: new Date(parseInt(p.endTimeNanos) / 1000000).toISOString(),
-                    value: p.value
-                  }))
-                );
-              }
-              
-              // Calculate sleep duration
-              if (dataTypeName === 'com.google.sleep.segment') {
-                daySleep = processSleepPoints(dataset.point);
-              } else if (dataTypeName === 'com.google.activity.segment') {
-                // Look for sleep activity type (72)
-                for (const point of dataset.point) {
-                  if (point.value && point.value[0] && point.value[0].intVal === 72) {
-                    const startTime = parseInt(point.startTimeNanos) / 1000000;
-                    const endTime = parseInt(point.endTimeNanos) / 1000000;
-                    daySleep += (endTime - startTime) / (1000 * 60);
-                  }
-                }
-              }
-            }
-          }
-        }
-        
-        if (dayPoints > 0) {
-          dailyData.push({
-            date: date,
-            points: dayPoints,
-            sleepMinutes: Math.round(daySleep)
-          });
-        }
-        
-        totalSleepMinutes += daySleep;
-      }
-    }
-    
-    console.log(`✅ ${testName}: ${totalPoints} points, ${Math.round(totalSleepMinutes)} total sleep minutes`);
-    
-    debugResults.tests.push({
-      test: testName,
-      success: totalPoints > 0,
-      dataSourceId: dataSourceId,
-      dataTypeName: dataTypeName,
-      totalPoints: totalPoints,
-      totalSleepMinutes: Math.round(totalSleepMinutes),
-      dailyBreakdown: dailyData,
-      rawResponse: response.data.bucket?.length > 0 ? response.data.bucket[0] : null
+      dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps',
+      datasetId: `${startTimeMillis * 1000000}-${endTimeMillis * 1000000}`
     });
-    
-  } catch (error) {
-    console.error(`❌ ${testName} failed:`, error.message);
-    debugResults.tests.push({
-      test: testName,
-      success: false,
-      dataSourceId: dataSourceId,
-      error: error.message
-    });
-  }
-}
 
-// Add this new function to handle the HealthSync sleep data sources
-async function fetchHealthSyncSleepData(start, end) {
-  console.log('🛏️ Fetching sleep data from HealthSync sources...');
-  
-  try {
-    // Get all available sleep data sources (we saw 13 HealthSync sources in your investigation)
-    const sourcesResponse = await fitness.users.dataSources.list({ userId: 'me' });
-    const sleepSources = sourcesResponse.data.dataSource?.filter(source => 
-      source.dataStreamId?.includes('healthsync') && 
-      source.dataType?.name === 'com.google.sleep.segment'
-    ) || [];
-    
-    console.log(`📊 Found ${sleepSources.length} HealthSync sleep sources`);
-    
-    const allSleepData = [];
-    
-    // Fetch data from each HealthSync source
-    for (const source of sleepSources) {
-      try {
-        console.log(`🔄 Fetching from: ${source.dataStreamId}`);
-        
-        const datasetId = `${start.getTime()}000000-${end.getTime()}000000`;
-        const response = await fitness.users.dataSources.datasets.get({
-          userId: 'me',
-          dataSourceId: source.dataStreamId,
-          datasetId: datasetId
-        });
-        
-        if (response.data.point && response.data.point.length > 0) {
-          console.log(`✅ Found ${response.data.point.length} sleep points from ${source.dataStreamId}`);
-          allSleepData.push(...response.data.point);
-        }
-        
-      } catch (error) {
-        console.warn(`⚠️ Failed to fetch from ${source.dataStreamId}:`, error.message);
-      }
-    }
-    
-    console.log(`📊 Total sleep points collected: ${allSleepData.length}`);
-    
-    // Process the sleep data into daily format
-    return processSleepDataPoints(allSleepData);
-    
+    return response.data.point?.map(point => ({
+      date: new Date(parseInt(point.startTimeNanos) / 1000000).toISOString().split('T')[0],
+      value: point.value[0].intVal || 0,
+      type: 'steps'
+    })) || [];
   } catch (error) {
-    console.error('❌ HealthSync sleep data fetch failed:', error);
     return [];
   }
 }
 
-function processSleepDataPoints(sleepPoints) {
-  console.log('🔄 Processing sleep data points...');
-  
-  const dailySleepMap = new Map();
-  
-  for (const point of sleepPoints) {
-    try {
-      const startTime = new Date(parseInt(point.startTimeNanos) / 1000000);
-      const endTime = new Date(parseInt(point.endTimeNanos) / 1000000);
-      const date = startTime.toISOString().split('T')[0];
-      
-      const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
-      const sleepType = point.value?.[0]?.intVal || 0;
-      
-      // Initialize daily data if not exists
-      if (!dailySleepMap.has(date)) {
-        dailySleepMap.set(date, {
-          date: date,
-          totalSleep: 0,
-          deepSleep: 0,
-          lightSleep: 0,
-          remSleep: 0,
-          awakeTime: 0,
-          segments: []
-        });
-      }
-      
-      const dayData = dailySleepMap.get(date);
-      
-      // Sleep segment types (based on Google Fit documentation):
-      // 1 = Awake, 2 = Sleep (light), 3 = Out-of-bed, 4 = Light sleep, 5 = Deep sleep, 6 = REM sleep
-      switch (sleepType) {
-        case 1: // Awake
-          dayData.awakeTime += durationMinutes;
-          break;
-        case 2: // Sleep (general)
-        case 4: // Light sleep
-          dayData.lightSleep += durationMinutes;
-          dayData.totalSleep += durationMinutes;
-          break;
-        case 5: // Deep sleep
-          dayData.deepSleep += durationMinutes;
-          dayData.totalSleep += durationMinutes;
-          break;
-        case 6: // REM sleep
-          dayData.remSleep += durationMinutes;
-          dayData.totalSleep += durationMinutes;
-          break;
-        default:
-          // If unknown type, assume it's sleep
-          dayData.lightSleep += durationMinutes;
-          dayData.totalSleep += durationMinutes;
-      }
-      
-      dayData.segments.push({
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        type: sleepType,
-        duration: durationMinutes
-      });
-      
-    } catch (error) {
-      console.warn('⚠️ Error processing sleep point:', error);
-    }
+async function fetchHeartRateData(startTimeMillis, endTimeMillis) {
+  try {
+    const response = await fitness.users.dataSources.datasets.get({
+      userId: 'me',
+      dataSourceId: 'derived:com.google.heart_rate.summary:com.google.android.gms:merge_heart_rate_summary',
+      datasetId: `${startTimeMillis * 1000000}-${endTimeMillis * 1000000}`
+    });
+
+    return response.data.point?.map(point => ({
+      timestamp: new Date(parseInt(point.startTimeNanos) / 1000000).toISOString(),
+      value: point.value[0].fpVal || 0,
+      type: 'heart_rate'
+    })) || [];
+  } catch (error) {
+    return [];
   }
-  
-  // Convert to array and calculate sleep efficiency
-  const processedData = [];
-  for (const [date, dayData] of dailySleepMap) {
-    if (dayData.totalSleep > 0) {
-      const efficiency = dayData.totalSleep > 0 ? 
-        Math.round((dayData.totalSleep / (dayData.totalSleep + dayData.awakeTime)) * 100) : 0;
-      
-      processedData.push({
-        date: date,
-        value: Math.round(dayData.totalSleep), // Total sleep in minutes
-        deep_sleep: Math.round(dayData.deepSleep),
-        light_sleep: Math.round(dayData.lightSleep),
-        rem_sleep: Math.round(dayData.remSleep),
-        awake_time: Math.round(dayData.awakeTime),
-        efficiency: Math.min(100, Math.max(0, efficiency)),
-        dataType: 'sleep'
-      });
-      
-      console.log(`📊 ${date}: ${Math.round(dayData.totalSleep)}min total (Deep: ${Math.round(dayData.deepSleep)}, Light: ${Math.round(dayData.lightSleep)}, REM: ${Math.round(dayData.remSleep)}, Efficiency: ${efficiency}%)`);
-    }
-  }
-  
-  return processedData.sort((a, b) => a.date.localeCompare(b.date));
 }
 
+async function fetchCaloriesData(startTimeMillis, endTimeMillis) {
+  try {
+    const response = await fitness.users.dataSources.datasets.get({
+      userId: 'me',
+      dataSourceId: 'derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended',
+      datasetId: `${startTimeMillis * 1000000}-${endTimeMillis * 1000000}`
+    });
 
+    return response.data.point?.map(point => ({
+      date: new Date(parseInt(point.startTimeNanos) / 1000000).toISOString().split('T')[0],
+      value: point.value[0].fpVal || 0,
+      type: 'calories'
+    })) || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function fetchSleepData(startTimeMillis, endTimeMillis) {
+  try {
+    const response = await fitness.users.dataSources.datasets.get({
+      userId: 'me',
+      dataSourceId: 'derived:com.google.sleep.segment:com.google.android.gms:merged',
+      datasetId: `${startTimeMillis * 1000000}-${endTimeMillis * 1000000}`
+    });
+
+    return response.data.point?.map(point => ({
+      date: new Date(parseInt(point.startTimeNanos) / 1000000).toISOString().split('T')[0],
+      value: parseInt(point.endTimeNanos) - parseInt(point.startTimeNanos),
+      sleepType: point.value[0].intVal,
+      type: 'sleep'
+    })) || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+async function syncDataToDatabase(userId, fitnessData) {
+  try {
+    if (fitnessData.steps && fitnessData.steps.length > 0) {
+      const stepsEntries = fitnessData.steps.map(entry => ({
+        userID: userId,
+        date: new Date(entry.date),
+        steps_count: entry.value || 0,
+        providedDataAt: new Date()
+      }));
+      
+      await db.insert(stepsDataTable).values(stepsEntries).ignore();
+    }
+
+    if (fitnessData.heartRate && fitnessData.heartRate.length > 0) {
+      const heartRateEntries = fitnessData.heartRate.map(entry => ({
+        userID: userId,
+        date: new Date(entry.timestamp),
+        heartRateBpm: Math.round(entry.value || 0),
+        providedDataAt: new Date()
+      }));
+      
+      await db.insert(heartRateDataTable).values(heartRateEntries).ignore();
+    }
+
+    if (fitnessData.calories && fitnessData.calories.length > 0) {
+      const caloriesEntries = fitnessData.calories.map(entry => ({
+        userID: userId,
+        date: new Date(entry.date),
+        calories: Math.round(entry.value || 0),
+        providedDataAt: new Date()
+      }));
+      
+      await db.insert(caloriesDataTable).values(caloriesEntries).ignore();
+    }
+
+    if (fitnessData.sleep && fitnessData.sleep.length > 0) {
+      const sleepEntries = fitnessData.sleep.map(entry => ({
+        userID: userId,
+        date: new Date(entry.date),
+        sleepDuration: (entry.value || 0) / (60 * 60 * 1000 * 1000000),
+        sleepQuality: entry.sleepType === 1 ? 'light' : entry.sleepType === 2 ? 'deep' : 'rem',
+        providedDataAt: new Date()
+      }));
+      
+      await db.insert(sleepDataTable).values(sleepEntries).ignore();
+    }
+    
+  } catch (error) {
+    throw error;
+  }
+}
+
+function calculateStepsTrend(stepsData) {
+  if (stepsData.length < 2) return 'insufficient_data';
+  
+  const recent = stepsData.slice(0, Math.ceil(stepsData.length / 2));
+  const older = stepsData.slice(Math.ceil(stepsData.length / 2));
+  
+  const recentAvg = recent.reduce((sum, day) => sum + (day.value || 0), 0) / recent.length;
+  const olderAvg = older.reduce((sum, day) => sum + (day.value || 0), 0) / older.length;
+  
+  const percentChange = ((recentAvg - olderAvg) / olderAvg) * 100;
+  
+  if (percentChange > 10) return 'improving';
+  if (percentChange < -10) return 'declining';
+  return 'stable';
+}
+
+function generateHealthInsights(data, goals) {
+  const insights = [];
+  
+  if (data.steps && data.steps.length > 0) {
+    const totalSteps = data.steps.reduce((sum, day) => sum + (day.value || 0), 0);
+    const avgSteps = totalSteps / data.steps.length;
+    
+    if (avgSteps >= 10000) {
+      insights.push("Excellent activity level! You're consistently hitting 10k+ steps.");
+    } else if (avgSteps >= 7500) {
+      insights.push("Good activity level! Try to reach 10,000 steps daily for optimal health.");
+    } else {
+      insights.push(" Consider increasing daily activity. Small walks throughout the day can help!");
+    }
+  }
+
+  if (data.heartRate && data.heartRate.length > 0) {
+    const heartRates = data.heartRate.map(r => r.value || 0).filter(hr => hr > 0);
+    if (heartRates.length > 0) {
+      const restingHR = Math.min(...heartRates);
+      
+      if (restingHR < 60) {
+        insights.push("Excellent cardiovascular fitness! Your resting heart rate indicates great heart health.");
+      } else if (restingHR < 80) {
+        insights.push("Good heart health! Maintain regular exercise to keep improving.");
+      } else {
+        insights.push("Consider cardio exercises to improve your resting heart rate.");
+      }
+    }
+  }
+
+  if (data.sleep && data.sleep.length > 0) {
+    const avgSleepHours = data.sleep.reduce((sum, night) => sum + (night.value || 0), 0) / data.sleep.length / (60 * 60 * 1000);
+    
+    if (avgSleepHours >= 7) {
+      insights.push("Great sleep habits! You're getting adequate rest for recovery.");
+    } else {
+      insights.push("Focus on getting 7-9 hours of sleep for better health and recovery.");
+    }
+  }
+
+  return insights;
+}
 
 module.exports = router;

@@ -2,18 +2,16 @@ const express = require('express');
 const { eq, and, gte, lte, desc } = require('drizzle-orm');
 const { db } = require('../db');
 const { stepsDataTable } = require('../db/schema');
-const { authMiddleware } = require('../lib/auth');
 const { asyncHandler, getDateRange, validateHealthData } = require('../lib/utils');
 
 const router = express.Router();
 
-// Apply auth middleware to all routes
-router.use(authMiddleware);
-
-// Get all steps data for current user
 router.get('/', asyncHandler(async (req, res) => {
-  const userId = req.user.userID;
-  const { period = 'daily', limit = 100 } = req.query;
+  const { userId, period = 'daily', limit = 100 } = req.query;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required as query parameter' });
+  }
   
   const { startDate, endDate } = getDateRange(period);
   
@@ -21,7 +19,7 @@ router.get('/', asyncHandler(async (req, res) => {
     .select()
     .from(stepsDataTable)
     .where(and(
-      eq(stepsDataTable.userID, userId),
+      eq(stepsDataTable.user_id, parseInt(userId)),
       gte(stepsDataTable.date, startDate),
       lte(stepsDataTable.date, endDate)
     ))
@@ -34,20 +32,21 @@ router.get('/', asyncHandler(async (req, res) => {
   });
 }));
 
-// Create new steps data entry
 router.post('/', asyncHandler(async (req, res) => {
-  const userId = req.user.userID;
-  const { date, hour, steps_count } = req.body;
+  const { userId, date, hour, steps_count } = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
 
-  // Validate steps data
   if (!validateHealthData('steps', steps_count)) {
     return res.status(400).json({ error: 'Invalid steps count. Must be between 0 and 100,000' });
   }
 
   const results = await db.insert(stepsDataTable).values({
-    userID: userId,
+    user_id: parseInt(userId),
     date: new Date(date),
-    hour: hour ? new Date(hour) : null,
+    hour: hour || null,
     steps_count: parseInt(steps_count)
   });
 
@@ -59,17 +58,20 @@ router.post('/', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get steps data by ID
 router.get('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userID;
+  const { userId } = req.query;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required as query parameter' });
+  }
   
   const results = await db
     .select()
     .from(stepsDataTable)
     .where(and(
-      eq(stepsDataTable.stepID, parseInt(id)),
-      eq(stepsDataTable.userID, userId)
+      eq(stepsDataTable.id, parseInt(id)),
+      eq(stepsDataTable.user_id, parseInt(userId))
     ));
   
   if (results.length === 0) {
@@ -77,34 +79,32 @@ router.get('/:id', asyncHandler(async (req, res) => {
   }
   
   res.json({
-    message: `Successfully fetched steps data ${results[0].stepID}`,
+    message: `Successfully fetched steps data ${results[0].id}`,
     data: results[0]
   });
 }));
 
-// Update steps data
 router.put('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userID;
-  const updateData = req.body;
+  const { userId, ...updateData } = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
 
-  // Validate steps data if provided
   if (updateData.steps_count && !validateHealthData('steps', updateData.steps_count)) {
     return res.status(400).json({ error: 'Invalid steps count. Must be between 0 and 100,000' });
   }
 
-  // Remove fields that shouldn't be updated
-  delete updateData.stepID;
-  delete updateData.userID;
-  delete updateData.providedDataAt;
+  delete updateData.id;
+  delete updateData.user_id;
 
-  // Check if steps data belongs to user
   const existingData = await db
     .select()
     .from(stepsDataTable)
     .where(and(
-      eq(stepsDataTable.stepID, parseInt(id)),
-      eq(stepsDataTable.userID, userId)
+      eq(stepsDataTable.id, parseInt(id)),
+      eq(stepsDataTable.user_id, parseInt(userId))
     ));
 
   if (existingData.length === 0) {
@@ -115,8 +115,8 @@ router.put('/:id', asyncHandler(async (req, res) => {
     .update(stepsDataTable)
     .set(updateData)
     .where(and(
-      eq(stepsDataTable.stepID, parseInt(id)),
-      eq(stepsDataTable.userID, userId)
+      eq(stepsDataTable.id, parseInt(id)),
+      eq(stepsDataTable.user_id, parseInt(userId))
     ));
   
   res.json({
@@ -124,18 +124,20 @@ router.put('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Delete steps data
 router.delete('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.userID;
+  const { userId } = req.query;
   
-  // Check if steps data belongs to user
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required as query parameter' });
+  }
+  
   const existingData = await db
     .select()
     .from(stepsDataTable)
     .where(and(
-      eq(stepsDataTable.stepID, parseInt(id)),
-      eq(stepsDataTable.userID, userId)
+      eq(stepsDataTable.id, parseInt(id)),
+      eq(stepsDataTable.user_id, parseInt(userId))
     ));
 
   if (existingData.length === 0) {
@@ -145,8 +147,8 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   await db
     .delete(stepsDataTable)
     .where(and(
-      eq(stepsDataTable.stepID, parseInt(id)),
-      eq(stepsDataTable.userID, userId)
+      eq(stepsDataTable.id, parseInt(id)),
+      eq(stepsDataTable.user_id, parseInt(userId))
     ));
   
   res.json({
@@ -154,10 +156,12 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get daily steps summary
 router.get('/summary/daily', asyncHandler(async (req, res) => {
-  const userId = req.user.userID;
-  const { date } = req.query;
+  const { userId, date } = req.query;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required as query parameter' });
+  }
   
   const targetDate = date ? new Date(date) : new Date();
   const startOfDay = new Date(targetDate);
@@ -169,7 +173,7 @@ router.get('/summary/daily', asyncHandler(async (req, res) => {
     .select()
     .from(stepsDataTable)
     .where(and(
-      eq(stepsDataTable.userID, userId),
+      eq(stepsDataTable.user_id, parseInt(userId)),
       gte(stepsDataTable.date, startOfDay),
       lte(stepsDataTable.date, endOfDay)
     ));
@@ -187,25 +191,26 @@ router.get('/summary/daily', asyncHandler(async (req, res) => {
   });
 }));
 
-// Bulk insert steps data (for wearable sync)
 router.post('/bulk', asyncHandler(async (req, res) => {
-  const userId = req.user.userID;
-  const { stepsData } = req.body;
+  const { userId, stepsData } = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
 
   if (!Array.isArray(stepsData) || stepsData.length === 0) {
     return res.status(400).json({ error: 'stepsData must be a non-empty array' });
   }
 
-  // Validate and prepare data
   const validatedData = stepsData.map(entry => {
     if (!validateHealthData('steps', entry.steps_count)) {
       throw new Error(`Invalid steps count: ${entry.steps_count}`);
     }
     
     return {
-      userID: userId,
+      user_id: parseInt(userId),
       date: new Date(entry.date),
-      hour: entry.hour ? new Date(entry.hour) : null,
+      hour: entry.hour || null,
       steps_count: parseInt(entry.steps_count)
     };
   });

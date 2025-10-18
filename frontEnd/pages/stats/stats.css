@@ -1,4 +1,3 @@
-/* Reset and base styles */
 * {
     margin: 0;
     padding: 0;
@@ -29,7 +28,6 @@ body {
     margin: 0 auto;
 }
 
-/* Header Styles */
 .stats-header {
     display: flex;
     align-items: center;
@@ -39,24 +37,6 @@ body {
     border-bottom: 3px solid #333;
     flex-wrap: wrap;
     gap: 20px;
-}
-
-.logo-circle {
-    width: 60px;
-    height: 60px;
-    background-color: #FF6F00;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid #fff;
-    box-shadow: 3px 3px 0px #333;
-}
-
-.logo-text {
-    color: #fff;
-    font-size: 16px;
-    text-shadow: 1px 1px 0px #333;
 }
 
 .stats-title {
@@ -99,7 +79,13 @@ body {
     text-shadow: 1px 1px 0px #333;
 }
 
-/* Time Navigation */
+.period-btn:disabled {
+    background: #333 !important;
+    color: #666 !important;
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
 .time-navigation {
     display: flex;
     align-items: center;
@@ -144,7 +130,6 @@ body {
     text-align: center;
 }
 
-/* Comparison Toggle */
 .comparison-toggle {
     display: flex;
     align-items: center;
@@ -211,7 +196,6 @@ input:checked + .toggle-slider:before {
     text-shadow: 1px 1px 0px #333;
 }
 
-/* Stats Grid */
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -221,7 +205,6 @@ input:checked + .toggle-slider:before {
     min-height: 800px;
 }
 
-/* Widget Base Styles */
 .stat-widget {
     border: 4px solid;
     background: linear-gradient(135deg, #2a2a2a 0%, #333 50%, #2a2a2a 100%);
@@ -267,7 +250,6 @@ input:checked + .toggle-slider:before {
     100% { transform: rotate(360deg); }
 }
 
-/* Widget Color Schemes */
 .steps-chart-widget {
     border-color: #388E3C;
     background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(27, 67, 50, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
@@ -288,7 +270,6 @@ input:checked + .toggle-slider:before {
     background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(74, 58, 21, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
 }
 
-/* Widget Headers */
 .widget-header {
     display: flex;
     align-items: center;
@@ -298,11 +279,6 @@ input:checked + .toggle-slider:before {
     gap: 10px;
 }
 
-.widget-header .widget-icon {
-    font-size: 20px;
-    margin-right: 10px;
-}
-
 .widget-title {
     font-size: 11px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -310,12 +286,26 @@ input:checked + .toggle-slider:before {
     flex: 1;
 }
 
-.steps-chart-widget .widget-title { color: #66BB6A; text-shadow: 0 0 10px #388E3C; }
-.heartrate-chart-widget .widget-title { color: #F44336; text-shadow: 0 0 10px #D32F2F; }
-.sleep-chart-widget .widget-title { color: #BA68C8; text-shadow: 0 0 10px #7B1FA2; }
-.calories-chart-widget .widget-title { color: #FFB74D; text-shadow: 0 0 10px #FFA000; }
+.steps-chart-widget .widget-title { 
+    color: #66BB6A; 
+    text-shadow: 0 0 10px #388E3C; 
+}
 
-/* Chart Controls */
+.heartrate-chart-widget .widget-title { 
+    color: #F44336; 
+    text-shadow: 0 0 10px #D32F2F; 
+}
+
+.sleep-chart-widget .widget-title { 
+    color: #BA68C8; 
+    text-shadow: 0 0 10px #7B1FA2; 
+}
+
+.calories-chart-widget .widget-title { 
+    color: #FFB74D; 
+    text-shadow: 0 0 10px #FFA000; 
+}
+
 .chart-controls {
     display: flex;
     gap: 5px;
@@ -346,7 +336,6 @@ input:checked + .toggle-slider:before {
     color: #fff;
 }
 
-/* Widget Content */
 .widget-content {
     height: calc(100% - 60px);
     display: flex;
@@ -370,7 +359,6 @@ input:checked + .toggle-slider:before {
     image-rendering: crisp-edges;
 }
 
-/* Chart Stats */
 .chart-stats {
     display: flex;
     justify-content: space-around;
@@ -397,25 +385,13 @@ input:checked + .toggle-slider:before {
     text-shadow: 1px 1px 0px #333;
 }
 
-/* Comparison Panel */
-.comparison-panel {
-    background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(60, 21, 69, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
-    border: 4px solid #9C27B0;
-    padding: 25px;
+#comparisonPanel {
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border: 2px solid #4CAF50;
     border-radius: 12px;
-    margin-bottom: 30px;
-    animation: slideIn 0.5s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    padding: 20px;
+    margin: 20px 0;
+    font-family: 'Press Start 2P', monospace;
 }
 
 .comparison-header {
@@ -423,71 +399,128 @@ input:checked + .toggle-slider:before {
     margin-bottom: 20px;
 }
 
-.comparison-header h3 {
-    font-size: 12px;
-    color: #CE93D8;
-    text-shadow: 0 0 10px #9C27B0;
+#comparisonTitle {
+    font-size: 10px;
+    color: #4CAF50;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
 }
 
 .comparison-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
 }
 
 .comparison-item {
-    background: rgba(156, 39, 176, 0.1);
-    border: 2px solid #9C27B0;
-    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #555;
     border-radius: 8px;
+    padding: 15px;
     text-align: center;
 }
 
 .comparison-metric {
     font-size: 8px;
-    color: #CE93D8;
+    color: #FFA000;
     margin-bottom: 10px;
-    text-shadow: 1px 1px 0px #333;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 160, 0, 0.3);
 }
 
 .comparison-values {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
     margin-bottom: 10px;
+    position: relative;
 }
 
-.current-value, .previous-value {
-    font-size: 10px;
-    color: #fff;
-    text-shadow: 1px 1px 0px #333;
-}
-
-.vs-text {
+.comparison-values::after {
+    content: 'VS';
+    position: absolute;
     font-size: 6px;
-    color: #ccc;
+    color: #666;
+    background: #333;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    left: 50%;
 }
 
-.comparison-change {
-    font-size: 8px;
-    font-weight: bold;
-    text-shadow: 1px 1px 0px #333;
+.comparison-current,
+.comparison-previous {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
 }
 
-.comparison-change.positive {
+.current-period-label,
+.previous-period-label {
+    font-size: 5px;
+    color: #888;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.current-period-label {
     color: #4CAF50;
 }
 
+.previous-period-label {
+    color: #FF9800;
+}
+
+#stepsCurrentComp,
+#stepsPreviousComp,
+#hrCurrentComp,
+#hrPreviousComp,
+#sleepCurrentComp,
+#sleepPreviousComp,
+#caloriesCurrentComp,
+#caloriesPreviousComp {
+    font-size: 12px;
+    color: #fff;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.comparison-change {
+    font-size: 10px;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 60px;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+}
+
+.comparison-change:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.comparison-change.positive {
+    background: linear-gradient(135deg, #4CAF50, #66BB6A);
+    color: #fff;
+    border: 1px solid #4CAF50;
+}
+
 .comparison-change.negative {
-    color: #F44336;
+    background: linear-gradient(135deg, #F44336, #EF5350);
+    color: #fff;
+    border: 1px solid #F44336;
 }
 
 .comparison-change.neutral {
-    color: #FFA000;
+    background: linear-gradient(135deg, #757575, #9E9E9E);
+    color: #fff;
+    border: 1px solid #757575;
 }
 
-/* Loading Overlay */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -500,6 +533,7 @@ input:checked + .toggle-slider:before {
     align-items: center;
     z-index: 10000;
     backdrop-filter: blur(5px);
+    transition: opacity 0.3s ease;
 }
 
 .loading-container {
@@ -565,7 +599,6 @@ input:checked + .toggle-slider:before {
     50% { opacity: 1; }
 }
 
-/* Stars Background */
 .stars {
     position: fixed;
     top: 0;
@@ -588,7 +621,165 @@ input:checked + .toggle-slider:before {
     50% { opacity: 1; transform: scale(1.2); }
 }
 
-/* Responsive Design */
+.pixel-logo {
+    width: 50px;
+    height: 50px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    transition: all 0.3s ease;
+}
+
+.pixel-logo:hover {
+    transform: scale(1.1);
+}
+
+.pixel-logo img {
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    object-fit: contain;
+}
+
+.nav-sync-status {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid #4CAF50;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    color: #00ff00;
+}
+
+.nav-sync-icon {
+    font-size: 10px;
+    animation: navPulse 2s infinite;
+}
+
+@keyframes navPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.nav-sync-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-sync-label {
+    color: #888;
+    font-size: 5px;
+    letter-spacing: 1px;
+}
+
+.nav-sync-time {
+    color: #00ff00;
+    font-size: 6px;
+    font-weight: bold;
+}
+
+.additional-stats {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.additional-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.additional-stat-label {
+    font-size: 5px;
+    color: #ccc;
+    text-shadow: 1px 1px 0px #333;
+}
+
+.additional-stat-value {
+    font-size: 7px;
+    color: #fff;
+    text-shadow: 1px 1px 0px #333;
+}
+
+.error-toast,
+.success-toast,
+.info-toast,
+.warning-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    max-width: 350px;
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: toastSlideIn 0.4s ease-out;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.error-toast {
+    background: linear-gradient(45deg, #d32f2f, #f44336);
+    border: 2px solid #ff5252;
+}
+
+.success-toast {
+    background: linear-gradient(45deg, #388e3c, #4caf50);
+    border: 2px solid #66bb6a;
+}
+
+.info-toast {
+    background: linear-gradient(45deg, #1976d2, #2196f3);
+    border: 2px solid #42a5f5;
+}
+
+.warning-toast {
+    background: linear-gradient(45deg, #f57c00, #ff9800);
+    border: 2px solid #ffb74d;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    color: white;
+}
+
+.toast-icon {
+    font-size: 16px;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+}
+
+.toast-message {
+    font-size: 10px;
+    line-height: 1.4;
+    letter-spacing: 0.5px;
+}
+
+@keyframes toastSlideIn {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 @media (max-width: 1200px) {
     .stats-grid {
         grid-template-columns: 1fr;
@@ -641,6 +832,16 @@ input:checked + .toggle-slider:before {
         grid-template-columns: 1fr;
     }
     
+    .comparison-values {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .comparison-current,
+    .comparison-previous {
+        width: 100%;
+    }
+    
     .chart-stats {
         flex-direction: column;
         gap: 10px;
@@ -675,452 +876,4 @@ input:checked + .toggle-slider:before {
     .stats-header {
         gap: 15px;
     }
-    
-    .logo-circle {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .logo-text {
-        font-size: 14px;
-    }
-}
-
-/* Data Availability Indicators */
-.data-availability {
-    margin-top: 8px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 5px;
-    text-align: center;
-}
-
-.data-availability.good-coverage {
-    background: rgba(76, 175, 80, 0.2);
-    border: 1px solid #4CAF50;
-    color: #4CAF50;
-}
-
-.data-availability.medium-coverage {
-    background: rgba(255, 160, 0, 0.2);
-    border: 1px solid #FFA000;
-    color: #FFA000;
-}
-
-.data-availability.low-coverage {
-    background: rgba(244, 67, 54, 0.2);
-    border: 1px solid #F44336;
-    color: #F44336;
-}
-
-.data-availability.no-data {
-    background: rgba(158, 158, 158, 0.2);
-    border: 1px solid #9E9E9E;
-    color: #9E9E9E;
-}
-
-/* Additional Stats */
-.additional-stats {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-.additional-stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-
-.additional-stat-label {
-    font-size: 5px;
-    color: #ccc;
-    text-shadow: 1px 1px 0px #333;
-}
-
-.additional-stat-value {
-    font-size: 7px;
-    color: #fff;
-    text-shadow: 1px 1px 0px #333;
-}
-
-/* Connection Prompt */
-.connection-prompt {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10001;
-}
-
-.connection-prompt-content {
-    background: linear-gradient(135deg, #2a2a2a 0%, #333 50%, #2a2a2a 100%);
-    border: 4px solid #FF6F00;
-    padding: 30px;
-    border-radius: 12px;
-    text-align: center;
-    max-width: 400px;
-    font-family: 'Press Start 2P', monospace;
-}
-
-.connection-icon {
-    font-size: 48px;
-    margin-bottom: 20px;
-}
-
-.connection-prompt-content h3 {
-    color: #FF6F00;
-    font-size: 14px;
-    margin-bottom: 15px;
-    text-shadow: 0 0 10px #FF6F00;
-}
-
-.connection-prompt-content p {
-    color: #ccc;
-    font-size: 8px;
-    line-height: 1.5;
-    margin-bottom: 20px;
-}
-
-.connection-buttons {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-}
-
-.connect-btn, .dismiss-btn {
-    background: #FF6F00;
-    border: none;
-    color: #fff;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-}
-
-.dismiss-btn {
-    background: #666;
-}
-
-.connect-btn:hover {
-    background: #FF8F00;
-    transform: translateY(-2px);
-}
-
-.dismiss-btn:hover {
-    background: #888;
-    transform: translateY(-2px);
-}
-
-/* Disabled Period Buttons */
-.period-btn:disabled {
-    background: #333 !important;
-    color: #666 !important;
-    cursor: not-allowed !important;
-    opacity: 0.5;
-}
-
-/* Pixel Logo Class for Small Cute GIFs */
-.pixel-logo {
-    width: 50px;
-    height: 50px;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    transition: all 0.3s ease;
-}
-
-.pixel-logo:hover {
-    transform: scale(1.1);
-   
-}
-
-.pixel-logo img,
-.pixel-logo .gif-content {
-    width: 100%;
-    height: 100%;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    object-fit: contain;
-}
-
-/* Smaller variant if needed */
-.pixel-logo.small {
-    width: 24px;
-    height: 24px;
-    
-}
-
-/* Icon-sized variant */
-.pixel-logo.icon {
-    width: 20px;
-    height: 20px;
-}
-
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    backdrop-filter: blur(5px);
-    transition: opacity 0.3s ease;
-}
-
-.loading-container {
-    text-align: center;
-    color: #ffffff;
-    font-family: 'Press Start 2P', monospace;
-}
-
-.pixel-loader {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-}
-
-
-/* Navigation Sync Status for Dashboard */
-.nav-sync-status {
-    margin-top: 15px;
-    padding: 10px;
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid #4CAF50;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'Press Start 2P', monospace;
-    font-size: 6px;
-    color: #00ff00;
-}
-
-.nav-sync-icon {
-    font-size: 10px;
-    animation: navPulse 2s infinite;
-}
-
-.nav-sync-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.nav-sync-label {
-    color: #888;
-    font-size: 5px;
-    letter-spacing: 1px;
-}
-
-.nav-sync-time {
-    color: #00ff00;
-    font-size: 6px;
-    font-weight: bold;
-}
-
-.data-freshness-container {
-    margin: 10px 0;
-    padding: 8px 12px;
-    background: rgba(76, 175, 80, 0.1);
-    border: 1px solid #4CAF50;
-    border-radius: 4px;
-    font-family: 'Press Start 2P', monospace;
-}
-
-.data-freshness {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 6px;
-}
-
-.freshness-label {
-    color: #4CAF50;
-}
-
-.freshness-time {
-    color: #fff;
-    font-weight: bold;
-}
-
-
-/* Comparison Panel Styles */
-#comparisonPanel {
-    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
-    border: 2px solid #4CAF50;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 20px 0;
-    font-family: 'Press Start 2P', monospace;
-}
-
-.comparison-header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-#comparisonTitle {
-    font-size: 10px;
-    color: #4CAF50;
-    margin: 0;
-    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
-}
-
-.comparison-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-}
-
-.comparison-item {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid #555;
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
-}
-
-.comparison-metric {
-    font-size: 8px;
-    color: #FFA000;
-    margin-bottom: 10px;
-    font-weight: bold;
-    text-shadow: 0 0 5px rgba(255, 160, 0, 0.3);
-}
-
-.comparison-values {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.comparison-current,
-.comparison-previous {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-}
-
-.current-period-label,
-.previous-period-label {
-    font-size: 5px;
-    color: #888;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.current-period-label {
-    color: #4CAF50;
-}
-
-.previous-period-label {
-    color: #FF9800;
-}
-
-#stepsCurrentComp,
-#stepsPreviousComp,
-#hrCurrentComp,
-#hrPreviousComp,
-#sleepCurrentComp,
-#sleepPreviousComp,
-#caloriesCurrentComp,
-#caloriesPreviousComp {
-    font-size: 12px;
-    color: #fff;
-    font-weight: bold;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-}
-
-.comparison-change {
-    font-size: 10px;
-    font-weight: bold;
-    padding: 5px 10px;
-    border-radius: 4px;
-    text-align: center;
-    min-width: 60px;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-}
-
-.comparison-change.positive {
-    background: linear-gradient(135deg, #4CAF50, #66BB6A);
-    color: #fff;
-    border: 1px solid #4CAF50;
-}
-
-.comparison-change.negative {
-    background: linear-gradient(135deg, #F44336, #EF5350);
-    color: #fff;
-    border: 1px solid #F44336;
-}
-
-.comparison-change.neutral {
-    background: linear-gradient(135deg, #757575, #9E9E9E);
-    color: #fff;
-    border: 1px solid #757575;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .comparison-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .comparison-values {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .comparison-current,
-    .comparison-previous {
-        width: 100%;
-    }
-}
-
-/* Animation for comparison changes */
-.comparison-change {
-    transition: all 0.3s ease;
-}
-
-.comparison-change:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-}
-
-/* Separator between current and previous */
-.comparison-values::after {
-    content: 'VS';
-    position: absolute;
-    font-size: 6px;
-    color: #666;
-    background: #333;
-    padding: 2px 6px;
-    border-radius: 3px;
-    transform: translateX(-50%);
-    left: 50%;
-}
-
-.comparison-values {
-    position: relative;
 }

@@ -1,7 +1,6 @@
 const { mysqlTable, int, varchar, datetime, decimal, text, boolean, time, date } = require('drizzle-orm/mysql-core');
 const { sql } = require('drizzle-orm');
 
-// Users table - matches your actual database structure
 const usersTable = mysqlTable('users', {
   id: int('id').primaryKey().autoincrement(),
   first_name: varchar('first_name', { length: 50 }),
@@ -19,7 +18,6 @@ const usersTable = mysqlTable('users', {
   created_at: date('created_at').default(sql`(current_timestamp())`)
 });
 
-// Steps data table
 const stepsDataTable = mysqlTable('steps_data', {
   id: int('id').primaryKey().autoincrement(),
   user_id: int('user_id').references(() => usersTable.id),
@@ -28,7 +26,6 @@ const stepsDataTable = mysqlTable('steps_data', {
   steps_count: int('steps_count')
 });
 
-// Heart rate data table  
 const heartRateDataTable = mysqlTable('heart_data', {
   id: int('id').primaryKey().autoincrement(),
   user_id: int('user_id').references(() => usersTable.id),
@@ -37,7 +34,6 @@ const heartRateDataTable = mysqlTable('heart_data', {
   heart_rate_bpm: int('heart_rate_bpm')
 });
 
-// Sleep data table
 const sleepDataTable = mysqlTable('sleep_data', {
   id: int('id').primaryKey().autoincrement(),
   user_id: int('user_id').references(() => usersTable.id),
@@ -46,10 +42,9 @@ const sleepDataTable = mysqlTable('sleep_data', {
   light_sleep_minutes: int('light_sleep_minutes'),
   rem_sleep_minutes: int('rem_sleep_minutes'),
   awake_minutes: int('awake_minutes'),
-  sleep_effeciency_percent: int('sleep_effeciency_percent')
+  sleep_efficiency_percent: int('sleep_efficiency_percent')
 });
 
-// Calorie data table
 const calorieDataTable = mysqlTable('calorie_data', {
   id: int('id').primaryKey().autoincrement(),
   user_id: int('user_id').references(() => usersTable.id),
@@ -58,7 +53,6 @@ const calorieDataTable = mysqlTable('calorie_data', {
   calories: int('calories')
 });
 
-// Goals table
 const goalsTable = mysqlTable('goals', {
   id: int('id').primaryKey().autoincrement(),
   user_id: int('user_id').references(() => usersTable.id),
@@ -68,7 +62,6 @@ const goalsTable = mysqlTable('goals', {
   icon: varchar('icon', { length: 100 })
 });
 
-// Notifications table
 const notificationsTable = mysqlTable('notifications', {
   id: int('id').primaryKey().autoincrement(),
   title: varchar('title', { length: 50 }),
@@ -79,7 +72,6 @@ const notificationsTable = mysqlTable('notifications', {
   icon: varchar('icon', { length: 100 })
 });
 
-// Recommendations table
 const recommendationsTable = mysqlTable('recommendations', {
   id: int('id').primaryKey().autoincrement(),
   user_id: int('user_id').references(() => usersTable.id),
@@ -92,7 +84,6 @@ const recommendationsTable = mysqlTable('recommendations', {
   icon: varchar('icon', { length: 100 })
 });
 
-// Export all tables
 module.exports = {
   usersTable,
   stepsDataTable,

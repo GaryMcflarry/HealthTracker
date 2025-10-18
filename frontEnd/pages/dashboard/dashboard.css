@@ -1,6 +1,3 @@
-/* Updated Dashboard CSS with Empty States and Pixel Art Placeholders */
-
-/* Reset and base styles */
 * {
     margin: 0;
     padding: 0;
@@ -24,13 +21,11 @@ body {
     }
 }
 
-/* Rest of your CSS remains exactly the same... */
 .dashboard-container {
     max-width: 1400px;
     margin: 0 auto;
 }
 
-/* Header Styles */
 .dashboard-header {
     display: flex;
     align-items: center;
@@ -38,24 +33,6 @@ body {
     margin-bottom: 30px;
     padding: 20px 0;
     border-bottom: 3px solid #333;
-}
-
-.logo-circle {
-    width: 60px;
-    height: 60px;
-    background-color: #388E3C;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid #fff;
-    box-shadow: 3px 3px 0px #333;
-}
-
-.logo-text {
-    color: #fff;
-    font-size: 16px;
-    text-shadow: 1px 1px 0px #333;
 }
 
 .dashboard-title {
@@ -70,7 +47,6 @@ body {
     text-shadow: 1px 1px 0px #333;
 }
 
-/* Dashboard Grid */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -105,7 +81,6 @@ body {
     grid-row: 2; 
 }
 
-/* Widget Base Styles */
 .widget {
     border: 4px solid;
     background: linear-gradient(135deg, #2a2a2a 0%, #333 50%, #2a2a2a 100%);
@@ -194,7 +169,6 @@ body {
     justify-content: space-between;
 }
 
-/* Color-coded widget borders and accents */
 .steps-widget {
     border-color: #388E3C;
     background: linear-gradient(135deg, rgba(42, 42, 42, 0.9) 0%, rgba(27, 67, 50, 0.3) 20%, rgba(42, 42, 42, 0.9) 100%);
@@ -245,7 +219,6 @@ body {
     text-shadow: 0 0 10px #FF6F00;
 }
 
-/* Empty State Styles */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -259,15 +232,6 @@ body {
 
 .empty-state-icon {
     margin-bottom: 15px;
-}
-
-.empty-state-icon img {
-    width: 48px;
-    height: 48px;
-    opacity: 0.6;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
 }
 
 .empty-state-text {
@@ -308,35 +272,6 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Pixel Art Placeholders */
-.pixel-art-placeholder {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-    background: rgba(0, 0, 0, 0.2);
-}
-
-.pixel-art-placeholder:hover {
-    transform: scale(1.2);
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(0, 0, 0, 0.4);
-}
-
-.pixel-art-placeholder img {
-    width: 100%;
-    height: 100%;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-}
-
-/* Main Statistics */
 .main-stat {
     text-align: center;
     margin-bottom: 20px;
@@ -360,37 +295,6 @@ body {
     letter-spacing: 1px;
 }
 
-/* Progress Bars */
-.progress-container {
-    margin-top: 15px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 12px;
-    background-color: #333;
-    border: 2px solid #fff;
-    position: relative;
-    clip-path: polygon(
-        6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
-        0 100%, 0 6px
-    );
-}
-
-.progress-fill {
-    height: 100%;
-    width: 0%;
-    transition: width 1.5s ease-in-out;
-}
-
-.steps-progress {
-    background-color: #388E3C;
-}
-
-.calorie-progress {
-    background-color: #FFA000;
-}
-
 .progress-text {
     font-size: 7px;
     color: #ccc;
@@ -399,7 +303,6 @@ body {
     text-align: center;
 }
 
-/* Steps widget enhanced layout */
 .steps-widget .widget-content {
     display: flex;
     align-items: center;
@@ -436,7 +339,6 @@ body {
     margin-bottom: 15px;
 }
 
-/* User Data widget enhanced */
 .goals-widget .widget-content {
     display: flex;
     flex-direction: column;
@@ -477,38 +379,6 @@ body {
     font-size: 9px;
 }
 
-.goals-widget .device-status-main {
-    font-size: 6px;
-}
-
-.goals-widget .quick-goals {
-    padding: 12px;
-}
-
-.goals-widget .goal-name {
-    font-size: 8px;
-}
-
-.goals-widget .goal-stat {
-    font-size: 7px;
-}
-
-/* Goal progress styling */
-.goal-stat.achieved {
-    color: #4CAF50;
-    text-shadow: 0 0 5px #4CAF50;
-}
-
-.goal-stat.close {
-    color: #FF9800;
-    text-shadow: 0 0 5px #FF9800;
-}
-
-.goal-stat.needs-work {
-    color: #F44336;
-    text-shadow: 0 0 5px #F44336;
-}
-
 .circular-progress-container {
     position: relative;
     width: 120px;
@@ -536,10 +406,6 @@ body {
     stroke-dashoffset: 56.52;
 }
 
-.gif-placeholder {
-    stroke-linecap: round;
-}
-
 .circular-content {
     position: absolute;
     top: 50%;
@@ -548,16 +414,10 @@ body {
     text-align: center;
 }
 
-.gif-icon {
-    font-size: 24px;
-    filter: grayscale(1) brightness(0) invert(1);
-}
-
 .steps-info {
     text-align: center;
 }
 
-/* User Profile and Device Styles */
 .user-profile {
     display: flex;
     align-items: center;
@@ -629,44 +489,6 @@ body {
     margin-bottom: 3px;
 }
 
-.device-status-main {
-    font-size: 5px;
-    color: #388E3C;
-}
-
-.quick-goals {
-    padding: 10px;
-    background: rgba(56, 142, 60, 0.1);
-    border: 1px solid #388E3C;
-    clip-path: polygon(
-        6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 
-        0 100%, 0 6px
-    );
-}
-
-.goal-item-compact {
-    margin-bottom: 8px;
-}
-
-.goal-item-compact .goal-name {
-    font-size: 7px;
-    color: #388E3C;
-    text-shadow: 1px 1px 0px #333;
-}
-
-.goal-stats {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-
-.goal-stat {
-    font-size: 6px;
-    color: #ccc;
-}
-
-/* Chart Container */
 .chart-container {
     display: flex;
     justify-content: center;
@@ -714,7 +536,6 @@ body {
     text-shadow: 1px 1px 0px #333;
 }
 
-/* Sleep Quality Styles */
 .sleep-quality {
     text-align: center;
 }
@@ -737,7 +558,6 @@ body {
     color: #ccc;
 }
 
-/* Widget Recommendations */
 .widget-recommendation {
     margin-top: 15px;
     padding: 10px;
@@ -779,7 +599,6 @@ body {
     opacity: 0.8;
 }
 
-/* Pixel Stars Background */
 .pixel-stars-bg {
     position: fixed;
     top: 0;
@@ -817,7 +636,6 @@ body {
     100% { opacity: 0.8; }
 }
 
-/* Loading States */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -896,7 +714,6 @@ body {
     50% { opacity: 1; }
 }
 
-/* Widget Loading States */
 .widget-loading {
     position: absolute;
     top: 50%;
@@ -915,30 +732,16 @@ body {
     font-family: 'Press Start 2P', monospace;
 }
 
-.pixel-spinner {
+.spinner {
     width: 40px;
     height: 40px;
     border: 4px solid #333;
     border-top: 4px solid #ffffff;
-    border-radius: 4px;
-    animation: pixelSpin 1s linear infinite;
-    position: relative;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
-.pixel-spinner::before {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border: 2px solid transparent;
-    border-top: 2px solid #ffffff;
-    border-radius: 4px;
-    animation: pixelSpin 2s linear infinite reverse;
-}
-
-@keyframes pixelSpin {
+@keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
@@ -948,12 +751,12 @@ body {
     color: #ffffff;
     text-align: center;
     letter-spacing: 1px;
-    animation: textPulse 1.5s ease-in-out infinite;
 }
 
-/* Toast Notifications */
 .error-toast,
-.success-toast {
+.success-toast,
+.info-toast,
+.warning-toast {
     position: fixed;
     top: 20px;
     right: 20px;
@@ -975,6 +778,16 @@ body {
 .success-toast {
     background: linear-gradient(45deg, #388e3c, #4caf50);
     border: 2px solid #66bb6a;
+}
+
+.info-toast {
+    background: linear-gradient(45deg, #1976d2, #2196f3);
+    border: 2px solid #42a5f5;
+}
+
+.warning-toast {
+    background: linear-gradient(45deg, #f57c00, #ff9800);
+    border: 2px solid #ffb74d;
 }
 
 .toast-content {
@@ -1007,7 +820,6 @@ body {
     }
 }
 
-/* Responsive Design */
 @media (max-width: 1200px) {
     .dashboard-grid {
         grid-template-columns: 1fr 1fr;
@@ -1145,7 +957,6 @@ body {
     }
 }
 
-/* Twinkling stars background */
 .stars {
     position: fixed;
     top: 0;
@@ -1160,15 +971,14 @@ body {
     position: absolute;
     background: #fff;
     border-radius: 50%;
-    animation: twinkle 2s infinite;
+    animation: starTwinkle 2s infinite;
 }
 
-@keyframes twinkle {
+@keyframes starTwinkle {
     0%, 100% { opacity: 0.3; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.2); }
 }
 
-/* Pixel Logo Class for Small Cute GIFs */
 .pixel-logo {
     width: 50px;
     height: 50px;
@@ -1180,11 +990,9 @@ body {
 
 .pixel-logo:hover {
     transform: scale(1.1);
-   
 }
 
-.pixel-logo img,
-.pixel-logo .gif-content {
+.pixel-logo img {
     width: 100%;
     height: 100%;
     image-rendering: pixelated;
@@ -1193,20 +1001,6 @@ body {
     object-fit: contain;
 }
 
-/* Smaller variant if needed */
-.pixel-logo.small {
-    width: 24px;
-    height: 24px;
-    
-}
-
-/* Icon-sized variant */
-.pixel-logo.icon {
-    width: 20px;
-    height: 20px;
-}
-
-/* Navigation Sync Status for Dashboard */
 .nav-sync-status {
     margin-top: 15px;
     padding: 10px;

@@ -5,8 +5,7 @@ const { eq, and, gte, isNotNull } = require('drizzle-orm');
 const { db } = require('../db');
 const { usersTable, notificationsTable, goalsTable } = require('../db/schema');
 
-// Email configuration
-const transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransporter({
   host: 'smtp.gmail.com',
   port: 587,
   secure: false,
@@ -19,24 +18,18 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Rate limiting to prevent spam
 const alertCooldowns = new Map();
 const COOLDOWN_MINUTES = 60;
 
-// Main health alert checking endpoint
 router.post('/check-health-alerts/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { healthData } = req.body;
     
-    console.log(`🔍 Health alert check for user ${userId}:`, healthData);
-    
-    // Validate input
     if (!healthData || typeof healthData !== 'object') {
       return res.status(400).json({ error: 'Invalid health data provided' });
     }
     
-    // Get user data
     const user = await db.select().from(usersTable)
       .where(eq(usersTable.id, parseInt(userId)))
       .limit(1);
@@ -50,22 +43,14 @@ router.post('/check-health-alerts/:userId', async (req, res) => {
       return res.status(400).json({ error: 'No email configured for alerts' });
     }
     
-    // Get user goals and notification settings with actual messages
     const [userGoals, notificationSettings] = await Promise.all([
       getUserGoals(userId),
       getNotificationSettings()
     ]);
     
-    console.log(`📊 Goals loaded:`, userGoals);
-    console.log(`🔔 Notification settings:`, notificationSettings);
-    
-    // Check for alerts based on goals and notification thresholds
     const alerts = await checkHealthAlerts(healthData, userGoals, notificationSettings, userId);
     
-    console.log(`⚠️ Alerts generated: ${alerts.length}`);
-    
     if (alerts.length > 0) {
-      // Send notifications
       const emailResults = await sendHealthAlerts(userData, alerts);
       res.json({
         success: true,
@@ -90,7 +75,6 @@ router.post('/check-health-alerts/:userId', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Health alert processing error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to process health alerts',
@@ -99,7 +83,6 @@ router.post('/check-health-alerts/:userId', async (req, res) => {
   }
 });
 
-// Get user goals from database
 async function getUserGoals(userId) {
   const goals = await db.select().from(goalsTable)
     .where(eq(goalsTable.user_id, parseInt(userId)));
@@ -116,7 +99,6 @@ async function getUserGoals(userId) {
   return goalsMap;
 }
 
-// Get notification settings with actual messages from database
 async function getNotificationSettings() {
   const notifications = await db.select().from(notificationsTable);
     
@@ -138,7 +120,6 @@ async function getNotificationSettings() {
       type: type
     };
     
-    // Categorize notifications by type
     if (type.includes('steps')) {
       settings.steps.notifications.push(notificationData);
       if (notif.high_amount) settings.steps.high = notif.high_amount;
@@ -157,29 +138,24 @@ async function getNotificationSettings() {
   return settings;
 }
 
-// Main alert checking logic
 async function checkHealthAlerts(healthData, userGoals, notificationSettings, userId) {
   const alerts = [];
   
-  // Check steps alerts
   if (healthData.steps !== undefined && healthData.steps !== null) {
     const stepsAlerts = await checkStepsAlerts(healthData.steps, userGoals.steps, notificationSettings.steps, userId);
     alerts.push(...stepsAlerts);
   }
   
-  // Check calories alerts
   if (healthData.calories !== undefined && healthData.calories !== null) {
     const calorieAlerts = await checkCalorieAlerts(healthData.calories, userGoals.calories, notificationSettings.calories, userId);
     alerts.push(...calorieAlerts);
   }
   
-  // Check heart rate alerts
   if (healthData.heartRate !== undefined && healthData.heartRate !== null) {
     const heartRateAlerts = await checkHeartRateAlerts(healthData.heartRate, userGoals.heart_rate, notificationSettings.heart_rate, userId);
     alerts.push(...heartRateAlerts);
   }
   
-  // Check sleep alerts (if you have sleep goals)
   if (healthData.sleepHours !== undefined && healthData.sleepHours !== null && userGoals.sleep) {
     const sleepAlerts = await checkSleepAlerts(healthData.sleepHours, userGoals.sleep, userId);
     alerts.push(...sleepAlerts);
@@ -188,7 +164,6 @@ async function checkHealthAlerts(healthData, userGoals, notificationSettings, us
   return alerts;
 }
 
-// Steps alert checking with database messages
 async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, userId) {
   const alerts = [];
   const cooldownKey = `steps_${userId}`;
@@ -197,7 +172,6 @@ async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, use
     return alerts;
   }
   
-  // Goal achievement alert
   if (stepsGoal && currentSteps >= stepsGoal.target) {
     const percentage = Math.round((currentSteps / stepsGoal.target) * 100);
     alerts.push({
@@ -212,7 +186,6 @@ async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, use
     setCooldown(cooldownKey);
   }
   
-  // Check against database notification thresholds
   stepsNotifications.notifications.forEach(notification => {
     if (notification.high_amount && currentSteps >= notification.high_amount) {
       alerts.push({
@@ -242,7 +215,6 @@ async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, use
   return alerts;
 }
 
-// Calorie alert checking with database messages
 async function checkCalorieAlerts(currentCalories, caloriesGoal, caloriesNotifications, userId) {
   const alerts = [];
   const cooldownKey = `calories_${userId}`;
@@ -251,7 +223,6 @@ async function checkCalorieAlerts(currentCalories, caloriesGoal, caloriesNotific
     return alerts;
   }
   
-  // Goal achievement alert
   if (caloriesGoal && currentCalories >= caloriesGoal.target) {
     const percentage = Math.round((currentCalories / caloriesGoal.target) * 100);
     alerts.push({
@@ -266,7 +237,6 @@ async function checkCalorieAlerts(currentCalories, caloriesGoal, caloriesNotific
     setCooldown(cooldownKey);
   }
   
-  // Check against database notification thresholds
   caloriesNotifications.notifications.forEach(notification => {
     if (notification.high_amount && currentCalories >= notification.high_amount) {
       alerts.push({
@@ -296,7 +266,6 @@ async function checkCalorieAlerts(currentCalories, caloriesGoal, caloriesNotific
   return alerts;
 }
 
-// Heart rate alert checking with database messages
 async function checkHeartRateAlerts(currentHeartRate, heartRateGoal, heartRateNotifications, userId) {
   const alerts = [];
   const cooldownKey = `heart_rate_${userId}`;
@@ -305,7 +274,6 @@ async function checkHeartRateAlerts(currentHeartRate, heartRateGoal, heartRateNo
     return alerts;
   }
   
-  // Check against database notification thresholds
   heartRateNotifications.notifications.forEach(notification => {
     if (notification.high_amount && currentHeartRate >= notification.high_amount) {
       alerts.push({
@@ -337,7 +305,6 @@ async function checkHeartRateAlerts(currentHeartRate, heartRateGoal, heartRateNo
   return alerts;
 }
 
-// Sleep alert checking (basic implementation)
 async function checkSleepAlerts(currentSleep, sleepGoal, userId) {
   const alerts = [];
   const cooldownKey = `sleep_${userId}`;
@@ -362,7 +329,6 @@ async function checkSleepAlerts(currentSleep, sleepGoal, userId) {
   return alerts;
 }
 
-// Send email alerts
 async function sendHealthAlerts(userData, alerts) {
   let sent = 0;
   let failed = 0;
@@ -379,17 +345,14 @@ async function sendHealthAlerts(userData, alerts) {
     
     await transporter.sendMail(mailOptions);
     sent++;
-    console.log(`✅ Health alert email sent to ${userData.email}`);
     
   } catch (error) {
     failed++;
-    console.error(`❌ Failed to send email to ${userData.email}:`, error);
   }
   
   return { sent, failed };
 }
 
-// Clean email template using database icons
 function generateEmailHTML(userData, alerts) {
   const userName = userData.first_name || 'User';
   const title = alerts.length === 1 ? alerts[0].title : `${alerts.length} Health Alerts`;
@@ -404,8 +367,7 @@ function generateEmailHTML(userData, alerts) {
     };
     const categoryColor = categoryColors[alert.category] || '#666';
     
-    // Convert file paths to emoji icons for email compatibility
-    let icon = '📊'; // default fallback
+    let icon = '📊';
     if (alert.icon) {
       if (alert.icon.includes('shoe')) {
         icon = '👟';
@@ -416,7 +378,6 @@ function generateEmailHTML(userData, alerts) {
       } else if (alert.icon.includes('heart')) {
         icon = '❤️';
       } else {
-        // If it's already an emoji, use it directly
         icon = alert.icon.length <= 4 ? alert.icon : '📊';
       }
     }
@@ -451,19 +412,16 @@ function generateEmailHTML(userData, alerts) {
             <tr>
                 <td>
                     <div style="max-width: 600px; margin: 0 auto; background-color: white;">
-                        <!-- Header -->
                         <div style="background-color: #343a40; color: white; padding: 40px 30px; text-align: center;">
                             <h1 style="margin: 0; font-size: 32px; font-weight: bold;">Health Tracker</h1>
                             <p style="margin: 15px 0 0 0; font-size: 18px;">${title}</p>
                         </div>
                         
-                        <!-- Content -->
                         <div style="padding: 40px 30px; background-color: #f8f9fa;">
                             <p style="font-size: 20px; color: #333; margin: 0 0 25px 0; font-weight: 500;">Hi ${userName},</p>
                             
                             ${alertsHTML}
                             
-                            <!-- Call to Action -->
                             <div style="margin: 40px 0; padding: 30px; background-color: #007bff; border-radius: 15px; text-align: center;">
                                 <p style="margin: 0 0 20px 0; color: white; font-weight: bold; font-size: 20px;">
                                     Keep tracking your health journey!
@@ -475,7 +433,6 @@ function generateEmailHTML(userData, alerts) {
                             </div>
                         </div>
                         
-                        <!-- Footer -->
                         <div style="background-color: #343a40; padding: 25px 30px; color: white; text-align: center;">
                             <p style="margin: 0; font-size: 14px; line-height: 1.6;">
                                 This is an automated health notification from Health Tracker.
@@ -490,14 +447,12 @@ function generateEmailHTML(userData, alerts) {
   `;
 }
 
-// Cooldown management functions
 function isInCooldown(key) {
   const cooldown = alertCooldowns.get(key);
   if (!cooldown) return false;
   
   const timePassed = Date.now() - cooldown;
   const cooldownExpired = true;
-  // const cooldownExpired = timePassed > (COOLDOWN_MINUTES * 60 * 1000);
   
   if (cooldownExpired) {
     alertCooldowns.delete(key);

@@ -1,7 +1,5 @@
-// API Configuration
 const API_BASE_URL = 'http://localhost:3000/api';
 
-// Utility Functions
 function getCurrentUserId() {
     const userData = localStorage.getItem('userData');
     if (userData) {
@@ -9,7 +7,6 @@ function getCurrentUserId() {
             const user = JSON.parse(userData);
             return user.userID;
         } catch (e) {
-            console.error('Error parsing userData from localStorage:', e);
             return null;
         }
     }
@@ -47,11 +44,9 @@ function showSuccess(buttonSelector, message = 'SAVED!') {
 }
 
 function showError(message) {
-    console.error(message);
     alert(message);
 }
 
-// Goal Management
 class GoalManager {
     constructor() {
         this.defaultGoals = [
@@ -91,7 +86,6 @@ class GoalManager {
                 this.loadDefaultGoals();
             }
         } catch (error) {
-            console.error('Failed to load goals:', error);
             this.loadDefaultGoals();
         }
     }
@@ -102,7 +96,6 @@ class GoalManager {
     }
 
     populateGoalForms(goals) {
-        // Clear all inputs first
         const inputIds = ['steps-goal', 'calories-goal', 'sleep-goal', 'heart-rate-goal', 
                          'stepsGoal', 'caloriesGoal', 'sleepGoal', 'heartRateGoal'];
         inputIds.forEach(id => {
@@ -110,7 +103,6 @@ class GoalManager {
             if (input) input.value = '';
         });
         
-        // Populate with goal data
         goals.forEach(goal => {
             this.setInputValue(`${goal.goalType.replace('_', '-')}-goal`, goal.targetValue);
             this.setInputValue(`${goal.goalType}Goal`, goal.targetValue);
@@ -173,7 +165,6 @@ class GoalManager {
                 showError(error.error || 'Failed to update goals');
             }
         } catch (error) {
-            console.error('Failed to update goals:', error);
             showError('Failed to update goals');
         }
     }
@@ -222,7 +213,6 @@ class GoalManager {
             });
             
             if (response.ok) {
-                // Sync both forms
                 goalData.forEach(goal => {
                     this.setInputValue(`${goal.goalType.replace('_', '-')}-goal`, goal.targetValue);
                 });
@@ -234,7 +224,6 @@ class GoalManager {
                 throw new Error(errorData.error || `Failed to save goals: ${response.status}`);
             }
         } catch (error) {
-            console.error('Error saving goals from credentials tab:', error);
             showError(`Failed to save goals: ${error.message}`);
         }
     }
@@ -263,7 +252,6 @@ class GoalManager {
     }
 }
 
-// Profile Management
 class ProfileManager {
     constructor() {
         this.fieldMappings = [
@@ -295,7 +283,6 @@ class ProfileManager {
                 this.populateUserForm(null);
             }
         } catch (error) {
-            console.error('Failed to load user profile:', error);
             this.populateUserForm(null);
         }
     }
@@ -325,7 +312,6 @@ class ProfileManager {
                 showError(error.error || 'Failed to update profile');
             }
         } catch (error) {
-            console.error('Failed to update profile:', error);
             showError('Failed to update profile');
         }
     }
@@ -346,7 +332,6 @@ class ProfileManager {
     }
 
     populateUserForm(userData) {
-        // Populate form fields
         this.fieldMappings.forEach(({ id, key }) => {
             const element = document.getElementById(id);
             if (element) {
@@ -354,7 +339,6 @@ class ProfileManager {
             }
         });
 
-        // Update UI elements
         this.updateUserDisplay(userData);
     }
 
@@ -388,7 +372,6 @@ class ProfileManager {
     }
 }
 
-// Sync Status Management
 async function loadLastSyncTime() {
     const userId = getCurrentUserId();
     if (!userId) return;
@@ -413,7 +396,6 @@ async function loadLastSyncTime() {
         }
         
     } catch (error) {
-        console.error('Error loading last sync time:', error);
         const syncTimeElement = document.getElementById('navLastSyncTime');
         const syncIconElement = document.querySelector('.nav-sync-icon');
         
@@ -422,7 +404,6 @@ async function loadLastSyncTime() {
     }
 }
 
-// Stars Animation
 function createStars() {
     const starsContainer = document.querySelector('.stars');
     if (!starsContainer) return;
@@ -442,7 +423,6 @@ function createStars() {
     }
 }
 
-// Tab Management
 function initializeTabs() {
     const tabButtons = document.querySelectorAll('.nav-btn');
     const tabPanels = document.querySelectorAll('.tab-panel');
@@ -461,14 +441,12 @@ function initializeTabs() {
     });
 }
 
-// OAuth Callback Handler
 function handleOAuthCallback() {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
     const oauthSuccess = urlParams.get('oauth');
     
     if (error) {
-        console.error('OAuth authorization failed:', error);
         showError('OAuth authorization failed.');
         return;
     }
@@ -482,11 +460,9 @@ function handleOAuthCallback() {
     }
 }
 
-// Initialize managers
 const goalManager = new GoalManager();
 const profileManager = new ProfileManager();
 
-// Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
     createStars();
     initializeTabs();
@@ -496,7 +472,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setTimeout(loadLastSyncTime, 500);
     
-    // Event listeners for buttons
     const saveGoalsBtn = document.getElementById('saveGoalsBtn');
     if (saveGoalsBtn) {
         saveGoalsBtn.addEventListener('click', () => goalManager.saveGoalsFromCredentialsTab());
