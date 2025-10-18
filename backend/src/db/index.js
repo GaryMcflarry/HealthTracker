@@ -20,12 +20,12 @@ const pool = mysql.createPool({
 async function testConnection() {
   try {
     const connection = await pool.getConnection();
-    console.log('✅ Database connected successfully');
-    console.log(`📊 Connected to: ${process.env.DB_NAME || 'health_tracker'}`);
+    console.log('Database connected successfully');
+    console.log(`Connected to: ${process.env.DB_NAME || 'health_tracker'}`);
     connection.release();
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    console.error('Database connection failed:', error.message);
     return false;
   }
 }

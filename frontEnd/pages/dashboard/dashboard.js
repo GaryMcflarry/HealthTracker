@@ -787,7 +787,7 @@ function createPixelatedStepsCircle(percentage) {
 function createHeartRateChartWithRealData(recentHR) {
     const canvas = document.getElementById('heartRateChart');
     if (!canvas) {
-        console.error('❌ Heart rate canvas not found - check your HTML for id="heartRateChart"');
+        console.error('Heart rate canvas not found - check your HTML for id="heartRateChart"');
         return;
     }
     
@@ -839,7 +839,7 @@ function createHeartRateChartWithRealData(recentHR) {
     ctx.stroke();
     updateHeartRateStats(validData);
     
-    console.log(`✅ Heart rate chart drawn with ${validData.length} points`);
+    console.log(`Heart rate chart drawn with ${validData.length} points`);
 }
 
 function createCalorieChartWithRealData(percentage) {
