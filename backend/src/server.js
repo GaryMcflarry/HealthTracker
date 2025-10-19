@@ -29,6 +29,8 @@ const fitness = google.fitness({ version: 'v1', auth: oauth2Client });
 let authRoutes, usersRoutes, goalsRoutes, stepsDataRoutes, heartRateDataRoutes, 
     sleepDataRoutes, caloriesDataRoutes, notificationsRoutes, wearableRoutes;
 
+let notificationsLoaded = false;
+
 try {
   authRoutes = require('./routes/auth');
   usersRoutes = require('./routes/users');
@@ -39,19 +41,35 @@ try {
   caloriesDataRoutes = require('./routes/caloriesData');
   wearableRoutes = require('./routes/wearable');
   
+  // Fix: Better notification route loading
   try {
     notificationsRoutes = require('./routes/notifications');
+    notificationsLoaded = true;
+    console.log('✅ Notifications routes loaded successfully');
   } catch (notifError) {
+    console.error('❌ Failed to load notifications routes:', notifError.message);
+    // Create a fallback router
     notificationsRoutes = express.Router();
-    notificationsRoutes.get('/test', (req, res) => {
-      res.json({ message: 'Notifications route fallback active' });
+    notificationsRoutes.get('/status', (req, res) => {
+      res.json({ 
+        status: 'Notifications service unavailable',
+        error: notifError.message
+      });
+    });
+    notificationsRoutes.all('*', (req, res) => {
+      res.status(503).json({ 
+        error: 'Notifications service unavailable',
+        details: notifError.message
+      });
     });
   }
   
 } catch (error) {
+  console.error('❌ Critical error loading routes:', error);
   process.exit(1);
 }
 
+// Mount all routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/goals', goalsRoutes);
@@ -61,13 +79,28 @@ app.use('/api/sleep', sleepDataRoutes);
 app.use('/api/calories', caloriesDataRoutes);
 app.use('/api/wearable', wearableRoutes);
 
-if (notificationsRoutes && typeof notificationsRoutes === 'function') {
-  app.use('/api/notifications', notificationsRoutes);
-} else {
-  app.use('/api/notifications', express.Router().get('/status', (req, res) => {
-    res.json({ status: 'Notifications service unavailable' });
-  }));
-}
+// Fix: Always mount notifications routes (either real or fallback)
+app.use('/api/notifications', notificationsRoutes);
+console.log('📧 Notifications routes mounted at /api/notifications');
+
+// Debug endpoint to check loaded routes
+app.get('/api/debug/routes', (req, res) => {
+  res.json({
+    loadedRoutes: [
+      '/api/auth',
+      '/api/users', 
+      '/api/goals',
+      '/api/steps',
+      '/api/heartrate',
+      '/api/sleep',
+      '/api/calories',
+      '/api/wearable',
+      '/api/notifications'
+    ],
+    notificationsLoaded,
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -75,7 +108,7 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     services: {
-      notifications: !!notificationsRoutes,
+      notifications: notificationsLoaded,
       wearable: !!wearableRoutes,
       auth: !!authRoutes
     }
@@ -162,18 +195,23 @@ app.get('/api/dashboard', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('❌ Dashboard error:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data', details: error.message });
   }
 });
 
+// Error handling middleware
 app.use((error, req, res, next) => {
+  console.error('❌ Server error:', error);
   res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
   });
 });
 
+// 404 handler for API routes - this should be LAST
 app.use('/api/*', (req, res) => {
+  console.log(`❌ API endpoint not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
@@ -188,7 +226,10 @@ cron.schedule('*/15 * * * *', async () => {
 });
 
 app.listen(PORT, () => {
-  // Server started
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📧 Notifications service: ${notificationsLoaded ? 'ACTIVE' : 'UNAVAILABLE'}`);
+  console.log(`🔍 Debug routes at: http://localhost:${PORT}/api/debug/routes`);
+  console.log(`❤️ Health check at: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = app;

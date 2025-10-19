@@ -72,18 +72,6 @@ const notificationsTable = mysqlTable('notifications', {
   icon: varchar('icon', { length: 100 })
 });
 
-const recommendationsTable = mysqlTable('recommendations', {
-  id: int('id').primaryKey().autoincrement(),
-  user_id: int('user_id').references(() => usersTable.id),
-  recommendation_type: varchar('recommendation_type', { length: 20 }),
-  title: varchar('title', { length: 50 }),
-  message: varchar('message', { length: 200 }),
-  suggestion: varchar('suggestion', { length: 100 }),
-  trigger_type: varchar('trigger_type', { length: 20 }),
-  trigger_value: int('trigger_value'),
-  icon: varchar('icon', { length: 100 })
-});
-
 module.exports = {
   usersTable,
   stepsDataTable,
@@ -92,5 +80,4 @@ module.exports = {
   calorieDataTable,
   goalsTable,
   notificationsTable,
-  recommendationsTable
 };
