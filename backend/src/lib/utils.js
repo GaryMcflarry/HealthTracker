@@ -1,11 +1,9 @@
-// Async handler wrapper to catch errors
 const asyncHandler = (fn) => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
 
-// Date formatting utilities
 const formatDate = (date) => {
   return new Date(date).toISOString().split('T')[0];
 };
@@ -14,7 +12,6 @@ const formatDateTime = (date) => {
   return new Date(date).toISOString();
 };
 
-// Calculate date ranges
 const getDateRange = (period) => {
   const now = new Date();
   const startDate = new Date();
@@ -36,7 +33,6 @@ const getDateRange = (period) => {
   return { startDate, endDate: now };
 };
 
-// Health data validation
 const validateHealthData = (type, value) => {
   switch (type) {
     case 'steps':
@@ -52,13 +48,11 @@ const validateHealthData = (type, value) => {
   }
 };
 
-// Calculate goal progress
 const calculateProgress = (current, target) => {
   if (target === 0) return 0;
   return Math.min(Math.round((current / target) * 100), 100);
 };
 
-// Generate health recommendations
 const generateRecommendation = (type, data) => {
   const recommendations = {
     steps: {

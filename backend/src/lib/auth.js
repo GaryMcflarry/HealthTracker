@@ -27,7 +27,6 @@ const verifyToken = (token) => {
   }
 };
 
-// Authentication middleware
 const authMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.token;
@@ -41,7 +40,6 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Get user from database
     const users = await db
       .select()
       .from(usersTable)
@@ -58,7 +56,6 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-// Admin middleware
 const adminMiddleware = (req, res, next) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });

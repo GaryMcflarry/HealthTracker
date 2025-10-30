@@ -88,10 +88,10 @@ async function loadNavLastSyncTime() {
             const timeAgo = getNavTimeAgo(syncDate);
             
             if (syncTimeElement) syncTimeElement.textContent = timeAgo;
-            if (syncIconElement) syncIconElement.textContent = '✅';
+            if (syncIconElement) syncIconElement.textContent = 'yes';
         } else {
             if (syncTimeElement) syncTimeElement.textContent = 'NEVER';
-            if (syncIconElement) syncIconElement.textContent = '❌';
+            if (syncIconElement) syncIconElement.textContent = 'no';
         }
         
     } catch (error) {
@@ -99,7 +99,7 @@ async function loadNavLastSyncTime() {
         const syncIconElement = document.querySelector('.nav-sync-icon');
         
         if (syncTimeElement) syncTimeElement.textContent = 'ERROR';
-        if (syncIconElement) syncIconElement.textContent = '❌';
+        if (syncIconElement) syncIconElement.textContent = 'no';
     }
 }
 

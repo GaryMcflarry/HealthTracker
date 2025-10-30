@@ -14,12 +14,8 @@ const { asyncHandler } = require('../lib/utils');
 
 const router = express.Router();
 
-// ========================================
-// LOGGING UTILITIES
-// ========================================
-
 function logError(context, error, additionalInfo = {}) {
-  console.error(`❌ [${context}] Error:`, error.message);
+  console.error(`[${context}] Error:`, error.message);
   console.error(`   Stack:`, error.stack);
   if (Object.keys(additionalInfo).length > 0) {
     console.error(`   Additional Info:`, additionalInfo);
@@ -27,7 +23,7 @@ function logError(context, error, additionalInfo = {}) {
 }
 
 function logInfo(context, message, data = {}) {
-  console.log(`ℹ️ [${context}] ${message}`);
+  console.log(`[${context}] ${message}`);
   if (Object.keys(data).length > 0) {
     console.log(`   Data:`, JSON.stringify(data, null, 2));
   }
@@ -44,10 +40,6 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 const fitness = google.fitness({ version: 'v1', auth: oauth2Client });
-
-// ========================================
-// TOKEN MANAGEMENT UTILITIES
-// ========================================
 
 async function getUserTokens(userId) {
   logInfo('getUserTokens', `Retrieving tokens for user: ${userId}`);
@@ -76,7 +68,6 @@ async function getUserTokens(userId) {
 async function saveUserTokens(userId, tokens) {
   logInfo('saveUserTokens', `Saving tokens for user: ${userId}`);
   
-  // CRITICAL FIX: Store client_id and client_secret with tokens for refresh
   const tokensWithCredentials = {
     ...tokens,
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -104,7 +95,6 @@ async function setOAuthCredentialsForUser(userId) {
 
   oauth2Client.setCredentials(tokens);
   
-  // Auto-refresh if expired
   if (tokens.expiry_date && Date.now() >= tokens.expiry_date) {
     logInfo('setOAuthCredentialsForUser', 'Token expired, refreshing...');
     try {
@@ -119,10 +109,6 @@ async function setOAuthCredentialsForUser(userId) {
   
   logInfo('setOAuthCredentialsForUser', 'OAuth credentials set');
 }
-
-// ========================================
-// AUTHENTICATION ROUTES (NO AUTH MIDDLEWARE)
-// ========================================
 
 router.get('/auth/google', asyncHandler(async (req, res) => {
   const { userId } = req.query;
@@ -149,7 +135,6 @@ router.get('/auth/google', asyncHandler(async (req, res) => {
 
   logInfo('auth-google', 'OAuth URL generated');
   
-  // REDIRECT directly to Google OAuth (for dashboard button)
   res.redirect(authUrl);
 }));
 
@@ -198,10 +183,6 @@ router.get('/auth/callback', asyncHandler(async (req, res) => {
   }
 }));
 
-// ========================================
-// DATA SOURCE DISCOVERY (KEY FIX!)
-// ========================================
-
 async function discoverDataSources(dataType) {
   try {
     logInfo('discoverDataSources', `Discovering sources for ${dataType}...`);
@@ -243,9 +224,6 @@ async function discoverDataSources(dataType) {
   }
 }
 
-// ========================================
-// FETCH DATA USING AGGREGATE API (KEY FIX!)
-// ========================================
 
 async function fetchFromDataSource(dataSource, start, end, dataType) {
   const request = {
@@ -255,7 +233,7 @@ async function fetchFromDataSource(dataSource, start, end, dataType) {
         dataTypeName: dataSource.dataTypeName,
         dataSourceId: dataSource.dataStreamId
       }],
-      bucketByTime: { durationMillis: 86400000 }, // 1 day buckets
+      bucketByTime: { durationMillis: 86400000 },
       startTimeMillis: start.getTime(),
       endTimeMillis: end.getTime()
     }
@@ -294,7 +272,6 @@ function processApiResponse(response, dataType) {
           } else if (dataType === 'calories') {
             value += processCaloriePoints(dataset.point);
           } else {
-            // Steps and heart rate
             const dayTotal = dataset.point.reduce((sum, point) => {
               if (point.value && point.value.length > 0) {
                 const pointValue = point.value[0];
@@ -326,10 +303,6 @@ function processApiResponse(response, dataType) {
   return processedData;
 }
 
-// ========================================
-// SLEEP DATA PROCESSING (FIXED!)
-// ========================================
-
 function processSleepPoints(points) {
   let totalSleepMinutes = 0;
   let deepSleep = 0;
@@ -344,21 +317,20 @@ function processSleepPoints(points) {
       const durationMinutes = (endTime - startTime) / (1000 * 60);
       const sleepType = point.value[0].intVal || 0;
       
-      // Google Fit sleep stage mapping
       switch (sleepType) {
-        case 1: // Awake
+        case 1: 
           awakeTime += durationMinutes;
           break;
-        case 2: // Sleep (light)
-        case 4: // Out of bed (treat as light)
+        case 2: 
+        case 4:
           lightSleep += durationMinutes;
           totalSleepMinutes += durationMinutes;
           break;
-        case 5: // Deep sleep
+        case 5: 
           deepSleep += durationMinutes;
           totalSleepMinutes += durationMinutes;
           break;
-        case 6: // REM sleep
+        case 6: 
           remSleep += durationMinutes;
           totalSleepMinutes += durationMinutes;
           break;
@@ -399,10 +371,6 @@ function processCaloriePoints(points) {
   return totalCalories;
 }
 
-// ========================================
-// TRY MULTIPLE SOURCES (KEY FIX!)
-// ========================================
-
 async function fetchFromDiscoveredSources(sources, start, end, dataType) {
   logInfo('fetchFromDiscoveredSources', `Trying ${sources.length} sources for ${dataType}`);
   
@@ -434,10 +402,6 @@ async function fetchFromDiscoveredSources(sources, start, end, dataType) {
   return [];
 }
 
-// ========================================
-// MAIN FITNESS DATA ENDPOINT (DASHBOARD COMPATIBLE, NO AUTH)
-// ========================================
-
 router.get('/fitness-data', asyncHandler(async (req, res) => {
   const { startDate, endDate, dataType, sync = false, userId: queryUserId } = req.query;
   const userId = parseInt(queryUserId);
@@ -459,7 +423,6 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
   try {
     logInfo('fitness-data', `Fetching ${dataType} for user ${userId}`, { startDate, endDate });
 
-    // Check for Google Fit tokens
     const tokens = await getUserTokens(userId);
     if (!tokens) {
       logInfo('fitness-data', `No Google Fit tokens for user ${userId}`, { fallbackToStored: true });
@@ -487,7 +450,6 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
       end: end.toISOString() 
     });
 
-    // Discover available sources
     logInfo('fitness-data', `Discovering data sources for ${dataType}`);
     const availableSources = await discoverDataSources(dataType);
     
@@ -508,14 +470,12 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
     
     logInfo('fitness-data', `Processed ${processedData.length} data points`);
 
-    // Store in database if sync=true
     if (sync === 'true' && processedData.length > 0) {
       logInfo('fitness-data', `Storing ${processedData.length} records in database`);
       await storeDataInDatabase(userId, dataType, processedData);
       logInfo('fitness-data', `Successfully synced ${processedData.length} ${dataType} records`);
     }
     
-    // Update last sync
     await db.update(usersTable)
       .set({ last_sync: new Date() })
       .where(eq(usersTable.id, userId));
@@ -535,7 +495,6 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
   } catch (error) {
     logError('fitness-data', error, { userId, dataType });
     
-    // Auth error handling
     if (error.message.includes('token') || error.message.includes('auth') || error.code === 401) {
       logInfo('fitness-data', 'Authentication error detected, returning auth required response');
       return res.status(401).json({
@@ -546,7 +505,6 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
       });
     }
     
-    // Fallback to stored data
     try {
       logInfo('fitness-data', 'Attempting fallback to stored data');
       const storedData = await getStoredFitnessData(userId, dataType, startDate, endDate);
@@ -570,10 +528,6 @@ router.get('/fitness-data', asyncHandler(async (req, res) => {
     });
   }
 }));
-
-// ========================================
-// DATABASE STORAGE FUNCTIONS
-// ========================================
 
 async function storeDataInDatabase(userId, dataType, processedData) {
   logInfo('storeDataInDatabase', `Storing ${processedData.length} ${dataType} records`);
@@ -721,7 +675,6 @@ async function storeSleepData(userId, dayData) {
       ))
       .limit(1);
 
-    // Store breakdown properly in separate columns
     const sleepData = {
       deep_sleep_minutes: Math.round(dayData.deep_sleep || 0),
       light_sleep_minutes: Math.round(dayData.light_sleep || 0),
@@ -754,9 +707,6 @@ async function storeSleepData(userId, dayData) {
   }
 }
 
-// ========================================
-// GET STORED DATA FROM DATABASE (DASHBOARD COMPATIBLE)
-// ========================================
 
 router.get('/stored-data/:dataType/:userId', asyncHandler(async (req, res) => {
   const { dataType, userId } = req.params;
@@ -853,7 +803,6 @@ async function getStoredFitnessData(userId, dataType, startDate, endDate) {
           ))
           .orderBy(sleepDataTable.date);
         
-        // Calculate total value from breakdown columns
         data = sleepData.map(row => {
           const deep = row.deep_sleep_minutes || 0;
           const light = row.light_sleep_minutes || 0;
@@ -862,7 +811,7 @@ async function getStoredFitnessData(userId, dataType, startDate, endDate) {
           
           return {
             date: row.date,
-            value: total, // Total sleep in minutes
+            value: total,
             deep_sleep: deep,
             light_sleep: light,
             rem_sleep: rem,
@@ -882,562 +831,5 @@ async function getStoredFitnessData(userId, dataType, startDate, endDate) {
     return [];
   }
 }
-
-// ========================================
-// UTILITY ENDPOINTS
-// ========================================
-
-// Health summary endpoint (NO AUTH)
-router.get('/health-summary', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId query parameter is required' });
-  }
-  
-  try {
-    const [stepsData, heartRateData, caloriesData, sleepData, goals] = await Promise.all([
-      getStoredFitnessData(parseInt(userId), 'steps', null, null),
-      getStoredFitnessData(parseInt(userId), 'heartrate', null, null),
-      getStoredFitnessData(parseInt(userId), 'calories', null, null),
-      getStoredFitnessData(parseInt(userId), 'sleep', null, null),
-      db.select().from(goalsTable).where(eq(goalsTable.user_id, parseInt(userId)))
-    ]);
-
-    const summary = {
-      userId: parseInt(userId),
-      lastUpdated: new Date().toISOString(),
-      metrics: {
-        totalSteps: stepsData.reduce((sum, day) => sum + (day.value || 0), 0),
-        avgHeartRate: heartRateData.length > 0 
-          ? Math.round(heartRateData.reduce((sum, reading) => sum + (reading.value || 0), 0) / heartRateData.length)
-          : 0,
-        totalCalories: caloriesData.reduce((sum, day) => sum + (day.value || 0), 0),
-        avgSleepHours: sleepData.length > 0
-          ? Math.round((sleepData.reduce((sum, night) => sum + (night.value || 0), 0) / sleepData.length / 60) * 10) / 10
-          : 0
-      },
-      goals: goals.map(goal => ({
-        id: goal.id,
-        user_id: goal.user_id,
-        goal_type: goal.goal_type,
-        target_value: goal.target_value,
-        time_period: goal.time_period,
-        icon: goal.icon,
-        current_value: goal.current_value || 0,
-        progressPercentage: goal.target_value > 0 
-          ? Math.min(Math.round(((goal.current_value || 0) / goal.target_value) * 100), 100) 
-          : 0
-      }))
-    };
-
-    res.json({
-      message: 'Successfully generated health summary',
-      data: summary
-    });
-
-  } catch (error) {
-    logError('health-summary', error);
-    res.status(500).json({ error: 'Failed to generate health summary', details: error.message });
-  }
-}));
-
-// Manual sync trigger (NO AUTH)
-router.post('/sync', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId query parameter is required' });
-  }
-  
-  const userIdInt = parseInt(userId);
-  
-  try {
-    logInfo('manual-sync', `Manual sync triggered for user ${userIdInt}`);
-    
-    const dataTypes = ['steps', 'heartrate', 'calories', 'sleep'];
-    const results = {
-      steps: 0,
-      heartrate: 0,
-      calories: 0,
-      sleep: 0,
-      errors: []
-    };
-    
-    for (const dataType of dataTypes) {
-      try {
-        logInfo('manual-sync', `Processing ${dataType} for user ${userIdInt}`);
-        
-        const tokens = await getUserTokens(userIdInt);
-        if (!tokens) {
-          const errorMsg = `No Google Fit auth for ${dataType}`;
-          logInfo('manual-sync', errorMsg);
-          results.errors.push(errorMsg);
-          continue;
-        }
-        
-        await setOAuthCredentialsForUser(userIdInt);
-        
-        const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const end = new Date();
-        
-        const availableSources = await discoverDataSources(dataType);
-        
-        if (availableSources.length === 0) {
-          const errorMsg = `No sources for ${dataType}`;
-          logInfo('manual-sync', errorMsg);
-          results.errors.push(errorMsg);
-          continue;
-        }
-        
-        const processedData = await fetchFromDiscoveredSources(availableSources, start, end, dataType);
-        
-        if (processedData.length > 0) {
-          await storeDataInDatabase(userIdInt, dataType, processedData);
-          results[dataType] = processedData.length;
-          logInfo('manual-sync', `Successfully synced ${processedData.length} ${dataType} records`);
-        } else {
-          results.errors.push(`${dataType}: No data returned from Google Fit`);
-        }
-        
-      } catch (error) {
-        logError('manual-sync', error, { dataType, userId: userIdInt });
-        results.errors.push(`${dataType}: ${error.message}`);
-      }
-    }
-    
-    await db.update(usersTable)
-      .set({ last_sync: new Date() })
-      .where(eq(usersTable.id, userIdInt));
-    
-    logInfo('manual-sync', 'Manual sync completed', { results });
-    
-    res.json({
-      message: 'Manual sync completed',
-      userId: userIdInt,
-      syncedData: results,
-      timestamp: new Date().toISOString(),
-      totalSynced: Object.values(results).reduce((sum, val) => typeof val === 'number' ? sum + val : sum, 0),
-      hasErrors: results.errors.length > 0
-    });
-    
-  } catch (error) {
-    logError('manual-sync', error, { userId: userIdInt });
-    res.status(500).json({ 
-      error: 'Manual sync failed', 
-      details: error.message,
-      userId: userIdInt
-    });
-  }
-}));
-
-// Test sync endpoint (NO AUTH)
-router.get('/test-sync', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId query parameter is required' });
-  }
-  
-  const userIdInt = parseInt(userId);
-  
-  logInfo('test-sync', 'Testing Health Sync integration for user:', userIdInt);
-  
-  try {
-    const tokens = await getUserTokens(userIdInt);
-    const hasIntegration = !!tokens;
-    
-    let lastSync = null;
-    if (hasIntegration) {
-      const user = await db.select({ last_sync: usersTable.last_sync })
-        .from(usersTable)
-        .where(eq(usersTable.id, userIdInt))
-        .limit(1);
-      lastSync = user[0]?.last_sync;
-    }
-    
-    res.json({
-      message: 'Health Sync Integration Test',
-      userId: userIdInt,
-      status: hasIntegration ? 'connected' : 'not_connected',
-      googleFitIntegration: hasIntegration ? 'active' : 'inactive',
-      lastSync,
-      dataFlow: [
-        '1. Huawei GT2 → Huawei Health ✅',
-        '2. Huawei Health → Health Sync ✅', 
-        '3. Health Sync → Google Fit ✅',
-        `4. Google Fit → Your API ${hasIntegration ? '✅' : '❌'}`
-      ],
-      instructions: hasIntegration ? [
-        'Integration is active and ready!',
-        'Data syncs when you call GET /api/wearable/fitness-data?dataType=steps&sync=true&userId=X',
-        'Or use POST /api/wearable/sync?userId=X to sync all data types',
-        'Check GET /api/wearable/health-summary?userId=X for insights'
-      ] : [
-        'Connect Google Fit: GET /api/wearable/auth/google?userId=X',
-        'Ensure Health Sync app is installed and configured',
-        'Make sure automatic sync is enabled in Health Sync',
-        'Wait 5-10 minutes after activity for data to sync'
-      ],
-      testEndpoints: {
-        connectGoogleFit: `/api/wearable/auth/google?userId=${userIdInt}`,
-        fetchSteps: `/api/wearable/fitness-data?dataType=steps&sync=true&userId=${userIdInt}`,
-        fetchHeartRate: `/api/wearable/fitness-data?dataType=heartrate&sync=true&userId=${userIdInt}`,
-        fetchCalories: `/api/wearable/fitness-data?dataType=calories&sync=true&userId=${userIdInt}`,
-        fetchSleep: `/api/wearable/fitness-data?dataType=sleep&sync=true&userId=${userIdInt}`,
-        syncAll: `/api/wearable/sync?userId=${userIdInt}`,
-        healthSummary: `/api/wearable/health-summary?userId=${userIdInt}`
-      },
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    logError('test-sync', error);
-    res.status(500).json({ error: 'Test failed', details: error.message });
-  }
-}));
-
-// Debug endpoint - shows all available data sources (NO AUTH)
-router.get('/debug-google-fit', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId query parameter is required' });
-  }
-  
-  const userIdInt = parseInt(userId);
-  
-  logInfo('debug-google-fit', `Checking Google Fit connection for user ${userIdInt}`);
-  
-  try {
-    const tokens = await getUserTokens(userIdInt);
-    if (!tokens) {
-      return res.json({
-        error: 'No tokens found',
-        message: 'User has not connected Google Fit',
-        recommendation: `Use GET /api/wearable/auth/google?userId=${userIdInt} to connect`
-      });
-    }
-    
-    logInfo('debug-google-fit', 'Tokens found:', {
-      hasAccessToken: !!tokens.access_token,
-      hasRefreshToken: !!tokens.refresh_token,
-      expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : 'none',
-      isExpired: tokens.expiry_date ? Date.now() >= tokens.expiry_date : false
-    });
-    
-    await setOAuthCredentialsForUser(userIdInt);
-    
-    logInfo('debug-google-fit', 'Fetching all available data sources...');
-    const sourcesResponse = await fitness.users.dataSources.list({ userId: 'me' });
-    
-    const allSources = sourcesResponse.data.dataSource || [];
-    logInfo('debug-google-fit', `Total data sources found: ${allSources.length}`);
-    
-    // Categorize sources by type
-    const sourcesByType = {
-      steps: [],
-      heartRate: [],
-      calories: [],
-      sleep: [],
-      other: []
-    };
-    
-    allSources.forEach(source => {
-      const dataTypeName = source.dataType?.name || 'unknown';
-      
-      if (dataTypeName.includes('step_count')) {
-        sourcesByType.steps.push(source);
-      } else if (dataTypeName.includes('heart_rate')) {
-        sourcesByType.heartRate.push(source);
-      } else if (dataTypeName.includes('calories')) {
-        sourcesByType.calories.push(source);
-      } else if (dataTypeName.includes('sleep')) {
-        sourcesByType.sleep.push(source);
-      } else {
-        sourcesByType.other.push(source);
-      }
-    });
-    
-    // Test fetching sample data from steps
-    let sampleStepsData = null;
-    if (sourcesByType.steps.length > 0) {
-      const testSource = sourcesByType.steps[0];
-      logInfo('debug-google-fit', `Testing data fetch from: ${testSource.dataStreamId}`);
-      
-      try {
-        const now = new Date();
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        const testResponse = await fitness.users.dataset.aggregate({
-          userId: 'me',
-          resource: {
-            aggregateBy: [{
-              dataTypeName: testSource.dataType.name,
-              dataSourceId: testSource.dataStreamId
-            }],
-            bucketByTime: { durationMillis: 86400000 },
-            startTimeMillis: weekAgo.getTime(),
-            endTimeMillis: now.getTime()
-          }
-        });
-        
-        sampleStepsData = {
-          bucketsReturned: testResponse.data.bucket?.length || 0,
-          hasDataPoints: testResponse.data.bucket?.some(b => 
-            b.dataset?.[0]?.point?.length > 0
-          ) || false,
-          sampleBucket: testResponse.data.bucket?.[0] || null
-        };
-        
-        logInfo('debug-google-fit', 'Sample data fetch successful:', sampleStepsData);
-      } catch (error) {
-        logError('debug-google-fit', error, { context: 'sample-data-fetch' });
-        sampleStepsData = { error: error.message };
-      }
-    }
-    
-    res.json({
-      message: 'Google Fit diagnostic complete',
-      userId: userIdInt,
-      oauth: {
-        hasTokens: true,
-        accessToken: tokens.access_token ? `${tokens.access_token.substring(0, 20)}...` : null,
-        tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
-        isExpired: tokens.expiry_date ? Date.now() >= tokens.expiry_date : false,
-        scopes: tokens.scope?.split(' ') || []
-      },
-      dataSources: {
-        total: allSources.length,
-        steps: {
-          count: sourcesByType.steps.length,
-          sources: sourcesByType.steps.map(s => ({
-            id: s.dataStreamId,
-            name: s.dataStreamName,
-            type: s.dataType?.name,
-            device: s.device?.manufacturer || 'unknown'
-          }))
-        },
-        heartRate: {
-          count: sourcesByType.heartRate.length,
-          sources: sourcesByType.heartRate.map(s => ({
-            id: s.dataStreamId,
-            name: s.dataStreamName,
-            type: s.dataType?.name
-          }))
-        },
-        calories: {
-          count: sourcesByType.calories.length,
-          sources: sourcesByType.calories.map(s => ({
-            id: s.dataStreamId,
-            name: s.dataStreamName,
-            type: s.dataType?.name
-          }))
-        },
-        sleep: {
-          count: sourcesByType.sleep.length,
-          sources: sourcesByType.sleep.map(s => ({
-            id: s.dataStreamId,
-            name: s.dataStreamName,
-            type: s.dataType?.name
-          }))
-        },
-        other: {
-          count: sourcesByType.other.length,
-          types: sourcesByType.other.map(s => s.dataType?.name).filter((v, i, a) => a.indexOf(v) === i)
-        }
-      },
-      sampleDataTest: sampleStepsData,
-      diagnosis: {
-        hasGoogleFitConnection: allSources.length > 0,
-        hasStepsData: sourcesByType.steps.length > 0,
-        hasHeartRateData: sourcesByType.heartRate.length > 0,
-        hasCaloriesData: sourcesByType.calories.length > 0,
-        hasSleepData: sourcesByType.sleep.length > 0
-      }
-    });
-    
-  } catch (error) {
-    logError('debug-google-fit', error);
-    res.status(500).json({
-      error: 'Debug failed',
-      details: error.message,
-      stack: error.stack
-    });
-  }
-}));
-
-// Insert test data for development (NO AUTH)
-router.post('/insert-test-data', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  const { days = 7 } = req.body;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId query parameter is required' });
-  }
-  
-  const userIdInt = parseInt(userId);
-  
-  logInfo('insert-test-data', `Inserting test data for user ${userIdInt} (${days} days)`);
-  
-  try {
-    const insertedData = {
-      steps: [],
-      heartrate: [],
-      calories: [],
-      sleep: []
-    };
-    
-    for (let i = 0; i < days; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const testSteps = Math.floor(Math.random() * 5000) + 5000;
-      const testHeartRate = Math.floor(Math.random() * 30) + 60;
-      const testCalories = Math.floor(Math.random() * 1000) + 1500;
-      const testSleepMinutes = Math.floor(Math.random() * 120) + 360;
-      
-      const stepsInserted = await storeStepsData(userIdInt, {
-        date: dateStr,
-        value: testSteps,
-        dataType: 'steps'
-      });
-      if (stepsInserted) insertedData.steps.push({ date: dateStr, value: testSteps });
-      
-      const hrInserted = await storeHeartRateData(userIdInt, {
-        date: dateStr,
-        value: testHeartRate,
-        dataType: 'heartrate'
-      });
-      if (hrInserted) insertedData.heartrate.push({ date: dateStr, value: testHeartRate });
-      
-      const caloriesInserted = await storeCaloriesData(userIdInt, {
-        date: dateStr,
-        value: testCalories,
-        dataType: 'calories'
-      });
-      if (caloriesInserted) insertedData.calories.push({ date: dateStr, value: testCalories });
-      
-      const sleepInserted = await storeSleepData(userIdInt, {
-        date: dateStr,
-        value: testSleepMinutes,
-        deep_sleep: Math.floor(testSleepMinutes * 0.25),
-        light_sleep: Math.floor(testSleepMinutes * 0.55),
-        rem_sleep: Math.floor(testSleepMinutes * 0.20),
-        awake_time: 30,
-        efficiency: 85 + Math.floor(Math.random() * 10),
-        dataType: 'sleep'
-      });
-      if (sleepInserted) insertedData.sleep.push({ date: dateStr, value: testSleepMinutes });
-    }
-    
-    await db.update(usersTable)
-      .set({ last_sync: new Date() })
-      .where(eq(usersTable.id, userIdInt));
-    
-    logInfo('insert-test-data', 'Test data insertion complete');
-    
-    res.json({
-      message: 'Test data inserted successfully',
-      userId: userIdInt,
-      days,
-      inserted: {
-        steps: insertedData.steps.length,
-        heartrate: insertedData.heartrate.length,
-        calories: insertedData.calories.length,
-        sleep: insertedData.sleep.length
-      },
-      data: insertedData,
-      note: 'Refresh your dashboard to see the test data'
-    });
-    
-  } catch (error) {
-    logError('insert-test-data', error);
-    res.status(500).json({
-      error: 'Failed to insert test data',
-      details: error.message
-    });
-  }
-}));
-
-// Check what data exists in database (NO AUTH)
-router.get('/check-data', asyncHandler(async (req, res) => {
-  const { userId } = req.query;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId query parameter is required' });
-  }
-  
-  const userIdInt = parseInt(userId);
-  
-  logInfo('check-data', `Checking database for user ${userIdInt}`);
-  
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = weekAgo.toISOString().split('T')[0];
-    
-    const [stepsCount, heartRateCount, caloriesCount, sleepCount] = await Promise.all([
-      db.select().from(stepsDataTable)
-        .where(and(
-          eq(stepsDataTable.user_id, userIdInt),
-          gte(stepsDataTable.date, weekAgoStr)
-        )),
-      db.select().from(heartRateDataTable)
-        .where(and(
-          eq(heartRateDataTable.user_id, userIdInt),
-          gte(heartRateDataTable.date, weekAgoStr)
-        )),
-      db.select().from(calorieDataTable)
-        .where(and(
-          eq(calorieDataTable.user_id, userIdInt),
-          gte(calorieDataTable.date, weekAgoStr)
-        )),
-      db.select().from(sleepDataTable)
-        .where(and(
-          eq(sleepDataTable.user_id, userIdInt),
-          gte(sleepDataTable.date, weekAgoStr)
-        ))
-    ]);
-    
-    const summary = {
-      userId: userIdInt,
-      period: `${weekAgoStr} to ${today}`,
-      counts: {
-        steps: stepsCount.length,
-        heartRate: heartRateCount.length,
-        calories: caloriesCount.length,
-        sleep: sleepCount.length
-      },
-      hasAnyData: stepsCount.length > 0 || heartRateCount.length > 0 || 
-                  caloriesCount.length > 0 || sleepCount.length > 0,
-      sampleData: {
-        steps: stepsCount.slice(0, 3),
-        heartRate: heartRateCount.slice(0, 3),
-        calories: caloriesCount.slice(0, 3),
-        sleep: sleepCount.slice(0, 3)
-      }
-    };
-    
-    logInfo('check-data', 'Database check results:', summary.counts);
-    
-    res.json({
-      message: 'Database check complete',
-      ...summary,
-      recommendation: summary.hasAnyData ? 
-        'You have data in the database - refresh your dashboard' : 
-        'No data found - use POST /api/wearable/insert-test-data?userId=X to add test data'
-    });
-    
-  } catch (error) {
-    logError('check-data', error);
-    res.status(500).json({
-      error: 'Failed to check database',
-      details: error.message
-    });
-  }
-}));
 
 module.exports = router;

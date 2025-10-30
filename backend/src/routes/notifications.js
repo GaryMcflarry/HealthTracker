@@ -5,7 +5,6 @@ const { eq, and, gte, isNotNull } = require('drizzle-orm');
 const { db } = require('../db');
 const { usersTable, notificationsTable, goalsTable } = require('../db/schema');
 
-// Fix: createTransport (not createTransporter)
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
@@ -22,21 +21,20 @@ const transporter = nodemailer.createTransport({
 const alertCooldowns = new Map();
 const COOLDOWN_MINUTES = 60;
 
-// Add error handling wrapper
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
 router.post('/check-health-alerts/:userId', asyncHandler(async (req, res) => {
   try {
-    console.log(`🔔 Health alert check for user: ${req.params.userId}`);
-    console.log(`📊 Health data received:`, req.body.healthData);
+    console.log(`Health alert check for user: ${req.params.userId}`);
+    console.log(`Health data received:`, req.body.healthData);
     
     const { userId } = req.params;
     const { healthData } = req.body;
     
     if (!healthData || typeof healthData !== 'object') {
-      console.log('❌ Invalid health data provided');
+      console.log('Invalid health data provided');
       return res.status(400).json({ error: 'Invalid health data provided' });
     }
     
@@ -45,32 +43,32 @@ router.post('/check-health-alerts/:userId', asyncHandler(async (req, res) => {
       .limit(1);
       
     if (user.length === 0) {
-      console.log('❌ User not found:', userId);
+      console.log('User not found:', userId);
       return res.status(404).json({ error: 'User not found' });
     }
     
     const userData = user[0];
     if (!userData.email) {
-      console.log('❌ No email configured for user:', userId);
+      console.log('No email configured for user:', userId);
       return res.status(400).json({ error: 'No email configured for alerts' });
     }
     
-    console.log(`✅ User found: ${userData.email}`);
+    console.log(`User found: ${userData.email}`);
     
     const [userGoals, notificationSettings] = await Promise.all([
       getUserGoals(userId),
       getNotificationSettings()
     ]);
     
-    console.log(`📈 User goals:`, Object.keys(userGoals));
-    console.log(`🔔 Notification settings:`, Object.keys(notificationSettings));
+    console.log(`User goals:`, Object.keys(userGoals));
+    console.log(`Notification settings:`, Object.keys(notificationSettings));
     
     const alerts = await checkHealthAlerts(healthData, userGoals, notificationSettings, userId);
-    console.log(`⚠️ Alerts triggered: ${alerts.length}`);
+    console.log(` Alerts triggered: ${alerts.length}`);
     
     if (alerts.length > 0) {
       const emailResults = await sendHealthAlerts(userData, alerts);
-      console.log(`📧 Email results: ${emailResults.sent} sent, ${emailResults.failed} failed`);
+      console.log(`Email results: ${emailResults.sent} sent, ${emailResults.failed} failed`);
       
       res.json({
         success: true,
@@ -95,7 +93,7 @@ router.post('/check-health-alerts/:userId', asyncHandler(async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Health alerts error:', error);
+    console.error('Health alerts error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to process health alerts',
@@ -107,7 +105,7 @@ router.post('/check-health-alerts/:userId', asyncHandler(async (req, res) => {
 // Test endpoint to verify the route is working
 router.get('/test/:userId', asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  console.log(`🧪 Testing notifications for user: ${userId}`);
+  console.log(`Testing notifications for user: ${userId}`);
   
   res.json({
     success: true,
@@ -119,11 +117,11 @@ router.get('/test/:userId', asyncHandler(async (req, res) => {
 
 // Rest of your functions remain the same...
 async function getUserGoals(userId) {
-  console.log(`🎯 Fetching goals for user: ${userId}`);
+  console.log(`Fetching goals for user: ${userId}`);
   const goals = await db.select().from(goalsTable)
     .where(eq(goalsTable.user_id, parseInt(userId)));
     
-  console.log(`📊 Found ${goals.length} goals`);
+  console.log(`Found ${goals.length} goals`);
   
   const goalsMap = {};
   goals.forEach(goal => {
@@ -138,9 +136,9 @@ async function getUserGoals(userId) {
 }
 
 async function getNotificationSettings() {
-  console.log(`🔔 Fetching notification settings`);
+  console.log(`Fetching notification settings`);
   const notifications = await db.select().from(notificationsTable);
-  console.log(`📢 Found ${notifications.length} notification rules`);
+  console.log(`Found ${notifications.length} notification rules`);
     
   const settings = {
     steps: { notifications: [] },
@@ -185,37 +183,36 @@ async function checkHealthAlerts(healthData, userGoals, notificationSettings, us
   if (healthData.steps !== undefined && healthData.steps !== null) {
     const stepsAlerts = await checkStepsAlerts(healthData.steps, userGoals.steps, notificationSettings.steps, userId);
     alerts.push(...stepsAlerts);
-    console.log(`👟 Steps alerts: ${stepsAlerts.length}`);
+    console.log(` Steps alerts: ${stepsAlerts.length}`);
   }
   
   if (healthData.calories !== undefined && healthData.calories !== null) {
     const calorieAlerts = await checkCalorieAlerts(healthData.calories, userGoals.calories, notificationSettings.calories, userId);
     alerts.push(...calorieAlerts);
-    console.log(`🔥 Calorie alerts: ${calorieAlerts.length}`);
+    console.log(`Calorie alerts: ${calorieAlerts.length}`);
   }
   
   if (healthData.heartRate !== undefined && healthData.heartRate !== null) {
     const heartRateAlerts = await checkHeartRateAlerts(healthData.heartRate, userGoals.heart_rate, notificationSettings.heart_rate, userId);
     alerts.push(...heartRateAlerts);
-    console.log(`❤️ Heart rate alerts: ${heartRateAlerts.length}`);
+    console.log(`Heart rate alerts: ${heartRateAlerts.length}`);
   }
   
   if (healthData.sleepHours !== undefined && healthData.sleepHours !== null && userGoals.sleep) {
     const sleepAlerts = await checkSleepAlerts(healthData.sleepHours, userGoals.sleep, userId);
     alerts.push(...sleepAlerts);
-    console.log(`🌙 Sleep alerts: ${sleepAlerts.length}`);
+    console.log(`Sleep alerts: ${sleepAlerts.length}`);
   }
   
   return alerts;
 }
 
-// Keep all your other functions exactly as they are...
 async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, userId) {
   const alerts = [];
   const cooldownKey = `steps_${userId}`;
   
   if (isInCooldown(cooldownKey)) {
-    console.log(`⏰ Steps alert in cooldown for user: ${userId}`);
+    console.log(`Steps alert in cooldown for user: ${userId}`);
     return alerts;
   }
   
@@ -231,10 +228,9 @@ async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, use
       icon: stepsGoal.icon
     });
     setCooldown(cooldownKey);
-    console.log(`🎉 Steps goal achieved alert created for user: ${userId}`);
+    console.log(` Steps goal achieved alert created for user: ${userId}`);
   }
   
-  // Keep rest of the function the same...
   stepsNotifications.notifications.forEach(notification => {
     if (notification.high_amount && currentSteps >= notification.high_amount) {
       alerts.push({
@@ -264,7 +260,6 @@ async function checkStepsAlerts(currentSteps, stepsGoal, stepsNotifications, use
   return alerts;
 }
 
-// Keep all other functions exactly as they are...
 async function checkCalorieAlerts(currentCalories, caloriesGoal, caloriesNotifications, userId) {
   const alerts = [];
   const cooldownKey = `calories_${userId}`;
@@ -384,7 +379,7 @@ async function sendHealthAlerts(userData, alerts) {
   let failed = 0;
   
   try {
-    console.log(`📧 Preparing to send email to: ${userData.email}`);
+    console.log(`Preparing to send email to: ${userData.email}`);
     const emailContent = generateEmailHTML(userData, alerts);
     
     const mailOptions = {
@@ -394,10 +389,10 @@ async function sendHealthAlerts(userData, alerts) {
       html: emailContent
     };
     
-    console.log(`📤 Sending email...`);
+    console.log(`Sending email...`);
     await transporter.sendMail(mailOptions);
     sent++;
-    console.log(`✅ Email sent successfully`);
+    console.log(`Email sent successfully`);
     
   } catch (error) {
     console.error(`❌ Email failed:`, error.message);

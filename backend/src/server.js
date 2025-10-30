@@ -41,14 +41,12 @@ try {
   caloriesDataRoutes = require('./routes/caloriesData');
   wearableRoutes = require('./routes/wearable');
   
-  // Fix: Better notification route loading
   try {
     notificationsRoutes = require('./routes/notifications');
     notificationsLoaded = true;
-    console.log('✅ Notifications routes loaded successfully');
+    console.log('Notifications routes loaded successfully');
   } catch (notifError) {
-    console.error('❌ Failed to load notifications routes:', notifError.message);
-    // Create a fallback router
+    console.error('Failed to load notifications routes:', notifError.message);
     notificationsRoutes = express.Router();
     notificationsRoutes.get('/status', (req, res) => {
       res.json({ 
@@ -65,11 +63,10 @@ try {
   }
   
 } catch (error) {
-  console.error('❌ Critical error loading routes:', error);
+  console.error('Critical error loading routes:', error);
   process.exit(1);
 }
 
-// Mount all routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/goals', goalsRoutes);
@@ -79,11 +76,9 @@ app.use('/api/sleep', sleepDataRoutes);
 app.use('/api/calories', caloriesDataRoutes);
 app.use('/api/wearable', wearableRoutes);
 
-// Fix: Always mount notifications routes (either real or fallback)
 app.use('/api/notifications', notificationsRoutes);
 console.log('📧 Notifications routes mounted at /api/notifications');
 
-// Debug endpoint to check loaded routes
 app.get('/api/debug/routes', (req, res) => {
   res.json({
     loadedRoutes: [
@@ -195,41 +190,29 @@ app.get('/api/dashboard', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Dashboard error:', error);
+    console.error(' Dashboard error:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data', details: error.message });
   }
 });
 
-// Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('❌ Server error:', error);
+  console.error('Server error:', error);
   res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
   });
 });
 
-// 404 handler for API routes - this should be LAST
 app.use('/api/*', (req, res) => {
-  console.log(`❌ API endpoint not found: ${req.method} ${req.originalUrl}`);
+  console.log(`API endpoint not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
-cron.schedule('*/15 * * * *', async () => {
-  if (process.env.NODE_ENV === 'production' && process.env.HEALTH_SYNC_ENABLED === 'true') {
-    try {
-      // Sync logic here
-    } catch (error) {
-      // Handle sync errors
-    }
-  }
-});
-
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📧 Notifications service: ${notificationsLoaded ? 'ACTIVE' : 'UNAVAILABLE'}`);
-  console.log(`🔍 Debug routes at: http://localhost:${PORT}/api/debug/routes`);
-  console.log(`❤️ Health check at: http://localhost:${PORT}/api/health`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Notifications service: ${notificationsLoaded ? 'ACTIVE' : 'UNAVAILABLE'}`);
+  console.log(`Debug routes at: http://localhost:${PORT}/api/debug/routes`);
+  console.log(`Health check at: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = app;

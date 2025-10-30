@@ -1219,7 +1219,7 @@ function updateComparisonChange(elementId, current, previous) {
     }
     
     if (Math.abs(change) > 15) {
-        element.textContent += change > 0 ? ' ↗️' : ' ↘️';
+        element.textContent += change > 0 ? 'Yes' : 'no';
     }
 }
 

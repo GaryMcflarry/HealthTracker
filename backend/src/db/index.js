@@ -1,7 +1,6 @@
 const { drizzle } = require('drizzle-orm/mysql2');
 const mysql = require('mysql2/promise');
 
-// Create connection pool for better performance and connection management
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
@@ -16,7 +15,6 @@ const pool = mysql.createPool({
   reconnect: true
 });
 
-// Test the connection
 async function testConnection() {
   try {
     const connection = await pool.getConnection();
@@ -30,10 +28,8 @@ async function testConnection() {
   }
 }
 
-// Initialize connection test
 testConnection();
 
-// Create drizzle instance with the pool
 const db = drizzle(pool);
 
 module.exports = { 
